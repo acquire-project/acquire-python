@@ -1,0 +1,16 @@
+[package]
+name = "demo-python-api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "demo_python_api"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.16.3", features = ["extension-module"] }
+
+[build-dependencies]
+bindgen = "0.53.1"
+cmake = "0.1"
