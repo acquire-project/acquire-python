@@ -1,8 +1,14 @@
 fn main() {
-    let dst = cmake::build("demo");
+    let dst = cmake::Config::new("demo")
+        .target("core")
+        .profile("RelWithDebInfo")
+        .static_crt(true)
+        .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    println!("cargo:rustc-link-search=native=demo/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/");
     println!("cargo:rustc-link-lib=static=core");
+    println!("cargo:rustc-link-lib=static=NIDAQmx");
     println!("cargo:rerun-if-changed=wrapper.h");
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
