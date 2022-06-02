@@ -2,7 +2,7 @@ mod core;
 use std::ffi::CStr;
 
 use log::{error, info, trace, debug};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, class::buffer::PyBufferReleaseBufferProtocol};
 use anyhow::anyhow;
 
 
@@ -47,22 +47,17 @@ unsafe impl Send for Runtime {}
 #[pymethods]
 impl Runtime {
     #[new]
-    fn new()->PyResult<Self> {
-        // let settings=core::CoreSettings{
-        //     camera: todo!(),
-        //     storage: todo!(),
-        //     stages: todo!(),
-        //     signals: todo!(),
-        //     max_frame_count: todo!(),
-        //     frame_average_count: todo!(),
-        // };
-
+    fn new()->PyResult<Self> {        
         let inner=unsafe {core::core_init(Some(reporter))};
         if inner.is_null() {
             Err(anyhow!("Failed to initialize the core runtime.").into())
         } else { 
             Ok(Self{inner})
         }
+    }
+
+    fn get_available_data(&self)->PyResult<AvailableData> {
+        todo!()
     }
 }
 
@@ -72,6 +67,20 @@ impl Drop for Runtime {
         unsafe{ core::core_shutdown(self.inner);}
     }
 }
+
+#[pyclass]
+struct AvailableData{
+    bytes: [u8]
+};
+
+#[pymethods]
+impl AvailableData {
+    fn new(bytes:&[u8]) {
+
+    }
+}
+
+
 
 #[pymodule]
 fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
