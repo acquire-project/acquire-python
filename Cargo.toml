@@ -9,8 +9,9 @@ name = "demo_python_api"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.16.3", features = ["extension-module","anyhow"] }
+pyo3 = { version = "0.16.3", features = ["extension-module","anyhow", "abi3-py38"] }
 pyo3-log = "0.6"
+numpy="0.16.2"
 log= "0.4.17"
 anyhow="1.0.57"
 
