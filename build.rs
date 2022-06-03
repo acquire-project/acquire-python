@@ -3,12 +3,18 @@ fn main() {
         .target("core")
         .profile("RelWithDebInfo")
         .static_crt(true)
+        .define("NOTEST", "TRUE")
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-search=native=demo/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/");
     println!("cargo:rustc-link-lib=static=core");
-    println!("cargo:rustc-link-lib=static=NIDAQmx");
+
+    #[cfg(target_os="windows")]
+    {
+        println!("cargo:rustc-link-search=native=demo/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/");
+        println!("cargo:rustc-link-lib=static=NIDAQmx");
+    }
+
     println!("cargo:rerun-if-changed=wrapper.h");
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")

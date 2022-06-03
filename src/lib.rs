@@ -6,7 +6,7 @@ use core_runtime::{core_init, core_map_read, core_unmap_read, CoreRuntime, CoreS
 use log::{debug, error, info, trace};
 use numpy::{
     ndarray::{Dim, IntoDimension, RawArrayView},
-    Ix4,
+    Ix4, PyArray4, ToPyArray, Element,
 };
 use pyo3::prelude::*;
 
@@ -146,15 +146,13 @@ unsafe impl Send for VideoFrameIterator {}
 impl VideoFrameIterator {}
 
 impl Iterator for VideoFrameIterator {
-    type Item = Self;
+    type Item = VideoFrame;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cur < self.end {
-            Some(VideoFrameIterator {
-                cur: unsafe { (self.cur as *const u8).offset((*self.cur).bytes_of_frame as _) }
-                    as *const core_runtime::VideoFrame,
-                end: self.end,
-            })
+            self.cur = unsafe { (self.cur as *const u8).offset((*self.cur).bytes_of_frame as _) }
+                as *const core_runtime::VideoFrame;
+            VideoFrame::new(self.cur).ok()
         } else {
             None
         }
@@ -187,6 +185,12 @@ enum SupportedImageView {
     I8(RawArrayView<i8, Ix4>),
     I16(RawArrayView<i16, Ix4>),
     F32(RawArrayView<f32, Ix4>),
+}
+
+impl SupportedImageView {
+    fn to_py(&self)->PyArray {
+        todo!()
+    }
 }
 
 impl IntoDimension for core_runtime::ImageShape_image_dims_s {
@@ -255,6 +259,10 @@ impl VideoFrame {
                 }
             },
         })
+    }
+
+    fn as_numpy<T>(&self)->PyArray4<T>{
+        self.array.to_pyarray()
     }
 }
 
