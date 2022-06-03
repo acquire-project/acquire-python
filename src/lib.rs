@@ -104,7 +104,8 @@ unsafe impl Send for AvailableData {}
 
 #[pymethods]
 impl AvailableData {
-    fn get_frame_count(&self) -> usize {
+
+    fn get_frame_count(&self) ->usize {
         let mut count = 0;
         unsafe {
             let end = self.buf.offset(self.nbytes as _);
@@ -117,11 +118,12 @@ impl AvailableData {
         count
     }
 
-    fn __iter__(&self) -> VideoFrameIterator {
-        VideoFrameIterator {
-            cur: self.buf,
-            end: unsafe { self.buf.offset(self.nbytes as _) },
-        }
+    fn __iter__(slf:PyRef<'_,Self>) -> PyResult<Py<VideoFrameIterator>> {
+        let iter=VideoFrameIterator {
+            cur: slf.buf,
+            end: unsafe { slf.buf.offset(slf.nbytes as _) },
+        };
+        Py::new(slf.py(),iter)
     }
 }
 
@@ -143,7 +145,16 @@ struct VideoFrameIterator {
 
 unsafe impl Send for VideoFrameIterator {}
 
-impl VideoFrameIterator {}
+#[pymethods]
+impl VideoFrameIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_,Self>)->Option<VideoFrame> {
+        slf.next()
+    }
+}
 
 impl Iterator for VideoFrameIterator {
     type Item = VideoFrame;
@@ -159,6 +170,7 @@ impl Iterator for VideoFrameIterator {
     }
 }
 
+#[pyclass]
 #[derive(Debug, Default)]
 struct VideoFrameTimestamps {
     hardware: u64,
@@ -174,6 +186,7 @@ impl From<core_runtime::VideoFrame_video_frame_timestamps_s> for VideoFrameTimes
     }
 }
 
+#[pyclass]
 struct VideoFrameMetadata {
     frame_id: u64,
     timestamps: VideoFrameTimestamps,
@@ -187,11 +200,6 @@ enum SupportedImageView {
     F32(RawArrayView<f32, Ix4>),
 }
 
-impl SupportedImageView {
-    fn to_py(&self)->PyArray {
-        todo!()
-    }
-}
 
 impl IntoDimension for core_runtime::ImageShape_image_dims_s {
     type Dim = Ix4;
@@ -214,10 +222,13 @@ impl IntoDimension for core_runtime::ImageShape {
     }
 }
 
+#[pyclass]
 struct VideoFrame {
     array: SupportedImageView,
     metadata: VideoFrameMetadata,
 }
+
+unsafe impl Send for VideoFrame {}
 
 impl VideoFrame {
     fn new(cur: *const core_runtime::VideoFrame) -> Result<Self> {
@@ -260,17 +271,13 @@ impl VideoFrame {
             },
         })
     }
-
-    fn as_numpy<T>(&self)->PyArray4<T>{
-        self.array.to_pyarray()
-    }
 }
 
 #[pymodule]
 fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
-    m.add_class::<Runtime>()?;
+    m.add_class::<Runtime>()?;    
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     Ok(())
 }
