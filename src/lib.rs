@@ -1,26 +1,38 @@
 mod core_runtime;
-use std::{ffi::CStr, ptr::null_mut};
+use std::{
+    ffi::CStr,
+    ptr::{null_mut, NonNull},
+    sync::Arc,
+};
 
 use anyhow::{anyhow, Result};
-use core_runtime::{core_init, core_map_read, core_unmap_read, CoreRuntime, CoreStatusCode};
 use log::{debug, error, info, trace};
 use numpy::{
     ndarray::{Dim, IntoDimension, RawArrayView},
-    Ix4, PyArray4, ToPyArray, Element,
+    Element, Ix4, PyArray4, ToPyArray,
 };
 use pyo3::prelude::*;
 
 use crate::core_runtime::core_shutdown;
 
-fn check(ecode: CoreStatusCode) -> Result<()> {
-    todo!()
-    // if ecode==core::
+trait Status: Sized {
+    fn ok(&self) -> Result<Self>;
 }
 
-/// Formats the sum of two numbers as string.
+impl Status for core_runtime::DeviceStatusCode {
+    fn ok(&self) -> Result<Self> {
+        if *self == core_runtime::CoreStatusCode_CoreStatus_Ok {
+            Ok(*self)
+        } else {
+            Err(anyhow!("Failed status check"))
+        }
+    }
+}
+
 #[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+fn core_api_version() -> PyResult<String> {
+    let ptr = unsafe { core_runtime::core_api_version_string() };
+    Ok(unsafe { CStr::from_ptr(ptr) }.to_str()?.to_owned())
 }
 
 unsafe extern "C" fn reporter(
@@ -48,112 +60,148 @@ unsafe extern "C" fn reporter(
     }
 }
 
-#[pyclass]
-struct Runtime {
-    inner: *mut CoreRuntime,
+struct RawRuntime {
+    inner: NonNull<core_runtime::CoreRuntime>,
 }
 
-unsafe impl Send for Runtime {}
+unsafe impl Send for RawRuntime {}
+unsafe impl Sync for RawRuntime {}
+
+impl RawRuntime {
+    fn new() -> Result<Self> {
+        Ok(Self {
+            inner: NonNull::new(unsafe { core_runtime::core_init(Some(reporter)) })
+                .ok_or(anyhow!("Failed to initialize core runtime."))?,
+        })
+    }
+}
+
+impl Drop for RawRuntime {
+    fn drop(&mut self) {
+        debug!("SHUTDOWN Runtime");
+        unsafe {
+            core_shutdown(self.inner.as_mut())
+                .ok()
+                .expect("Core runtime shutdown failed.");
+        }
+    }
+}
+
+impl AsRef<NonNull<core_runtime::CoreRuntime>> for RawRuntime {
+    fn as_ref(&self) -> &NonNull<core_runtime::CoreRuntime> {
+        &self.inner
+    }
+}
+
+#[pyclass]
+struct Runtime {
+    inner: Arc<RawRuntime>,
+}
+
+impl AsRef<NonNull<core_runtime::CoreRuntime>> for Runtime {
+    fn as_ref(&self) -> &NonNull<core_runtime::CoreRuntime> {
+        &self.inner.inner
+    }
+}
 
 #[pymethods]
 impl Runtime {
     #[new]
     fn new() -> PyResult<Self> {
-        let inner = unsafe { core_init(Some(reporter)) };
-        if inner.is_null() {
-            Err(anyhow!("Failed to initialize the core runtime.").into())
-        } else {
-            Ok(Self { inner })
-        }
+        Ok(Self {
+            inner: Arc::new(RawRuntime::new()?),
+        })
     }
 
     fn get_available_data(&self) -> PyResult<AvailableData> {
         let mut buf = null_mut();
         let mut nbytes = 0;
         unsafe {
-            check(core_map_read(self.inner, &mut buf, &mut nbytes))?;
+            core_runtime::core_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
-        Ok(AvailableData {
-            inner: self.inner,
-            buf,
-            nbytes: nbytes as _,
-            consumed_bytes: None,
-        })
+        Ok(AvailableData{ inner: Arc::new(
+            RawAvailableData {
+                runtime: self.inner.clone(),
+                buf: NonNull::new(buf),
+                nbytes: nbytes as _,
+                consumed_bytes: None,
+            }
+        )})
     }
 }
 
-impl Drop for Runtime {
-    fn drop(&mut self) {
-        debug!("SHUTDOWN Runtime");
-        unsafe {
-            core_shutdown(self.inner);
-        }
-    }
-}
-
-#[pyclass]
-#[derive(Debug)]
-struct AvailableData {
-    inner: *mut CoreRuntime,
-    buf: *const core_runtime::VideoFrame,
+struct RawAvailableData {
+    runtime: Arc<RawRuntime>,
+    buf: Option<NonNull<core_runtime::VideoFrame>>,
     nbytes: usize,
     consumed_bytes: Option<usize>,
 }
 
 unsafe impl Send for AvailableData {}
 
-#[pymethods]
-impl AvailableData {
-
-    fn get_frame_count(&self) ->usize {
+impl RawAvailableData {
+    fn get_frame_count(&self) -> usize {
         let mut count = 0;
-        unsafe {
-            let end = self.buf.offset(self.nbytes as _);
-            let mut cur = self.buf;
-            while cur < end {
-                cur = cur.offset((*cur).bytes_of_frame as _);
-                count += 1;
+        if let Some(buf) = self.buf {
+            unsafe {
+                let end = buf.as_ptr().offset(self.nbytes as _);
+                let mut cur = buf.as_ptr();
+                while cur < end {
+                    cur = cur.offset((*cur).bytes_of_frame as _);
+                    count += 1;
+                }
             }
         }
         count
     }
-
-    fn __iter__(slf:PyRef<'_,Self>) -> PyResult<Py<VideoFrameIterator>> {
-        let iter=VideoFrameIterator {
-            cur: slf.buf,
-            end: unsafe { slf.buf.offset(slf.nbytes as _) },
-        };
-        Py::new(slf.py(),iter)
-    }
 }
 
-impl Drop for AvailableData {
+impl Drop for RawAvailableData {
     fn drop(&mut self) {
+        debug!("Unmapping read region");
         let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
         unsafe {
-            check(core_unmap_read(self.inner, consumed_bytes as _))
+            core_runtime::core_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
+                .ok()
                 .expect("Unexpected failure: Was the CoreRuntime NULL?");
         }
     }
 }
 
 #[pyclass]
-struct VideoFrameIterator {
-    cur: *const core_runtime::VideoFrame,
-    end: *const core_runtime::VideoFrame,
+struct AvailableData {
+    inner: Arc<RawAvailableData>,
 }
 
-unsafe impl Send for VideoFrameIterator {}
-
 #[pymethods]
-impl VideoFrameIterator {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
+impl AvailableData {
+    fn get_frame_count(&self) -> usize {
+        self.inner.get_frame_count()
     }
 
-    fn __next__(mut slf: PyRefMut<'_,Self>)->Option<VideoFrame> {
-        slf.next()
+    fn frames(&self)->VideoFrameIterator {
+        
+        VideoFrameIterator { _store: self.inner.clone(), cur: self.inner.buf, end: unsafe{self.inner.buf} }
     }
+
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
+        let iter = VideoFrameIterator {
+            cur: slf.buf,
+            end: unsafe { slf.buf.offset(slf.nbytes as _) },
+        };
+        Py::new(slf.py(), iter)
+    }
+}
+
+struct VideoFrameIterator {
+    _store: Arc<RawAvailableData>,
+    cur: NonNull<core_runtime::VideoFrame>,
+    end: NonNull<core_runtime::VideoFrame>,
+}
+
+impl VideoFrameIterator {
+
 }
 
 impl Iterator for VideoFrameIterator {
@@ -199,7 +247,6 @@ enum SupportedImageView {
     I16(RawArrayView<i16, Ix4>),
     F32(RawArrayView<f32, Ix4>),
 }
-
 
 impl IntoDimension for core_runtime::ImageShape_image_dims_s {
     type Dim = Ix4;
@@ -277,8 +324,8 @@ impl VideoFrame {
 fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
-    m.add_class::<Runtime>()?;    
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    m.add_class::<Runtime>()?;
+    m.add_function(wrap_pyfunction!(core_api_version, m)?);
     Ok(())
 }
 
