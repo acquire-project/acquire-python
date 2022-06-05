@@ -1,19 +1,18 @@
 mod core_runtime;
+
+use anyhow::{anyhow, Result};
+use log::{debug, error, info};
+use numpy::{
+    ndarray::{Dim, IntoDimension, RawArrayView},
+    Ix4, ToPyArray,
+};
+use parking_lot::Mutex;
+use pyo3::prelude::*;
 use std::{
     ffi::CStr,
     ptr::{null_mut, NonNull},
     sync::Arc,
 };
-
-use anyhow::{anyhow, Result};
-use log::{debug, error, info, trace};
-use numpy::{
-    ndarray::{Dim, IntoDimension, RawArrayView},
-    Element, Ix4, PyArray4, ToPyArray,
-};
-use pyo3::prelude::*;
-
-use crate::core_runtime::core_shutdown;
 
 trait Status: Sized {
     fn ok(&self) -> Result<Self>;
@@ -80,7 +79,7 @@ impl Drop for RawRuntime {
     fn drop(&mut self) {
         debug!("SHUTDOWN Runtime");
         unsafe {
-            core_shutdown(self.inner.as_mut())
+            core_runtime::core_shutdown(self.inner.as_mut())
                 .ok()
                 .expect("Core runtime shutdown failed.");
         }
@@ -113,43 +112,51 @@ impl Runtime {
         })
     }
 
-    fn get_available_data(&self) -> PyResult<AvailableData> {
+    fn get_available_data(&self) -> PyResult<Option<AvailableData>> {
         let mut buf = null_mut();
         let mut nbytes = 0;
         unsafe {
             core_runtime::core_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
-        Ok(AvailableData{ inner: Arc::new(
-            RawAvailableData {
-                runtime: self.inner.clone(),
-                buf: NonNull::new(buf),
-                nbytes: nbytes as _,
-                consumed_bytes: None,
-            }
-        )})
+        Ok(if nbytes > 0 {
+            Some(AvailableData {
+                inner: Arc::new(RawAvailableData {
+                    runtime: self.inner.clone(),
+                    buf: NonNull::new(buf).ok_or(anyhow!("Expected non-null buffer"))?,
+                    nbytes: nbytes as _,
+                    consumed_bytes: None,
+                }),
+            })
+        } else {
+            None
+        })
     }
 }
 
+/// References to a region of raw data being read from a video stream.
 struct RawAvailableData {
+    /// Reference to the context that owns the region
     runtime: Arc<RawRuntime>,
-    buf: Option<NonNull<core_runtime::VideoFrame>>,
+    /// Pointer to the reserved region
+    buf: NonNull<core_runtime::VideoFrame>,
+    /// Number of bytes in the mapped region
     nbytes: usize,
+
     consumed_bytes: Option<usize>,
 }
 
-unsafe impl Send for AvailableData {}
+unsafe impl Send for RawAvailableData {}
+unsafe impl Sync for RawAvailableData {}
 
 impl RawAvailableData {
     fn get_frame_count(&self) -> usize {
         let mut count = 0;
-        if let Some(buf) = self.buf {
-            unsafe {
-                let end = buf.as_ptr().offset(self.nbytes as _);
-                let mut cur = buf.as_ptr();
-                while cur < end {
-                    cur = cur.offset((*cur).bytes_of_frame as _);
-                    count += 1;
-                }
+        unsafe {
+            let end = self.buf.as_ptr().offset(self.nbytes as _);
+            let mut cur = self.buf.as_ptr();
+            while cur < end {
+                cur = cur.offset((*cur).bytes_of_frame as _);
+                count += 1;
             }
         }
         count
@@ -179,39 +186,49 @@ impl AvailableData {
         self.inner.get_frame_count()
     }
 
-    fn frames(&self)->VideoFrameIterator {
-        
-        VideoFrameIterator { _store: self.inner.clone(), cur: self.inner.buf, end: unsafe{self.inner.buf} }
+    fn frames(&self) -> VideoFrameIterator {
+        VideoFrameIterator {
+            store: self.inner.clone(),
+            cur: Mutex::new(self.inner.buf),
+            end: unsafe {
+                NonNull::new_unchecked(self.inner.buf.as_ptr().offset(self.inner.nbytes as _))
+            },
+        }
     }
 
-
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
-        let iter = VideoFrameIterator {
-            cur: slf.buf,
-            end: unsafe { slf.buf.offset(slf.nbytes as _) },
-        };
-        Py::new(slf.py(), iter)
+        Py::new(slf.py(), slf.frames())
     }
 }
 
+#[pyclass]
 struct VideoFrameIterator {
-    _store: Arc<RawAvailableData>,
-    cur: NonNull<core_runtime::VideoFrame>,
+    store: Arc<RawAvailableData>,
+    cur: Mutex<NonNull<core_runtime::VideoFrame>>,
     end: NonNull<core_runtime::VideoFrame>,
 }
 
-impl VideoFrameIterator {
+unsafe impl Send for VideoFrameIterator {}
 
-}
+impl VideoFrameIterator {}
 
 impl Iterator for VideoFrameIterator {
     type Item = VideoFrame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cur < self.end {
-            self.cur = unsafe { (self.cur as *const u8).offset((*self.cur).bytes_of_frame as _) }
-                as *const core_runtime::VideoFrame;
-            VideoFrame::new(self.cur).ok()
+        let mut cur = self.cur.lock();
+        if *cur < self.end {
+            let out = VideoFrame {
+                _store: self.store.clone(),
+                cur: *cur,
+            };
+
+            let c = cur.as_ptr();
+            let o = unsafe { (c as *const u8).offset((*c).bytes_of_frame as _) }
+                as *mut core_runtime::VideoFrame;
+            *cur = unsafe { NonNull::new_unchecked(o) };
+
+            Some(out)
         } else {
             None
         }
@@ -248,6 +265,25 @@ enum SupportedImageView {
     F32(RawArrayView<f32, Ix4>),
 }
 
+impl SupportedImageView {
+    fn to_pyobject<'py>(&self, py: Python<'py>) -> Py<PyAny> {
+        macro_rules! cvt {
+            ($im:ident) => {
+                unsafe { $im.deref_into_view() }
+                    .to_pyarray(py)
+                    .to_object(py)
+            };
+        }
+        match self {
+            SupportedImageView::U8(im) => cvt!(im),
+            SupportedImageView::U16(im) => cvt!(im),
+            SupportedImageView::I8(im) => cvt!(im),
+            SupportedImageView::I16(im) => cvt!(im),
+            SupportedImageView::F32(im) => cvt!(im),
+        }
+    }
+}
+
 impl IntoDimension for core_runtime::ImageShape_image_dims_s {
     type Dim = Ix4;
 
@@ -271,14 +307,28 @@ impl IntoDimension for core_runtime::ImageShape {
 
 #[pyclass]
 struct VideoFrame {
-    array: SupportedImageView,
-    metadata: VideoFrameMetadata,
+    _store: Arc<RawAvailableData>,
+    cur: NonNull<core_runtime::VideoFrame>,
 }
 
 unsafe impl Send for VideoFrame {}
 
+#[pymethods]
 impl VideoFrame {
-    fn new(cur: *const core_runtime::VideoFrame) -> Result<Self> {
+    fn metadata(slf: PyRef<'_, Self>) -> PyResult<VideoFrameMetadata> {
+        let cur = slf.cur.as_ptr();
+        let meta = unsafe {
+            VideoFrameMetadata {
+                frame_id: (*cur).frame_id,
+                timestamps: (*cur).timestamps.into(),
+            }
+        };
+        Ok(meta)
+    }
+
+    fn data<'py>(&self, py: Python<'py>) -> Py<PyAny> {
+        let cur = self.cur.as_ptr();
+
         macro_rules! gen_match {
             ($x:expr, $($A:ident => $B:ident),+) => {
                 {
@@ -307,16 +357,10 @@ impl VideoFrame {
                 SampleType_SampleType_i16 => I16,
                 SampleType_SampleType_f32 => F32
             )
-        }?;
-        Ok(Self {
-            array,
-            metadata: unsafe {
-                VideoFrameMetadata {
-                    frame_id: (*cur).frame_id,
-                    timestamps: (*cur).timestamps.into(),
-                }
-            },
-        })
+        }
+        .unwrap();
+
+        array.to_pyobject(py)
     }
 }
 
@@ -325,9 +369,10 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<Runtime>()?;
-    m.add_function(wrap_pyfunction!(core_api_version, m)?);
+    m.add_function(wrap_pyfunction!(core_api_version, m)?)?;
     Ok(())
 }
 
-// TODO: Probably need a smart pointer on core, other objects
+// TODO: Can't ensure the output array doesn't outlive the available data
 // TODO: Is everything really Send
+// TODO: mark iterable and videoframe as things that can't be shared across threads
