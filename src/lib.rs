@@ -1,9 +1,9 @@
 
-
 pub(crate) mod core_runtime;
 pub(crate) mod device_manager;
 pub(crate) mod components;
 pub(crate) mod camera;
+pub(crate) mod storage;
 pub mod runtime;
 
 use std::ffi::CStr;
@@ -37,6 +37,9 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<runtime::Runtime>()?;
     m.add_class::<components::SampleType>()?;
     m.add_class::<camera::CameraProperties>()?;
+    m.add_class::<components::Trigger>()?;
     m.add_function(wrap_pyfunction!(core_api_version, m)?)?;
     Ok(())
 }
+
+// TODO: consider replacing anyhow with thiserror for errors
