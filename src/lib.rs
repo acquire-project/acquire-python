@@ -35,7 +35,7 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<runtime::Runtime>()?;
-    m.add_class::<camera::SampleType>()?;
+    m.add_class::<components::SampleType>()?;
     m.add_class::<camera::CameraProperties>()?;
     m.add_function(wrap_pyfunction!(core_api_version, m)?)?;
     Ok(())
