@@ -6,7 +6,8 @@ pub(crate) mod camera;
 pub(crate) mod storage;
 pub(crate) mod stage_axis;
 pub(crate) mod signals;
-pub mod runtime;
+pub(crate) mod core_properties;
+pub(crate) mod runtime;
 
 use std::ffi::CStr;
 use pyo3::prelude::*;
@@ -26,6 +27,12 @@ impl Status for core_runtime::DeviceStatusCode {
     }
 }
 
+impl core_runtime::DeviceIdentifier {
+    fn name_as_string(&self)->Result<String> {
+        Ok(unsafe{CStr::from_ptr(self.name.as_ptr())}.to_str()?.to_owned())
+    }
+}
+
 #[pyfunction]
 fn core_api_version() -> PyResult<String> {
     let ptr = unsafe { core_runtime::core_api_version_string() };
@@ -37,6 +44,7 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<runtime::Runtime>()?;
+    m.add_class::<core_properties::CoreProperties>()?;
 
     m.add_class::<camera::CameraProperties>()?;
     m.add_class::<storage::StorageProperties>()?;
