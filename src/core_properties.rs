@@ -1,3 +1,4 @@
+use log::debug;
 use pyo3::prelude::*;
 
 use crate::{
@@ -27,6 +28,9 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_camera_s> for Camera {
         })
     }
 }
+
+// impl TryFrom<Camera> for core_runtime::CoreProperties_core_properties_camera_s {
+// }
 
 #[pyclass]
 #[derive(Debug, Clone, Default)]
@@ -123,13 +127,32 @@ impl TryFrom<core_runtime::CoreProperties> for CoreProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: core_runtime::CoreProperties) -> Result<Self, Self::Error> {
+        let camera = value.camera.try_into()?;
+        let storage = value.storage.try_into()?;
+        let stages = (value.stages[0].try_into()?,value.stages[1].try_into()?,value.stages[2].try_into()?);
+        let signals = value.signals.try_into()?;
         Ok(Self {
-            camera: value.camera.try_into()?,
-            storage: value.storage.try_into()?,
-            stages: (value.stages[0].try_into()?,value.stages[1].try_into()?,value.stages[2].try_into()?),
-            signals: value.signals.try_into()?,
+            camera,
+            storage,
+            stages,
+            signals,
             max_frame_count: value.max_frame_count,
             frame_average_count: value.frame_average_count,
         })
     }
 }
+
+// impl TryFrom<CoreProperties> for core_runtime::CoreProperties {
+//     type Error=anyhow::Error;
+
+//     fn try_from(value: CoreProperties) -> Result<Self, Self::Error> {
+//         Ok(Self{
+//             camera: value.camera.try_into()?,
+//             storage: todo!(),
+//             stages: todo!(),
+//             signals: todo!(),
+//             max_frame_count: todo!(),
+//             frame_average_count: todo!(),
+//         })
+//     }
+// }

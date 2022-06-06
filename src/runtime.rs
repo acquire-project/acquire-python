@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{core_runtime, device_manager, Status};
+use crate::{core_runtime, device_manager, Status, core_properties::CoreProperties};
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -100,6 +100,12 @@ impl Runtime {
                 as _
             }).ok_or(anyhow!("Failed to get device manager"))?,
         })
+    }
+
+    fn get_configuration(&self)->PyResult<CoreProperties> {
+        let mut props:core_runtime::CoreProperties=unsafe{std::mem::zeroed()};
+        unsafe{core_runtime::core_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
+        Ok(props.try_into()?)
     }
 
     fn get_available_data(&self) -> PyResult<Option<AvailableData>> {

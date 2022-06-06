@@ -7,7 +7,9 @@ pub(crate) mod storage;
 pub(crate) mod stage_axis;
 pub(crate) mod signals;
 pub(crate) mod core_properties;
+pub(crate) mod device;
 pub(crate) mod runtime;
+
 
 use std::ffi::CStr;
 use pyo3::prelude::*;
@@ -24,12 +26,6 @@ impl Status for core_runtime::DeviceStatusCode {
         } else {
             Err(anyhow!("Failed status check"))
         }
-    }
-}
-
-impl core_runtime::DeviceIdentifier {
-    fn name_as_string(&self)->Result<String> {
-        Ok(unsafe{CStr::from_ptr(self.name.as_ptr())}.to_str()?.to_owned())
     }
 }
 
