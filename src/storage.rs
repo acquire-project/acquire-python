@@ -27,18 +27,18 @@ impl TryFrom<core_runtime::StorageProperties> for StorageProperties {
     }
 }
 
-impl TryInto<core_runtime::StorageProperties2k> for StorageProperties {
+impl TryFrom<StorageProperties> for core_runtime::StorageProperties2k {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<core_runtime::StorageProperties2k, Self::Error> {
+    fn try_from(value: StorageProperties) -> Result<Self, Self::Error> {
         let mut out: core_runtime::StorageProperties2k = unsafe { std::mem::zeroed() };
-        let x = CString::new(self.filename)?;
+        let x = CString::new(value.filename)?;
         let x = x.as_c_str();
         unsafe {
             core_runtime::storage_properties_init(
                 out.as_mut() as *mut core_runtime::StoragePropertiesOwned,
                 std::mem::size_of_val(&out) as _,
-                self.first_frame_id,
+                value.first_frame_id,
                 x.as_ptr(),
                 x.to_bytes_with_nul().len() as _,
             )
@@ -46,6 +46,8 @@ impl TryInto<core_runtime::StorageProperties2k> for StorageProperties {
         }
         Ok(out)
     }
+
+
 }
 
 impl AsRef<core_runtime::StorageProperties> for core_runtime::StorageProperties2k {

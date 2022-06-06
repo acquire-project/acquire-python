@@ -4,6 +4,8 @@ pub(crate) mod device_manager;
 pub(crate) mod components;
 pub(crate) mod camera;
 pub(crate) mod storage;
+pub(crate) mod stage_axis;
+pub(crate) mod signals;
 pub mod runtime;
 
 use std::ffi::CStr;
@@ -35,9 +37,24 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<runtime::Runtime>()?;
-    m.add_class::<components::SampleType>()?;
+
     m.add_class::<camera::CameraProperties>()?;
+    m.add_class::<storage::StorageProperties>()?;
+    m.add_class::<stage_axis::StageAxisProperties>()?;
+    m.add_class::<stage_axis::StageAxisState>()?;
+    m.add_class::<signals::SignalProperties>()?;
+    m.add_class::<signals::Channel>()?;
+
+    m.add_class::<components::PID>()?;
+    m.add_class::<components::SampleRateHz>()?;
+    m.add_class::<components::SampleType>()?;
+    m.add_class::<components::SignalIOKind>()?;
+    m.add_class::<components::SignalType>()?;
     m.add_class::<components::Trigger>()?;
+    m.add_class::<components::TriggerEdge>()?;
+    m.add_class::<components::TriggerEvent>()?;
+    m.add_class::<components::VoltageRange>()?;
+
     m.add_function(wrap_pyfunction!(core_api_version, m)?)?;
     Ok(())
 }

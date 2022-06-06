@@ -57,39 +57,40 @@ impl TryFrom<core_runtime::CameraProperties> for CameraProperties {
     }
 }
 
-impl TryInto<core_runtime::CameraProperties> for CameraProperties {
+impl TryFrom<CameraProperties> for core_runtime::CameraProperties {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<core_runtime::CameraProperties, Self::Error> {
+    fn try_from(value: CameraProperties) -> Result<Self, Self::Error> {
         let mut triggers: core_runtime::CameraProperties_camera_properties_triggers_s =
             unsafe { std::mem::zeroed() };
-        if self.triggers.len() > triggers.lines.len() {
+        if value.triggers.len() > triggers.lines.len() {
             Err(anyhow!(
                 "Expected fewer trigger lines. Require {}<{}",
-                self.triggers.len(),
+                value.triggers.len(),
                 triggers.lines.len()
             ))
         } else {
             let offset = core_runtime::CameraProperties_camera_properties_offset_s {
-                x: self.offset.0,
-                y: self.offset.1,
+                x: value.offset.0,
+                y: value.offset.1,
             };
             let shape = core_runtime::CameraProperties_camera_properties_shape_s {
-                x: self.shape.0,
-                y: self.shape.1,
+                x: value.shape.0,
+                y: value.shape.1,
             };
-            for (src, dst) in self.triggers.into_iter().zip(triggers.lines.iter_mut()) {
+            for (src, dst) in value.triggers.into_iter().zip(triggers.lines.iter_mut()) {
                 *dst = src.into()
             }
             Ok(core_runtime::CameraProperties {
-                gain_dB: self.gain_db,
-                exposure_time_us: self.exposure_time_us,
-                binning: self.binning,
-                pixel_type: self.pixel_type.into(),
+                gain_dB: value.gain_db,
+                exposure_time_us: value.exposure_time_us,
+                binning: value.binning,
+                pixel_type: value.pixel_type.into(),
                 offset,
                 shape,
                 triggers,
             })
         }
     }
+
 }
