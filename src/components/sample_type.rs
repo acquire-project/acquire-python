@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
-use std::os::raw::c_uint;
 use crate::{core_runtime, components::macros::cvt};
 
 #[pyclass]
@@ -20,7 +19,7 @@ impl Default for SampleType {
     }
 }
 
-cvt!(SampleType => c_uint,
+cvt!(SampleType => core_runtime::SampleType,
     U8 => SampleType_SampleType_u8,
     U16 => SampleType_SampleType_u16,
     I8 => SampleType_SampleType_i8,

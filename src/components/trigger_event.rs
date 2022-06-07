@@ -2,7 +2,6 @@ use pyo3::prelude::*;
 
 use crate::{core_runtime, components::macros::cvt};
 use anyhow::anyhow;
-use std::os::raw::c_uint;
 
 #[pyclass]
 #[derive(Debug, Clone, Copy)]
@@ -19,7 +18,7 @@ impl Default for TriggerEvent {
     }
 }
 
-cvt!( TriggerEvent => c_uint,
+cvt!( TriggerEvent => core_runtime::TriggerEvent,
     AcquisitionStart => TriggerEvent_TriggerEvent_AcquisitionStart,
     FrameStart => TriggerEvent_TriggerEvent_FrameStart,
     Exposure => TriggerEvent_TriggerEvent_Exposure,

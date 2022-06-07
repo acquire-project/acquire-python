@@ -1,4 +1,3 @@
-use log::debug;
 use pyo3::prelude::*;
 
 use crate::{

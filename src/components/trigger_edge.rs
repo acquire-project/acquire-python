@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 use crate::{core_runtime, components::macros::cvt};
 use anyhow::anyhow;
-use std::os::raw::c_uint;
+
 
 #[pyclass]
 #[derive(Debug, Clone, Copy)]
@@ -18,7 +18,7 @@ impl Default for TriggerEdge {
     }
 }
 
-cvt!( TriggerEdge => c_uint,
+cvt!( TriggerEdge => core_runtime::TriggerEdge,
     Rising => TriggerEdge_TriggerEdge_Rising,
     Falling => TriggerEdge_TriggerEdge_Falling,
     NotApplicable => TriggerEdge_TriggerEdge_NotApplicable

@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
-use std::os::raw::c_uint;
 use crate::{core_runtime, components::macros::cvt};
 
 #[pyclass]
@@ -17,7 +16,7 @@ impl Default for SignalType {
     }
 }
 
-cvt!(SignalType => c_uint,
+cvt!(SignalType => core_runtime::SignalType,
     Analog => SignalType_Signal_Analog,
     Digital => SignalType_Signal_Digital
 );

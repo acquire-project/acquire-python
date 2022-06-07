@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
-use std::os::raw::c_uint;
 use crate::{core_runtime, components::macros::cvt};
 
 #[pyclass]
@@ -17,7 +16,7 @@ impl Default for SignalIOKind {
     }
 }
 
-cvt!(SignalIOKind => c_uint,
+cvt!(SignalIOKind => core_runtime::SignalIOKind,
     Input => SignalIOKind_Signal_Input,
     Output => SignalIOKind_Signal_Output
 );

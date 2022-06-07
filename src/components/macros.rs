@@ -22,7 +22,7 @@ macro_rules! cvt {
             fn into(self) -> $TB {
                 match self {
                     $(
-                        <$TA>::$A => core_runtime::$B,
+                        <$TA>::$A => core_runtime::$B as _,
                     )+
                 } 
             }
