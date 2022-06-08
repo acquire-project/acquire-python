@@ -14,7 +14,7 @@ impl core_runtime::DeviceIdentifier {
 
 #[pyclass]
 #[derive(Debug, Clone, Copy)]
-enum DeviceKind {
+pub enum DeviceKind {
     Camera,
     Storage,
     StageAxis,
@@ -30,7 +30,7 @@ cvt!(DeviceKind=>core_runtime::DeviceKind,
 
 #[pyclass]
 #[derive(Debug, Clone)]
-struct DeviceIdentifier {
+pub(crate) struct DeviceIdentifier {
     #[pyo3(get)]
     id: (u8, u8),
 
@@ -41,15 +41,26 @@ struct DeviceIdentifier {
     name: String,
 }
 
+#[pymethods]
+impl DeviceIdentifier {
+    fn __repr__(&self) -> String {
+        format!("<DeviceIdentifier {:?} \"{}\">", self.kind, self.name)
+    }
+}
+
 impl TryFrom<core_runtime::DeviceIdentifier> for DeviceIdentifier {
     type Error = anyhow::Error;
 
     fn try_from(value: core_runtime::DeviceIdentifier) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: (value.driver_id, value.device_id),
-            kind: value.kind.try_into()?,
-            name: value.name_as_string()?,
-        })
+        if value.name[0] == 0 {
+            Err(anyhow!("Invalid device identifier (empty name)."))
+        } else {
+            Ok(Self {
+                id: (value.driver_id, value.device_id),
+                kind: value.kind.try_into()?,
+                name: value.name_as_string()?,
+            })
+        }
     }
 }
 
@@ -70,8 +81,8 @@ impl TryFrom<DeviceIdentifier> for core_runtime::DeviceIdentifier {
                 value.name.as_bytes().len()
             ))
         } else {
-            for (src,dst) in value.name.bytes().zip(out.name.iter_mut()) {
-                *dst=src as _;
+            for (src, dst) in value.name.bytes().zip(out.name.iter_mut()) {
+                *dst = src as _;
             }
             Ok(out)
         }

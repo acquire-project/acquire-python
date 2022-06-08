@@ -2,14 +2,14 @@ use pyo3::prelude::*;
 
 use crate::{
     camera::CameraProperties, core_runtime, signals::SignalProperties,
-    stage_axis::StageAxisProperties, storage::StorageProperties,
+    stage_axis::StageAxisProperties, storage::StorageProperties, device::DeviceIdentifier,
 };
 
 #[pyclass]
 #[derive(Debug, Clone, Default)]
 struct Camera {
     #[pyo3(get, set)]
-    identifier: String,
+    identifier: Option<DeviceIdentifier>,
 
     #[pyo3(get, set)]
     settings: CameraProperties,
@@ -22,20 +22,17 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_camera_s> for Camera {
         value: core_runtime::CoreProperties_core_properties_camera_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
-            identifier: value.identifier.name_as_string()?,
+            identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
     }
 }
 
-// impl TryFrom<Camera> for core_runtime::CoreProperties_core_properties_camera_s {
-// }
-
 #[pyclass]
 #[derive(Debug, Clone, Default)]
 struct Storage {
     #[pyo3(get, set)]
-    identifier: String,
+    identifier: Option<DeviceIdentifier>,
 
     #[pyo3(get, set)]
     settings: StorageProperties,
@@ -48,7 +45,7 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_storage_s> for Storage
         value: core_runtime::CoreProperties_core_properties_storage_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
-            identifier: value.identifier.name_as_string()?,
+            identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
     }
@@ -58,7 +55,7 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_storage_s> for Storage
 #[derive(Debug, Clone, Default)]
 struct StageAxis {
     #[pyo3(get, set)]
-    identifier: String,
+    identifier: Option<DeviceIdentifier>,
 
     #[pyo3(get, set)]
     settings: StageAxisProperties,
@@ -71,7 +68,7 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_stages_s> for StageAxi
         value: core_runtime::CoreProperties_core_properties_stages_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
-            identifier: value.identifier.name_as_string()?,
+            identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
     }
@@ -81,7 +78,7 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_stages_s> for StageAxi
 #[derive(Debug, Clone, Default)]
 struct Signals {
     #[pyo3(get, set)]
-    identifier: String,
+    identifier: Option<DeviceIdentifier>,
 
     #[pyo3(get, set)]
     settings: SignalProperties,
@@ -94,7 +91,7 @@ impl TryFrom<core_runtime::CoreProperties_core_properties_signals_s> for Signals
         value: core_runtime::CoreProperties_core_properties_signals_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
-            identifier: value.identifier.name_as_string()?,
+            identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
     }
@@ -140,18 +137,3 @@ impl TryFrom<core_runtime::CoreProperties> for CoreProperties {
         })
     }
 }
-
-// impl TryFrom<CoreProperties> for core_runtime::CoreProperties {
-//     type Error=anyhow::Error;
-
-//     fn try_from(value: CoreProperties) -> Result<Self, Self::Error> {
-//         Ok(Self{
-//             camera: value.camera.try_into()?,
-//             storage: todo!(),
-//             stages: todo!(),
-//             signals: todo!(),
-//             max_frame_count: todo!(),
-//             frame_average_count: todo!(),
-//         })
-//     }
-// }

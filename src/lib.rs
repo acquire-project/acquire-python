@@ -15,17 +15,22 @@ use std::ffi::CStr;
 use pyo3::prelude::*;
 use anyhow::{anyhow,Result};
 
-trait Status: Sized {
-    fn ok(&self) -> Result<Self>;
+trait Status: Copy+Sized {
+    fn is_ok(&self) -> bool;
+
+    fn ok(&self) -> Result<Self> {
+        if self.is_ok() {
+            Ok(*self)
+        } else {
+            Err(anyhow!("Failed core_runtime api status check"))
+        }
+    }
+
 }
 
 impl Status for core_runtime::DeviceStatusCode {
-    fn ok(&self) -> Result<Self> {
-        if *self == core_runtime::CoreStatusCode_CoreStatus_Ok {
-            Ok(*self)
-        } else {
-            Err(anyhow!("Failed status check"))
-        }
+    fn is_ok(&self) -> bool {
+        *self == core_runtime::CoreStatusCode_CoreStatus_Ok
     }
 }
 
@@ -58,6 +63,8 @@ fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<components::TriggerEdge>()?;
     m.add_class::<components::TriggerEvent>()?;
     m.add_class::<components::VoltageRange>()?;
+
+    m.add_class::<device::DeviceKind>()?;
 
     m.add_function(wrap_pyfunction!(core_api_version, m)?)?;
     Ok(())
