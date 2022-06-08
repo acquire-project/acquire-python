@@ -1,6 +1,6 @@
 use crate::{
     components::{SampleType, Trigger},
-    core_runtime,
+    capi,
 };
 use anyhow::anyhow;
 use pyo3::prelude::*;
@@ -38,10 +38,10 @@ impl CameraProperties {
     }
 }
 
-impl TryFrom<core_runtime::CameraProperties> for CameraProperties {
+impl TryFrom<capi::CameraProperties> for CameraProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::CameraProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::CameraProperties) -> Result<Self, Self::Error> {
         let triggers = (0..value.triggers.line_count as usize)
             .map(|i| value.triggers.lines[i].try_into())
             .collect::<Result<Vec<Trigger>, anyhow::Error>>()?;
@@ -57,11 +57,11 @@ impl TryFrom<core_runtime::CameraProperties> for CameraProperties {
     }
 }
 
-impl TryFrom<CameraProperties> for core_runtime::CameraProperties {
+impl TryFrom<CameraProperties> for capi::CameraProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: CameraProperties) -> Result<Self, Self::Error> {
-        let mut triggers: core_runtime::CameraProperties_camera_properties_triggers_s =
+        let mut triggers: capi::CameraProperties_camera_properties_triggers_s =
             unsafe { std::mem::zeroed() };
         if value.triggers.len() > triggers.lines.len() {
             Err(anyhow!(
@@ -70,18 +70,18 @@ impl TryFrom<CameraProperties> for core_runtime::CameraProperties {
                 triggers.lines.len()
             ))
         } else {
-            let offset = core_runtime::CameraProperties_camera_properties_offset_s {
+            let offset = capi::CameraProperties_camera_properties_offset_s {
                 x: value.offset.0,
                 y: value.offset.1,
             };
-            let shape = core_runtime::CameraProperties_camera_properties_shape_s {
+            let shape = capi::CameraProperties_camera_properties_shape_s {
                 x: value.shape.0,
                 y: value.shape.1,
             };
             for (src, dst) in value.triggers.into_iter().zip(triggers.lines.iter_mut()) {
                 *dst = src.into()
             }
-            Ok(core_runtime::CameraProperties {
+            Ok(capi::CameraProperties {
                 gain_dB: value.gain_db,
                 exposure_time_us: value.exposure_time_us,
                 binning: value.binning,

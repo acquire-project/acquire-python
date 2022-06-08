@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 use crate::{
-    camera::CameraProperties, core_runtime, signals::SignalProperties,
+    camera::CameraProperties, capi, signals::SignalProperties,
     stage_axis::StageAxisProperties, storage::StorageProperties, device::DeviceIdentifier,
 };
 
@@ -15,11 +15,11 @@ struct Camera {
     settings: CameraProperties,
 }
 
-impl TryFrom<core_runtime::CpxProperties_cpx_properties_camera_s> for Camera {
+impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
     type Error = anyhow::Error;
 
     fn try_from(
-        value: core_runtime::CpxProperties_cpx_properties_camera_s,
+        value: capi::CpxProperties_cpx_properties_camera_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             identifier: value.identifier.try_into().ok(),
@@ -38,11 +38,11 @@ struct Storage {
     settings: StorageProperties,
 }
 
-impl TryFrom<core_runtime::CpxProperties_cpx_properties_storage_s> for Storage {
+impl TryFrom<capi::CpxProperties_cpx_properties_storage_s> for Storage {
     type Error = anyhow::Error;
 
     fn try_from(
-        value: core_runtime::CpxProperties_cpx_properties_storage_s,
+        value: capi::CpxProperties_cpx_properties_storage_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             identifier: value.identifier.try_into().ok(),
@@ -61,11 +61,11 @@ struct StageAxis {
     settings: StageAxisProperties,
 }
 
-impl TryFrom<core_runtime::CpxProperties_cpx_properties_stages_s> for StageAxis {
+impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
     type Error = anyhow::Error;
 
     fn try_from(
-        value: core_runtime::CpxProperties_cpx_properties_stages_s,
+        value: capi::CpxProperties_cpx_properties_stages_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             identifier: value.identifier.try_into().ok(),
@@ -84,11 +84,11 @@ struct Signals {
     settings: SignalProperties,
 }
 
-impl TryFrom<core_runtime::CpxProperties_cpx_properties_signals_s> for Signals {
+impl TryFrom<capi::CpxProperties_cpx_properties_signals_s> for Signals {
     type Error = anyhow::Error;
 
     fn try_from(
-        value: core_runtime::CpxProperties_cpx_properties_signals_s,
+        value: capi::CpxProperties_cpx_properties_signals_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             identifier: value.identifier.try_into().ok(),
@@ -119,10 +119,10 @@ pub struct CoreProperties {
     frame_average_count: u32,
 }
 
-impl TryFrom<core_runtime::CpxProperties> for CoreProperties {
+impl TryFrom<capi::CpxProperties> for CoreProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::CpxProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::CpxProperties) -> Result<Self, Self::Error> {
         let camera = value.camera.try_into()?;
         let storage = value.storage.try_into()?;
         let stages = (value.stages[0].try_into()?,value.stages[1].try_into()?,value.stages[2].try_into()?);

@@ -1,5 +1,5 @@
 
-pub(crate) mod core_runtime;
+pub(crate) mod capi;
 pub(crate) mod device_manager;
 pub(crate) mod components;
 pub(crate) mod camera;
@@ -22,26 +22,26 @@ trait Status: Copy+Sized {
         if self.is_ok() {
             Ok(*self)
         } else {
-            Err(anyhow!("Failed core_runtime api status check"))
+            Err(anyhow!("Failed capi api status check"))
         }
     }
 
 }
 
-impl Status for core_runtime::DeviceStatusCode {
+impl Status for capi::DeviceStatusCode {
     fn is_ok(&self) -> bool {
-        *self == core_runtime::CpxStatusCode_CpxStatus_Ok
+        *self == capi::CpxStatusCode_CpxStatus_Ok
     }
 }
 
 #[pyfunction]
 fn core_api_version() -> PyResult<String> {
-    let ptr = unsafe { core_runtime::cpx_api_version_string() };
+    let ptr = unsafe { capi::cpx_api_version_string() };
     Ok(unsafe { CStr::from_ptr(ptr) }.to_str()?.to_owned())
 }
 
 #[pymodule]
-fn demo_python_api(_py: Python, m: &PyModule) -> PyResult<()> {
+fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<runtime::Runtime>()?;

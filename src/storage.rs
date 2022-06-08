@@ -1,4 +1,4 @@
-use crate::{core_runtime, Status};
+use crate::{capi, Status};
 use pyo3::prelude::*;
 use std::{ffi::{CStr, CString}, ptr::null};
 
@@ -12,10 +12,10 @@ pub struct StorageProperties {
     first_frame_id: u32,
 }
 
-impl TryFrom<core_runtime::StorageProperties> for StorageProperties {
+impl TryFrom<capi::StorageProperties> for StorageProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::StorageProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::StorageProperties) -> Result<Self, Self::Error> {
         let filename = if value.filename.nbytes == 0 {
             None
         } else {
@@ -32,11 +32,11 @@ impl TryFrom<core_runtime::StorageProperties> for StorageProperties {
     }
 }
 
-impl TryFrom<StorageProperties> for core_runtime::StorageProperties2k {
+impl TryFrom<StorageProperties> for capi::StorageProperties2k {
     type Error = anyhow::Error;
 
     fn try_from(value: StorageProperties) -> Result<Self, Self::Error> {
-        let mut out: core_runtime::StorageProperties2k = unsafe { std::mem::zeroed() };
+        let mut out: capi::StorageProperties2k = unsafe { std::mem::zeroed() };
         let x = if let Some(filename) = value.filename {
             Some(CString::new(filename)?)
         } else {
@@ -49,8 +49,8 @@ impl TryFrom<StorageProperties> for core_runtime::StorageProperties2k {
         };
         // This copies the string into a buffer owned by the return value.
         unsafe {
-            core_runtime::storage_properties_init(
-                out.as_mut() as *mut core_runtime::StoragePropertiesOwned,
+            capi::storage_properties_init(
+                out.as_mut() as *mut capi::StoragePropertiesOwned,
                 std::mem::size_of_val(&out) as _,
                 value.first_frame_id,
                 filename,
@@ -62,14 +62,14 @@ impl TryFrom<StorageProperties> for core_runtime::StorageProperties2k {
     }
 }
 
-impl AsRef<core_runtime::StorageProperties> for core_runtime::StorageProperties2k {
-    fn as_ref(&self) -> &core_runtime::StorageProperties {
-        unsafe { *(self as *const core_runtime::StorageProperties2k as *const _) }
+impl AsRef<capi::StorageProperties> for capi::StorageProperties2k {
+    fn as_ref(&self) -> &capi::StorageProperties {
+        unsafe { *(self as *const capi::StorageProperties2k as *const _) }
     }
 }
 
-impl AsMut<core_runtime::StoragePropertiesOwned> for core_runtime::StorageProperties2k {
-    fn as_mut(&mut self) -> &mut core_runtime::StoragePropertiesOwned {
-        unsafe { &mut *(self as *mut core_runtime::StorageProperties2k as *mut _) }
+impl AsMut<capi::StoragePropertiesOwned> for capi::StorageProperties2k {
+    fn as_mut(&mut self) -> &mut capi::StoragePropertiesOwned {
+        unsafe { &mut *(self as *mut capi::StorageProperties2k as *mut _) }
     }
 }

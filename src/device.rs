@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 use std::ffi::CStr;
 
-use crate::{components::macros::cvt, core_runtime};
+use crate::{components::macros::cvt, capi};
 use anyhow::{anyhow, Result};
 
-impl core_runtime::DeviceIdentifier {
+impl capi::DeviceIdentifier {
     pub(crate) fn name_as_string(&self) -> Result<String> {
         Ok(unsafe { CStr::from_ptr(self.name.as_ptr()) }
             .to_str()?
@@ -21,7 +21,7 @@ pub enum DeviceKind {
     Signals,
 }
 
-cvt!(DeviceKind=>core_runtime::DeviceKind,
+cvt!(DeviceKind=>capi::DeviceKind,
     Camera    => DeviceKind_DeviceKind_Camera,
     Storage   => DeviceKind_DeviceKind_Storage,
     StageAxis => DeviceKind_DeviceKind_StageAxis,
@@ -48,10 +48,10 @@ impl DeviceIdentifier {
     }
 }
 
-impl TryFrom<core_runtime::DeviceIdentifier> for DeviceIdentifier {
+impl TryFrom<capi::DeviceIdentifier> for DeviceIdentifier {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::DeviceIdentifier) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::DeviceIdentifier) -> Result<Self, Self::Error> {
         if value.name[0] == 0 {
             Err(anyhow!("Invalid device identifier (empty name)."))
         } else {
@@ -64,7 +64,7 @@ impl TryFrom<core_runtime::DeviceIdentifier> for DeviceIdentifier {
     }
 }
 
-impl TryFrom<DeviceIdentifier> for core_runtime::DeviceIdentifier {
+impl TryFrom<DeviceIdentifier> for capi::DeviceIdentifier {
     type Error = anyhow::Error;
 
     fn try_from(value: DeviceIdentifier) -> Result<Self, Self::Error> {

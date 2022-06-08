@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{core_runtime, components::macros::cvt};
+use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 
 #[pyclass]
@@ -19,7 +19,7 @@ impl Default for TriggerEvent {
     }
 }
 
-cvt!( TriggerEvent => core_runtime::TriggerEvent,
+cvt!( TriggerEvent => capi::TriggerEvent,
     AcquisitionStart => TriggerEvent_TriggerEvent_AcquisitionStart,
     FrameStart => TriggerEvent_TriggerEvent_FrameStart,
     Exposure => TriggerEvent_TriggerEvent_Exposure,

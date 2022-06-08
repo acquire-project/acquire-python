@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{core_runtime, components::macros::cvt};
+use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 
 
@@ -19,7 +19,7 @@ impl Default for TriggerEdge {
     }
 }
 
-cvt!( TriggerEdge => core_runtime::TriggerEdge,
+cvt!( TriggerEdge => capi::TriggerEdge,
     Rising => TriggerEdge_TriggerEdge_Rising,
     Falling => TriggerEdge_TriggerEdge_Falling,
     NotApplicable => TriggerEdge_TriggerEdge_NotApplicable

@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
-use crate::{core_runtime, components::macros::cvt};
+use crate::{capi, components::macros::cvt};
 
 #[pyclass]
 #[derive(Debug,Clone,Copy)]
@@ -16,7 +16,7 @@ impl Default for SignalType {
     }
 }
 
-cvt!(SignalType => core_runtime::SignalType,
+cvt!(SignalType => capi::SignalType,
     Analog => SignalType_Signal_Analog,
     Digital => SignalType_Signal_Digital
 );

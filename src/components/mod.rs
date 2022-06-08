@@ -16,7 +16,7 @@ pub use signal_type::SignalType;
 pub use trigger_edge::TriggerEdge;
 pub use trigger_event::TriggerEvent;
 
-use crate::core_runtime;
+use crate::capi;
 
 
 #[pyclass]
@@ -63,10 +63,10 @@ impl Trigger {
     }
 }
 
-impl TryFrom<core_runtime::Trigger> for Trigger {
+impl TryFrom<capi::Trigger> for Trigger {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::Trigger) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::Trigger) -> Result<Self, Self::Error> {
         Ok(Trigger {
             enable: value.enable > 0,
             line: value.line,
@@ -77,7 +77,7 @@ impl TryFrom<core_runtime::Trigger> for Trigger {
     }
 }
 
-impl From<Trigger> for core_runtime::Trigger {
+impl From<Trigger> for capi::Trigger {
     fn from(value: Trigger) -> Self {
         Self {
             enable: value.enable as _,
@@ -102,8 +102,8 @@ pub struct PID {
     derivative: f32,
 }
 
-impl From<core_runtime::PID> for PID {
-    fn from(value: core_runtime::PID) -> Self {
+impl From<capi::PID> for PID {
+    fn from(value: capi::PID) -> Self {
         Self {
             proportional: value.proportional,
             integral: value.integral,
@@ -112,7 +112,7 @@ impl From<core_runtime::PID> for PID {
     }
 }
 
-impl From<PID> for core_runtime::PID {
+impl From<PID> for capi::PID {
     fn from(value: PID) -> Self {
         Self {
             proportional: value.proportional,
@@ -132,8 +132,8 @@ pub struct SampleRateHz {
     denominator: u64,
 }
 
-impl From<core_runtime::SampleRateHz> for SampleRateHz {
-    fn from(value: core_runtime::SampleRateHz) -> Self {
+impl From<capi::SampleRateHz> for SampleRateHz {
+    fn from(value: capi::SampleRateHz) -> Self {
         SampleRateHz {
             numerator: value.numerator,
             denominator: value.denominator,
@@ -141,7 +141,7 @@ impl From<core_runtime::SampleRateHz> for SampleRateHz {
     }
 }
 
-impl From<SampleRateHz> for core_runtime::SampleRateHz {
+impl From<SampleRateHz> for capi::SampleRateHz {
     fn from(value: SampleRateHz) -> Self {
         Self {
             numerator: value.numerator,
@@ -160,8 +160,8 @@ pub struct VoltageRange {
     mx: f32,
 }
 
-impl From<core_runtime::VoltageRange> for VoltageRange {
-    fn from(value: core_runtime::VoltageRange) -> Self {
+impl From<capi::VoltageRange> for VoltageRange {
+    fn from(value: capi::VoltageRange) -> Self {
         VoltageRange {
             mn: value.mn,
             mx: value.mx,
@@ -169,7 +169,7 @@ impl From<core_runtime::VoltageRange> for VoltageRange {
     }
 }
 
-impl From<VoltageRange> for core_runtime::VoltageRange {
+impl From<VoltageRange> for capi::VoltageRange {
     fn from(value: VoltageRange) -> Self {
         Self {
             mn: value.mn,

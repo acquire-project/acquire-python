@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
-use crate::{core_runtime, components::macros::cvt};
+use crate::{capi, components::macros::cvt};
 
 #[pyclass]
 #[derive(Debug,Clone,Copy)]
@@ -19,7 +19,7 @@ impl Default for SampleType {
     }
 }
 
-cvt!(SampleType => core_runtime::SampleType,
+cvt!(SampleType => capi::SampleType,
     U8 => SampleType_SampleType_u8,
     U16 => SampleType_SampleType_u16,
     I8 => SampleType_SampleType_i8,

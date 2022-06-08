@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{core_runtime, device_manager, Status, core_properties::CoreProperties};
+use crate::{capi, device_manager, Status, core_properties::CoreProperties};
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -40,7 +40,7 @@ unsafe extern "C" fn reporter(
 }
 
 pub(crate) struct RawRuntime {
-    inner: NonNull<core_runtime::CpxRuntime>,
+    inner: NonNull<capi::CpxRuntime>,
 }
 
 unsafe impl Send for RawRuntime {}
@@ -49,7 +49,7 @@ unsafe impl Sync for RawRuntime {}
 impl RawRuntime {
     fn new() -> Result<Self> {
         Ok(Self {
-            inner: NonNull::new(unsafe { core_runtime::cpx_init(Some(reporter)) })
+            inner: NonNull::new(unsafe { capi::cpx_init(Some(reporter)) })
                 .ok_or(anyhow!("Failed to initialize core runtime."))?,
         })
     }
@@ -59,15 +59,15 @@ impl Drop for RawRuntime {
     fn drop(&mut self) {
         debug!("SHUTDOWN Runtime");
         unsafe {
-            core_runtime::cpx_shutdown(self.inner.as_mut())
+            capi::cpx_shutdown(self.inner.as_mut())
                 .ok()
                 .expect("Core runtime shutdown failed.");
         }
     }
 }
 
-impl AsRef<NonNull<core_runtime::CpxRuntime>> for RawRuntime {
-    fn as_ref(&self) -> &NonNull<core_runtime::CpxRuntime> {
+impl AsRef<NonNull<capi::CpxRuntime>> for RawRuntime {
+    fn as_ref(&self) -> &NonNull<capi::CpxRuntime> {
         &self.inner
     }
 }
@@ -77,8 +77,8 @@ pub struct Runtime {
     inner: Arc<RawRuntime>,
 }
 
-impl AsRef<NonNull<core_runtime::CpxRuntime>> for Runtime {
-    fn as_ref(&self) -> &NonNull<core_runtime::CpxRuntime> {
+impl AsRef<NonNull<capi::CpxRuntime>> for Runtime {
+    fn as_ref(&self) -> &NonNull<capi::CpxRuntime> {
         &self.inner.inner
     }
 }
@@ -96,15 +96,15 @@ impl Runtime {
         Ok(device_manager::DeviceManager {
             _runtime: self.inner.clone(),
             inner: NonNull::new(unsafe {
-                core_runtime::cpx_device_manager(self.as_ref().as_ptr())
+                capi::cpx_device_manager(self.as_ref().as_ptr())
                 as _
             }).ok_or(anyhow!("Failed to get device manager"))?,
         })
     }
 
     fn get_configuration(&self)->PyResult<CoreProperties> {
-        let mut props:core_runtime::CpxProperties=unsafe{std::mem::zeroed()};
-        unsafe{core_runtime::cpx_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
+        let mut props:capi::CpxProperties=unsafe{std::mem::zeroed()};
+        unsafe{capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
         Ok(props.try_into()?)
     }
 
@@ -112,7 +112,7 @@ impl Runtime {
         let mut buf = null_mut();
         let mut nbytes = 0;
         unsafe {
-            core_runtime::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
+            capi::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
         Ok(if nbytes > 0 {
             Some(AvailableData {
@@ -134,7 +134,7 @@ struct RawAvailableData {
     /// Reference to the context that owns the region
     runtime: Arc<RawRuntime>,
     /// Pointer to the reserved region
-    buf: NonNull<core_runtime::VideoFrame>,
+    buf: NonNull<capi::VideoFrame>,
     /// Number of bytes in the mapped region
     nbytes: usize,
 
@@ -164,7 +164,7 @@ impl Drop for RawAvailableData {
         debug!("Unmapping read region");
         let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
         unsafe {
-            core_runtime::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
+            capi::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
                 .ok()
                 .expect("Unexpected failure: Was the CoreRuntime NULL?");
         }
@@ -200,8 +200,8 @@ impl AvailableData {
 #[pyclass]
 struct VideoFrameIterator {
     store: Arc<RawAvailableData>,
-    cur: Mutex<NonNull<core_runtime::VideoFrame>>,
-    end: NonNull<core_runtime::VideoFrame>,
+    cur: Mutex<NonNull<capi::VideoFrame>>,
+    end: NonNull<capi::VideoFrame>,
 }
 
 unsafe impl Send for VideoFrameIterator {}
@@ -221,7 +221,7 @@ impl Iterator for VideoFrameIterator {
 
             let c = cur.as_ptr();
             let o = unsafe { (c as *const u8).offset((*c).bytes_of_frame as _) }
-                as *mut core_runtime::VideoFrame;
+                as *mut capi::VideoFrame;
             *cur = unsafe { NonNull::new_unchecked(o) };
 
             Some(out)
@@ -241,8 +241,8 @@ struct VideoFrameTimestamps {
     acq_thread: u64,
 }
 
-impl From<core_runtime::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
-    fn from(x: core_runtime::VideoFrame_video_frame_timestamps_s) -> Self {
+impl From<capi::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
+    fn from(x: capi::VideoFrame_video_frame_timestamps_s) -> Self {
         VideoFrameTimestamps {
             hardware: x.hardware,
             acq_thread: x.acq_thread,
@@ -287,7 +287,7 @@ impl SupportedImageView {
     }
 }
 
-impl IntoDimension for core_runtime::ImageShape_image_dims_s {
+impl IntoDimension for capi::ImageShape_image_dims_s {
     type Dim = Ix4;
 
     fn into_dimension(self) -> Self::Dim {
@@ -300,7 +300,7 @@ impl IntoDimension for core_runtime::ImageShape_image_dims_s {
     }
 }
 
-impl IntoDimension for core_runtime::ImageShape {
+impl IntoDimension for capi::ImageShape {
     type Dim = Ix4;
 
     fn into_dimension(self) -> Self::Dim {
@@ -311,7 +311,7 @@ impl IntoDimension for core_runtime::ImageShape {
 #[pyclass]
 struct VideoFrame {
     _store: Arc<RawAvailableData>,
-    cur: NonNull<core_runtime::VideoFrame>,
+    cur: NonNull<capi::VideoFrame>,
 }
 
 unsafe impl Send for VideoFrame {}
@@ -338,7 +338,7 @@ impl VideoFrame {
                 let sh=(*cur).shape;
                 match $x{
                     $(
-                        core_runtime::$A => Ok(SupportedImageView::$B(RawArrayView::from_shape_ptr(
+                        capi::$A => Ok(SupportedImageView::$B(RawArrayView::from_shape_ptr(
                             sh.into_dimension(),
                             (*cur).data.as_ptr() as _,
                         ))),

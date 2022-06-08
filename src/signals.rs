@@ -4,7 +4,7 @@ use crate::{
     components::{
         SampleRateHz, SampleType, SignalIOKind, SignalType, Trigger, TriggerEdge, VoltageRange,
     },
-    core_runtime,
+    capi,
 };
 use anyhow::anyhow;
 
@@ -27,10 +27,10 @@ pub struct Channel {
     line: u8,
 }
 
-impl TryFrom<core_runtime::Channel> for Channel {
+impl TryFrom<capi::Channel> for Channel {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::Channel) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::Channel) -> Result<Self, Self::Error> {
         Ok(Self {
             sample_type: value.sample_type.try_into()?,
             signal_type: value.signal_type.try_into()?,
@@ -41,7 +41,7 @@ impl TryFrom<core_runtime::Channel> for Channel {
     }
 }
 
-impl From<Channel> for core_runtime::Channel {
+impl From<Channel> for capi::Channel {
     fn from(value: Channel) -> Self {
         Self {
             sample_type: value.sample_type.into(),
@@ -66,11 +66,11 @@ struct Timing {
     samples_per_second: SampleRateHz,
 }
 
-impl TryFrom<core_runtime::SignalProperties_signal_properties_timing_s> for Timing {
+impl TryFrom<capi::SignalProperties_signal_properties_timing_s> for Timing {
     type Error = anyhow::Error;
 
     fn try_from(
-        value: core_runtime::SignalProperties_signal_properties_timing_s,
+        value: capi::SignalProperties_signal_properties_timing_s,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             terminal: value.terminal,
@@ -80,7 +80,7 @@ impl TryFrom<core_runtime::SignalProperties_signal_properties_timing_s> for Timi
     }
 }
 
-impl From<Timing> for core_runtime::SignalProperties_signal_properties_timing_s {
+impl From<Timing> for capi::SignalProperties_signal_properties_timing_s {
     fn from(value: Timing) -> Self {
         Self {
             terminal: value.terminal,
@@ -98,10 +98,10 @@ pub struct SignalProperties {
     triggers: Vec<Trigger>,
 }
 
-impl TryFrom<core_runtime::SignalProperties> for SignalProperties {
+impl TryFrom<capi::SignalProperties> for SignalProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: core_runtime::SignalProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::SignalProperties) -> Result<Self, Self::Error> {
         Ok(Self {
             channels: (0..value.channels.line_count as usize)
                 .map(|i| value.channels.lines[i].try_into())
@@ -114,14 +114,14 @@ impl TryFrom<core_runtime::SignalProperties> for SignalProperties {
     }
 }
 
-impl TryFrom<SignalProperties> for core_runtime::SignalProperties {
+impl TryFrom<SignalProperties> for capi::SignalProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: SignalProperties) -> Result<Self, Self::Error> {
-        let mut triggers: core_runtime::SignalProperties_signal_properties_triggers_s =
+        let mut triggers: capi::SignalProperties_signal_properties_triggers_s =
             unsafe { std::mem::zeroed() };
 
-        let mut channels: core_runtime::SignalProperties_signal_properties_channels_s =
+        let mut channels: capi::SignalProperties_signal_properties_channels_s =
             unsafe { std::mem::zeroed() };
 
         if value.triggers.len() > triggers.lines.len() {

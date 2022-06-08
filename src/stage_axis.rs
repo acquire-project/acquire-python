@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::{components::PID, core_runtime};
+use crate::{components::PID, capi};
 
 #[pyclass]
 #[derive(Debug, Clone, Default)]
@@ -12,8 +12,8 @@ pub struct StageAxisState {
     velocity: f32,
 }
 
-impl From<core_runtime::StageAxisProperties_stage_axis_properties_state_s> for StageAxisState {
-    fn from(value: core_runtime::StageAxisProperties_stage_axis_properties_state_s) -> Self {
+impl From<capi::StageAxisProperties_stage_axis_properties_state_s> for StageAxisState {
+    fn from(value: capi::StageAxisProperties_stage_axis_properties_state_s) -> Self {
         Self {
             position: value.position,
             velocity: value.velocity,
@@ -21,7 +21,7 @@ impl From<core_runtime::StageAxisProperties_stage_axis_properties_state_s> for S
     }
 }
 
-impl From<StageAxisState> for core_runtime::StageAxisProperties_stage_axis_properties_state_s {
+impl From<StageAxisState> for capi::StageAxisProperties_stage_axis_properties_state_s {
     fn from(value: StageAxisState) -> Self {
         Self {
             position: value.position,
@@ -43,8 +43,8 @@ pub struct StageAxisProperties {
     feedback: PID,
 }
 
-impl From<core_runtime::StageAxisProperties> for StageAxisProperties {
-    fn from(value: core_runtime::StageAxisProperties) -> Self {
+impl From<capi::StageAxisProperties> for StageAxisProperties {
+    fn from(value: capi::StageAxisProperties) -> Self {
         Self {
             target: value.target.into(),
             immediate: value.immediate.into(),
@@ -53,7 +53,7 @@ impl From<core_runtime::StageAxisProperties> for StageAxisProperties {
     }
 }
 
-impl From<StageAxisProperties> for core_runtime::StageAxisProperties {
+impl From<StageAxisProperties> for capi::StageAxisProperties {
     fn from(value: StageAxisProperties) -> Self {
         Self {
             target: value.target.into(),

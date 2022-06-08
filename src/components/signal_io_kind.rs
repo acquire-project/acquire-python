@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use crate::{core_runtime, components::macros::cvt};
+use crate::{capi, components::macros::cvt};
 
 #[pyclass]
 #[derive(Debug,Clone,Copy, Deserialize, Serialize)]
@@ -17,7 +17,7 @@ impl Default for SignalIOKind {
     }
 }
 
-cvt!(SignalIOKind => core_runtime::SignalIOKind,
+cvt!(SignalIOKind => capi::SignalIOKind,
     Input => SignalIOKind_Signal_Input,
     Output => SignalIOKind_Signal_Output
 );

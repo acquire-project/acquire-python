@@ -10,7 +10,7 @@ macro_rules! cvt {
             fn try_from(value: $TB) -> Result<Self, Self::Error> {
                 match value as $TB {
                     $(
-                        core_runtime::$B => Ok(<$TA>::$A),
+                        capi::$B => Ok(<$TA>::$A),
                     )+
                     _ => Err(anyhow!("Unknown {}: {}",stringify!($TA),value))
                 }
@@ -22,7 +22,7 @@ macro_rules! cvt {
             fn into(self) -> $TB {
                 match self {
                     $(
-                        <$TA>::$A => core_runtime::$B as _,
+                        <$TA>::$A => capi::$B as _,
                     )+
                 } 
             }
