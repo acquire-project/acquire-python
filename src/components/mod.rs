@@ -5,10 +5,10 @@ mod signal_type;
 mod trigger_edge;
 mod trigger_event;
 
-use pyo3::{prelude::*, types::PyDict};
-use pythonize::{depythonize, pythonize};
-use serde::{Deserialize, Serialize};
 use anyhow::Result;
+use pyo3::prelude::*;
+
+use serde::{Deserialize, Serialize};
 
 pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
@@ -16,52 +16,33 @@ pub use signal_type::SignalType;
 pub use trigger_edge::TriggerEdge;
 pub use trigger_event::TriggerEvent;
 
-use crate::capi;
-
+use crate::{capi, components::macros::impl_plain_old_dict};
 
 #[pyclass]
 #[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
 pub struct Trigger {
     #[pyo3(get, set)]
+    #[serde(default)]
     enable: bool,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     line: u8,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     event: TriggerEvent,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     kind: SignalIOKind,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     edge: TriggerEdge,
 }
 
-#[pymethods]
-impl Trigger {
-    #[new]
-    #[args(kwargs="**")]
-    fn __new__(kwargs:Option<&PyDict>)->Result<Self> {
-        if let Some(kwargs)=kwargs {
-            Ok(depythonize(kwargs)?)
-        } else {
-            Ok(Default::default())
-        }
-    }
-
-    fn __repr__(&self,py:Python<'_>)->PyResult<String> {
-        let obj=pythonize(py, self)?;
-        let obj=obj.as_ref(py).downcast::<PyDict>()?;
-        let args:String=obj
-            .iter()
-            .map(|(k,v)| format!("{}='{}'",k,v))
-            .reduce(|acc,e| format!("{},{}",acc,e))
-            .unwrap_or(String::new());
-
-        Ok(format!("Trigger({})",args))
-    }
-}
+impl_plain_old_dict!(Trigger);
 
 impl TryFrom<capi::Trigger> for Trigger {
     type Error = anyhow::Error;
@@ -90,17 +71,22 @@ impl From<Trigger> for capi::Trigger {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct PID {
     #[pyo3(get, set)]
+    #[serde(default)]
     proportional: f32,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     integral: f32,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     derivative: f32,
 }
+
+impl_plain_old_dict!(PID);
 
 impl From<capi::PID> for PID {
     fn from(value: capi::PID) -> Self {
@@ -123,13 +109,23 @@ impl From<PID> for capi::PID {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SampleRateHz {
     #[pyo3(get, set)]
+    #[serde(default)]
     numerator: u64,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     denominator: u64,
+}
+
+impl_plain_old_dict!(SampleRateHz);
+
+impl Default for SampleRateHz {
+    fn default() -> Self {
+        Self { numerator: 1, denominator: 1 }
+    }
 }
 
 impl From<capi::SampleRateHz> for SampleRateHz {
@@ -151,7 +147,7 @@ impl From<SampleRateHz> for capi::SampleRateHz {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct VoltageRange {
     #[pyo3(get, set)]
     mn: f32,
@@ -159,6 +155,8 @@ pub struct VoltageRange {
     #[pyo3(get, set)]
     mx: f32,
 }
+
+impl_plain_old_dict!(VoltageRange);
 
 impl From<capi::VoltageRange> for VoltageRange {
     fn from(value: capi::VoltageRange) -> Self {

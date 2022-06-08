@@ -1,16 +1,21 @@
-use crate::{capi, Status};
+use crate::{capi, Status, components::macros::impl_plain_old_dict};
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 use std::{ffi::{CStr, CString}, ptr::null};
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StorageProperties {
     #[pyo3(get, set)]
+    #[serde(default)]
     filename: Option<String>,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     first_frame_id: u32,
 }
+
+impl_plain_old_dict!(StorageProperties);
 
 impl TryFrom<capi::StorageProperties> for StorageProperties {
     type Error = anyhow::Error;

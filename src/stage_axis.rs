@@ -1,9 +1,10 @@
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 
-use crate::{components::PID, capi};
+use crate::{components::{PID, macros::impl_plain_old_dict}, capi};
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct StageAxisState {
     #[pyo3(get, set)]
     position: f32,
@@ -31,17 +32,22 @@ impl From<StageAxisState> for capi::StageAxisProperties_stage_axis_properties_st
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct StageAxisProperties {
     #[pyo3(get, set)]
+    #[serde(default)]
     target: StageAxisState,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     immediate: StageAxisState,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     feedback: PID,
 }
+
+impl_plain_old_dict!(StageAxisProperties);
 
 impl From<capi::StageAxisProperties> for StageAxisProperties {
     fn from(value: capi::StageAxisProperties) -> Self {

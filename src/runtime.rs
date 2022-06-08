@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{capi, device_manager, Status, core_properties::CoreProperties};
+use crate::{capi, device_manager, Status, core_properties::Properties};
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -102,7 +102,7 @@ impl Runtime {
         })
     }
 
-    fn get_configuration(&self)->PyResult<CoreProperties> {
+    fn get_configuration(&self)->PyResult<Properties> {
         let mut props:capi::CpxProperties=unsafe{std::mem::zeroed()};
         unsafe{capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
         Ok(props.try_into()?)

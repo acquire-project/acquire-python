@@ -30,3 +30,37 @@ macro_rules! cvt {
     }
 }
 pub(crate) use cvt;
+
+macro_rules! impl_plain_old_dict {
+    ($T:ty) => {
+        #[pymethods]
+        impl $T {
+            #[new]
+            #[args(kwargs="**")]
+            fn __new__(kwargs:Option<&pyo3::types::PyDict>)->anyhow::Result<Self> {
+                if let Some(kwargs)=kwargs {
+                    Ok(pythonize::depythonize(kwargs)?)
+                } else {
+                    Ok(Default::default())
+                }
+            }
+
+            fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+                Ok(pythonize::pythonize(py, self)?)
+            }
+
+            fn __repr__(&self,py:Python<'_>)->PyResult<String> {
+                let obj=pythonize::pythonize(py, self)?;
+                let obj=obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
+                let args:String=obj
+                    .iter()
+                    .map(|(k,v)| format!("{}='{}'",k,v))
+                    .reduce(|acc,e| format!("{},{}",acc,e))
+                    .unwrap_or(String::new());
+
+                Ok(format!("{}({})",stringify!($T),args))
+            }
+        }
+    };
+}
+pub(crate) use impl_plain_old_dict;

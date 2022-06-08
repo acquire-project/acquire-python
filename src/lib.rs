@@ -45,7 +45,7 @@ fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
 
     m.add_class::<runtime::Runtime>()?;
-    m.add_class::<core_properties::CoreProperties>()?;
+    m.add_class::<core_properties::Properties>()?;
 
     m.add_class::<camera::CameraProperties>()?;
     m.add_class::<storage::StorageProperties>()?;
@@ -70,4 +70,4 @@ fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-// TODO: consider replacing anyhow with thiserror for errors
+// TODO: consider replacing anyhow with thiserror/eyre for errors

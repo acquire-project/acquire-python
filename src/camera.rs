@@ -1,42 +1,44 @@
 use crate::{
-    components::{SampleType, Trigger},
+    components::{SampleType, Trigger, macros::impl_plain_old_dict},
     capi,
 };
 use anyhow::anyhow;
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CameraProperties {
     #[pyo3(get, set)]
+    #[serde(default)]
     gain_db: f32,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     exposure_time_us: f32,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     binning: u8,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     pixel_type: SampleType,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     offset: (u32, u32),
 
     #[pyo3(get, set)]
+    #[serde(default)]
     shape: (u32, u32),
 
     #[pyo3(get, set)]
+    #[serde(default)]
     triggers: Vec<Trigger>,
 }
 
-#[pymethods]
-impl CameraProperties {
-    #[new]
-    fn new() -> Self {
-        Default::default()
-    }
-}
+impl_plain_old_dict!(CameraProperties);
 
 impl TryFrom<capi::CameraProperties> for CameraProperties {
     type Error = anyhow::Error;

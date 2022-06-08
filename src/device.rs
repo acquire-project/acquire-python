@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize, Serializer, ser::SerializeStruct};
 use std::ffi::CStr;
 
 use crate::{components::macros::cvt, capi};
@@ -13,7 +14,7 @@ impl capi::DeviceIdentifier {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DeviceKind {
     Camera,
     Storage,
@@ -41,10 +42,26 @@ pub(crate) struct DeviceIdentifier {
     name: String,
 }
 
+impl Serialize for DeviceIdentifier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("DeviceIdentifier", 2)?;
+        state.serialize_field("kind", &self.kind)?;
+        state.serialize_field("name", &self.name)?;
+        state.end()
+    }
+}
+
 #[pymethods]
 impl DeviceIdentifier {
     fn __repr__(&self) -> String {
         format!("<DeviceIdentifier {:?} \"{}\">", self.kind, self.name)
+    }
+
+    fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+        Ok(pythonize::pythonize(py, self)?)
     }
 }
 

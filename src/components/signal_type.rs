@@ -1,10 +1,11 @@
 use pyo3::prelude::*;
 
 use anyhow::anyhow;
+use serde::{Serialize, Deserialize};
 use crate::{capi, components::macros::cvt};
 
 #[pyclass]
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
 pub enum SignalType {
     Analog,
     Digital

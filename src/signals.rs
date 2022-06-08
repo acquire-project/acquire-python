@@ -1,31 +1,40 @@
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
+    capi,
     components::{
         SampleRateHz, SampleType, SignalIOKind, SignalType, Trigger, TriggerEdge, VoltageRange,
+        macros::impl_plain_old_dict
     },
-    capi,
 };
 use anyhow::anyhow;
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Channel {
     #[pyo3(get, set)]
+    #[serde(default)]
     sample_type: SampleType,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     signal_type: SignalType,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     signal_io_kind: SignalIOKind,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     voltage_range: VoltageRange,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     line: u8,
 }
+
+impl_plain_old_dict!(Channel);
 
 impl TryFrom<capi::Channel> for Channel {
     type Error = anyhow::Error;
@@ -54,17 +63,22 @@ impl From<Channel> for capi::Channel {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Timing {
     #[pyo3(get, set)]
+    #[serde(default)]
     terminal: u8,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     edge: TriggerEdge,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     samples_per_second: SampleRateHz,
 }
+
+impl_plain_old_dict!(Timing);
 
 impl TryFrom<capi::SignalProperties_signal_properties_timing_s> for Timing {
     type Error = anyhow::Error;
@@ -91,12 +105,14 @@ impl From<Timing> for capi::SignalProperties_signal_properties_timing_s {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SignalProperties {
     channels: Vec<Channel>,
     timing: Timing,
     triggers: Vec<Trigger>,
 }
+
+impl_plain_old_dict!(SignalProperties);
 
 impl TryFrom<capi::SignalProperties> for SignalProperties {
     type Error = anyhow::Error;
