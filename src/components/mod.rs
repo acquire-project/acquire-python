@@ -5,6 +5,11 @@ mod signal_type;
 mod trigger_edge;
 mod trigger_event;
 
+use pyo3::{prelude::*, types::PyDict};
+use pythonize::{depythonize, pythonize};
+use serde::{Deserialize, Serialize};
+use anyhow::Result;
+
 pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
 pub use signal_type::SignalType;
@@ -13,10 +18,9 @@ pub use trigger_event::TriggerEvent;
 
 use crate::core_runtime;
 
-use pyo3::prelude::*;
 
 #[pyclass]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
 pub struct Trigger {
     #[pyo3(get, set)]
     enable: bool,
@@ -32,6 +36,31 @@ pub struct Trigger {
 
     #[pyo3(get, set)]
     edge: TriggerEdge,
+}
+
+#[pymethods]
+impl Trigger {
+    #[new]
+    #[args(kwargs="**")]
+    fn __new__(kwargs:Option<&PyDict>)->Result<Self> {
+        if let Some(kwargs)=kwargs {
+            Ok(depythonize(kwargs)?)
+        } else {
+            Ok(Default::default())
+        }
+    }
+
+    fn __repr__(&self,py:Python<'_>)->PyResult<String> {
+        let obj=pythonize(py, self)?;
+        let obj=obj.as_ref(py).downcast::<PyDict>()?;
+        let args:String=obj
+            .iter()
+            .map(|(k,v)| format!("{}='{}'",k,v))
+            .reduce(|acc,e| format!("{},{}",acc,e))
+            .unwrap_or(String::new());
+
+        Ok(format!("Trigger({})",args))
+    }
 }
 
 impl TryFrom<core_runtime::Trigger> for Trigger {

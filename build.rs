@@ -15,7 +15,8 @@ fn main() {
         println!("cargo:rustc-link-lib=static=NIDAQmx");
     }
 
-    println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed=wrapper.h"); 
+    // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}/include",dst.display()))

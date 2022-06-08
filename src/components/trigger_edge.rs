@@ -1,11 +1,12 @@
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{core_runtime, components::macros::cvt};
 use anyhow::anyhow;
 
 
 #[pyclass]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum TriggerEdge {
     Rising,
     Falling,
