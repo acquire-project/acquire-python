@@ -1,9 +1,9 @@
 [package]
-name = "demo-python-api"
+name = "cpx-python"
+authors = ["Nathan Clack <nclack@chanzuckerberg.com>"]
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "demo_python_api"
 crate-type = ["cdylib"]

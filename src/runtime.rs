@@ -40,7 +40,7 @@ unsafe extern "C" fn reporter(
 }
 
 pub(crate) struct RawRuntime {
-    inner: NonNull<core_runtime::CoreRuntime>,
+    inner: NonNull<core_runtime::CpxRuntime>,
 }
 
 unsafe impl Send for RawRuntime {}
@@ -49,7 +49,7 @@ unsafe impl Sync for RawRuntime {}
 impl RawRuntime {
     fn new() -> Result<Self> {
         Ok(Self {
-            inner: NonNull::new(unsafe { core_runtime::core_init(Some(reporter)) })
+            inner: NonNull::new(unsafe { core_runtime::cpx_init(Some(reporter)) })
                 .ok_or(anyhow!("Failed to initialize core runtime."))?,
         })
     }
@@ -59,15 +59,15 @@ impl Drop for RawRuntime {
     fn drop(&mut self) {
         debug!("SHUTDOWN Runtime");
         unsafe {
-            core_runtime::core_shutdown(self.inner.as_mut())
+            core_runtime::cpx_shutdown(self.inner.as_mut())
                 .ok()
                 .expect("Core runtime shutdown failed.");
         }
     }
 }
 
-impl AsRef<NonNull<core_runtime::CoreRuntime>> for RawRuntime {
-    fn as_ref(&self) -> &NonNull<core_runtime::CoreRuntime> {
+impl AsRef<NonNull<core_runtime::CpxRuntime>> for RawRuntime {
+    fn as_ref(&self) -> &NonNull<core_runtime::CpxRuntime> {
         &self.inner
     }
 }
@@ -77,8 +77,8 @@ pub struct Runtime {
     inner: Arc<RawRuntime>,
 }
 
-impl AsRef<NonNull<core_runtime::CoreRuntime>> for Runtime {
-    fn as_ref(&self) -> &NonNull<core_runtime::CoreRuntime> {
+impl AsRef<NonNull<core_runtime::CpxRuntime>> for Runtime {
+    fn as_ref(&self) -> &NonNull<core_runtime::CpxRuntime> {
         &self.inner.inner
     }
 }
@@ -96,15 +96,15 @@ impl Runtime {
         Ok(device_manager::DeviceManager {
             _runtime: self.inner.clone(),
             inner: NonNull::new(unsafe {
-                core_runtime::core_device_manager(self.as_ref().as_ptr())
+                core_runtime::cpx_device_manager(self.as_ref().as_ptr())
                 as _
             }).ok_or(anyhow!("Failed to get device manager"))?,
         })
     }
 
     fn get_configuration(&self)->PyResult<CoreProperties> {
-        let mut props:core_runtime::CoreProperties=unsafe{std::mem::zeroed()};
-        unsafe{core_runtime::core_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
+        let mut props:core_runtime::CpxProperties=unsafe{std::mem::zeroed()};
+        unsafe{core_runtime::cpx_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
         Ok(props.try_into()?)
     }
 
@@ -112,7 +112,7 @@ impl Runtime {
         let mut buf = null_mut();
         let mut nbytes = 0;
         unsafe {
-            core_runtime::core_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
+            core_runtime::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
         Ok(if nbytes > 0 {
             Some(AvailableData {
@@ -164,7 +164,7 @@ impl Drop for RawAvailableData {
         debug!("Unmapping read region");
         let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
         unsafe {
-            core_runtime::core_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
+            core_runtime::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
                 .ok()
                 .expect("Unexpected failure: Was the CoreRuntime NULL?");
         }

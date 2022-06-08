@@ -30,13 +30,13 @@ trait Status: Copy+Sized {
 
 impl Status for core_runtime::DeviceStatusCode {
     fn is_ok(&self) -> bool {
-        *self == core_runtime::CoreStatusCode_CoreStatus_Ok
+        *self == core_runtime::CpxStatusCode_CpxStatus_Ok
     }
 }
 
 #[pyfunction]
 fn core_api_version() -> PyResult<String> {
-    let ptr = unsafe { core_runtime::core_api_version_string() };
+    let ptr = unsafe { core_runtime::cpx_api_version_string() };
     Ok(unsafe { CStr::from_ptr(ptr) }.to_str()?.to_owned())
 }
 

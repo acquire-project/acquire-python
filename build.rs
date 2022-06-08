@@ -1,17 +1,19 @@
 fn main() {
-    let dst = cmake::Config::new("demo")
-        .target("core")
+    let dst = cmake::Config::new("cpx")
+        .target("cpx")
         .profile("RelWithDebInfo")
         .static_crt(true)
         .define("NOTEST", "TRUE")
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=core");
+    println!("cargo:rustc-link-lib=static=cpx");
 
     #[cfg(target_os="windows")]
     {
-        println!("cargo:rustc-link-search=native=demo/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/");
+        // FIXME: hardcoded path to lib daqmx. Ideally this would be a plugin and
+        //        we'd be building it separately.  This is a fine hack till then.
+        println!("cargo:rustc-link-search=native=cpx/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/");
         println!("cargo:rustc-link-lib=static=NIDAQmx");
     }
 
