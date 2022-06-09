@@ -5,9 +5,12 @@ Python interface for calliphlox.
 ## Build environment
 
 Requires
-* CMake 3.23+
+* [CMake 3.23+](https://cmake.org/download/)
 * A C++ compiler
-* conda (recommended)
+* [Rust](https://www.rust-lang.org/tools/install)
+* conda (optional; via [miniconda](https://docs.conda.io/en/latest/miniconda.html))
+
+
 
 ```
 conda create --name calliphlox python=3.10
