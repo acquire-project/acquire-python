@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::{
     camera::CameraProperties, capi, device::DeviceIdentifier, signals::SignalProperties,
-    stage_axis::StageAxisProperties, storage::StorageProperties,
+    stage_axis::StageAxisProperties, storage::StorageProperties, components::macros::impl_plain_old_dict,
 };
 
 #[pyclass]
@@ -15,6 +15,8 @@ struct Camera {
     #[pyo3(get, set)]
     settings: CameraProperties,
 }
+
+impl_plain_old_dict!(@out Camera);
 
 impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
     type Error = anyhow::Error;
@@ -37,6 +39,8 @@ struct Storage {
     settings: StorageProperties,
 }
 
+impl_plain_old_dict!(@out Storage);
+
 impl TryFrom<capi::CpxProperties_cpx_properties_storage_s> for Storage {
     type Error = anyhow::Error;
 
@@ -58,6 +62,8 @@ struct StageAxis {
     settings: StageAxisProperties,
 }
 
+impl_plain_old_dict!(@out StageAxis);
+
 impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
     type Error = anyhow::Error;
 
@@ -78,6 +84,8 @@ struct Signals {
     #[pyo3(get, set)]
     settings: SignalProperties,
 }
+
+impl_plain_old_dict!(@out Signals);
 
 impl TryFrom<capi::CpxProperties_cpx_properties_signals_s> for Signals {
     type Error = anyhow::Error;

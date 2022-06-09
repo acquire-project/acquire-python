@@ -41,7 +41,7 @@ impl DeviceManager {
             .collect()
     }
 
-    fn select_device(&self, kind: DeviceKind, name: &str) -> PyResult<Option<DeviceIdentifier>> {
+    fn select(&self, kind: DeviceKind, name: &str) -> PyResult<Option<DeviceIdentifier>> {
         let name = CString::new(name)?;
         let (status,ident) = unsafe {
             let mut ident: capi::DeviceIdentifier = std::mem::zeroed();

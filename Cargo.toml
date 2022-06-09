@@ -4,6 +4,9 @@ authors = ["Nathan Clack <nclack@chanzuckerberg.com>"]
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.maturin]
+python-source = "python"
+
 [lib]
 name = "calliphlox"
 crate-type = ["cdylib"]
@@ -21,3 +24,5 @@ pythonize= "0.16.0"
 [build-dependencies]
 bindgen = "0.60.1"
 cmake = "0.1"
+
+

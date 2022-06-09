@@ -32,6 +32,26 @@ macro_rules! cvt {
 pub(crate) use cvt;
 
 macro_rules! impl_plain_old_dict {
+    (@out $T:ty) => {
+        #[pymethods]
+        impl $T {
+            fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+                Ok(pythonize::pythonize(py, self)?)
+            }
+
+            fn __repr__(&self,py:Python<'_>)->PyResult<String> {
+                let obj=pythonize::pythonize(py, self)?;
+                let obj=obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
+                let args:String=obj
+                    .iter()
+                    .map(|(k,v)| format!("{}='{}'",k,v))
+                    .reduce(|acc,e| format!("{},{}",acc,e))
+                    .unwrap_or(String::new());
+
+                Ok(format!("{}({})",stringify!($T),args))
+            }
+        }
+    };
     ($T:ty) => {
         #[pymethods]
         impl $T {

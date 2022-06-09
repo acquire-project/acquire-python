@@ -150,9 +150,11 @@ impl From<SampleRateHz> for capi::SampleRateHz {
 #[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct VoltageRange {
     #[pyo3(get, set)]
+    #[serde(default)]
     mn: f32,
 
     #[pyo3(get, set)]
+    #[serde(default)]
     mx: f32,
 }
 
