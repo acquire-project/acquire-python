@@ -10,3 +10,20 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+dev-dependencies=["black","pytest"]
+dynamic = [
+    "authors",
+    "description",
+    "license",
+    "readme",
+    "version"
+]
+
+[tool.black]
+target-version = ['py38', 'py39', 'py310']
+line-length = 79
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"

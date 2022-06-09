@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize, Serializer, ser::SerializeStruct};
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::ffi::CStr;
 
-use crate::{components::macros::cvt, capi};
+use crate::{capi, components::macros::cvt};
 use anyhow::{anyhow, Result};
 
 impl capi::DeviceIdentifier {
@@ -28,6 +28,22 @@ cvt!(DeviceKind=>capi::DeviceKind,
     StageAxis => DeviceKind_DeviceKind_StageAxis,
     Signals   => DeviceKind_DeviceKind_Signals
 );
+
+// TODO: (nclack) Allow DeviceManager::select to accept strings for device kind
+// TODO: (nclack) Is there a way to automatically extend python's usual string to enum conversion?
+impl TryFrom<&str> for DeviceKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "Camera" => Ok(DeviceKind::Camera),
+            "Storage" => Ok(DeviceKind::Storage),
+            "StageAxis" => Ok(DeviceKind::StageAxis),
+            "Signals" => Ok(DeviceKind::Signals),
+            _ => Err(anyhow!("Did not recognize {} as a valid DeviceKind", value)),
+        }
+    }
+}
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -60,7 +76,7 @@ impl DeviceIdentifier {
         format!("<DeviceIdentifier {:?} \"{}\">", self.kind, self.name)
     }
 
-    fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+    fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         Ok(pythonize::pythonize(py, self)?)
     }
 }

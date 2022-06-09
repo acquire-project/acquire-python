@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use pyo3::prelude::*;
 use serde::Serialize;
 
@@ -101,7 +103,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_signals_s> for Signals {
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Properties {
-    #[pyo3(get, set)]
+    #[pyo3(get,set)]
     camera: Camera,
 
     #[pyo3(get, set)]
@@ -184,6 +186,7 @@ impl Properties {
 
         Ok(format!("Properties({})", args))
     }
+
 }
 
 impl TryFrom<capi::CpxProperties> for Properties {
