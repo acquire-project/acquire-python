@@ -53,6 +53,16 @@ impl RawRuntime {
                 .ok_or(anyhow!("Failed to initialize core runtime."))?,
         })
     }
+
+    fn start(&self) -> Result<()> {
+        unsafe{capi::cpx_start(self.inner.as_ptr())}.ok()?;
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<()> {
+        unsafe{capi::cpx_stop(self.inner.as_ptr())}.ok()?;
+        Ok(())
+    }
 }
 
 impl Drop for RawRuntime {
@@ -92,6 +102,14 @@ impl Runtime {
         })
     }
 
+    fn start(&self) -> PyResult<()> {
+        Ok(self.inner.start()?)
+    }
+
+    fn stop(&self) -> PyResult<()> {
+        Ok(self.inner.stop()?)
+    }
+
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {
         Ok(device_manager::DeviceManager {
             _runtime: self.inner.clone(),
@@ -100,6 +118,12 @@ impl Runtime {
                 as _
             }).ok_or(anyhow!("Failed to get device manager"))?,
         })
+    }
+
+    fn set_configuration(&self, properties: &Properties)->PyResult<Properties> {
+        let mut props:capi::CpxProperties2k=properties.try_into()?;
+        unsafe{capi::cpx_configure(self.as_ref().as_ptr(), props.as_mut())}.ok()?;
+        Ok(props.as_ref().try_into()?)
     }
 
     fn get_configuration(&self)->PyResult<Properties> {

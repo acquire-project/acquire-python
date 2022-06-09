@@ -58,8 +58,8 @@ impl TryFrom<capi::Trigger> for Trigger {
     }
 }
 
-impl From<Trigger> for capi::Trigger {
-    fn from(value: Trigger) -> Self {
+impl From<&Trigger> for capi::Trigger {
+    fn from(value: &Trigger) -> Self {
         Self {
             enable: value.enable as _,
             line: value.line,
@@ -67,6 +67,12 @@ impl From<Trigger> for capi::Trigger {
             kind: value.kind.into(),
             edge: value.edge.into(),
         }
+    }
+}
+
+impl From<Trigger> for capi::Trigger {
+    fn from(value: Trigger) -> Self {
+        value.into()
     }
 }
 

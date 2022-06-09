@@ -8,11 +8,12 @@ use std::{ffi::{CStr, CString}, ptr::null};
 pub struct StorageProperties {
     #[pyo3(get, set)]
     #[serde(default)]
-    filename: Option<String>,
+    pub(crate) filename: Option<String>,
 
+    /// Doesn't do anything right now. One day could be used for file-rollover.
     #[pyo3(get, set)]
     #[serde(default)]
-    first_frame_id: u32,
+    pub(crate) first_frame_id: u32,
 }
 
 impl_plain_old_dict!(StorageProperties);

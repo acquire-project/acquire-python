@@ -1,11 +1,12 @@
-use std::cell::RefCell;
+use std::ffi::CString;
 
 use pyo3::prelude::*;
 use serde::Serialize;
 
 use crate::{
-    camera::CameraProperties, capi, device::DeviceIdentifier, signals::SignalProperties,
-    stage_axis::StageAxisProperties, storage::StorageProperties, components::macros::impl_plain_old_dict,
+    camera::CameraProperties, capi, components::macros::impl_plain_old_dict,
+    device::DeviceIdentifier, signals::SignalProperties, stage_axis::StageAxisProperties,
+    storage::StorageProperties,
 };
 
 #[pyclass]
@@ -20,6 +21,12 @@ struct Camera {
 
 impl_plain_old_dict!(@out Camera);
 
+impl AsRef<Camera> for Camera {
+    fn as_ref(&self) -> &Camera {
+        self
+    }
+}
+
 impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
     type Error = anyhow::Error;
 
@@ -28,6 +35,30 @@ impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
             identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
+    }
+}
+
+impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_camera_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Camera) -> Result<Self, Self::Error> {
+        let identifier = value
+            .identifier
+            .as_ref()
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .try_into()?;
+        Ok(Self {
+            identifier,
+            settings: (&value.settings).try_into()?,
+        })
+    }
+}
+
+impl TryFrom<Camera> for capi::CpxProperties_cpx_properties_camera_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Camera) -> Result<Self, Self::Error> {
+        value.try_into()
     }
 }
 
@@ -40,6 +71,8 @@ struct Storage {
     #[pyo3(get, set)]
     settings: StorageProperties,
 }
+
+// FIXME: (nclack) be consistent about "settings" vs "properties" vs "configuration"
 
 impl_plain_old_dict!(@out Storage);
 
@@ -66,6 +99,12 @@ struct StageAxis {
 
 impl_plain_old_dict!(@out StageAxis);
 
+impl AsRef<StageAxis> for StageAxis {
+    fn as_ref(&self) -> &StageAxis {
+        self
+    }
+}
+
 impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
     type Error = anyhow::Error;
 
@@ -74,6 +113,30 @@ impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
             identifier: value.identifier.try_into().ok(),
             settings: value.settings.try_into()?,
         })
+    }
+}
+
+impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &StageAxis) -> Result<Self, Self::Error> {
+        let identifier = value
+            .identifier
+            .as_ref()
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .try_into()?;
+        Ok(Self {
+            identifier,
+            settings: value.settings.try_into()?,
+        })
+    }
+}
+
+impl TryFrom<StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: StageAxis) -> Result<Self, Self::Error> {
+        value.try_into()
     }
 }
 
@@ -89,6 +152,12 @@ struct Signals {
 
 impl_plain_old_dict!(@out Signals);
 
+impl AsRef<Signals> for Signals {
+    fn as_ref(&self) -> &Signals {
+        self
+    }
+}
+
 impl TryFrom<capi::CpxProperties_cpx_properties_signals_s> for Signals {
     type Error = anyhow::Error;
 
@@ -100,10 +169,34 @@ impl TryFrom<capi::CpxProperties_cpx_properties_signals_s> for Signals {
     }
 }
 
+impl TryFrom<&Signals> for capi::CpxProperties_cpx_properties_signals_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Signals) -> Result<Self, Self::Error> {
+        let identifier = value
+            .identifier
+            .as_ref()
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .try_into()?;
+        Ok(Self {
+            identifier,
+            settings: (&value.settings).try_into()?,
+        })
+    }
+}
+
+impl TryFrom<Signals> for capi::CpxProperties_cpx_properties_signals_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Signals) -> Result<Self, Self::Error> {
+        value.try_into()
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Properties {
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     camera: Camera,
 
     #[pyo3(get, set)]
@@ -186,13 +279,12 @@ impl Properties {
 
         Ok(format!("Properties({})", args))
     }
-
 }
 
-impl TryFrom<capi::CpxProperties> for Properties {
+impl TryFrom<&capi::CpxProperties> for Properties {
     type Error = anyhow::Error;
 
-    fn try_from(value: capi::CpxProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: &capi::CpxProperties) -> Result<Self, Self::Error> {
         let camera = value.camera.try_into()?;
         let storage = value.storage.try_into()?;
         let stages = (
@@ -209,5 +301,75 @@ impl TryFrom<capi::CpxProperties> for Properties {
             max_frame_count: value.max_frame_count,
             frame_average_count: value.frame_average_count,
         })
+    }
+}
+
+impl TryFrom<capi::CpxProperties> for Properties {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::CpxProperties) -> Result<Self, Self::Error> {
+        return value.try_into();
+    }
+}
+
+impl TryFrom<&Properties> for capi::CpxProperties2k {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Properties) -> Result<Self, Self::Error> {
+        let mut out = capi::CpxProperties2k {
+            inner_: capi::CpxProperties {
+                camera: value.camera.as_ref().try_into()?,
+                storage: unsafe { std::mem::zeroed() },
+                stages: [
+                    value.stages.0.as_ref().try_into()?,
+                    value.stages.1.as_ref().try_into()?,
+                    value.stages.2.as_ref().try_into()?,
+                ],
+                signals: (&value.signals).try_into()?,
+                max_frame_count: value.max_frame_count,
+                frame_average_count: value.frame_average_count,
+            },
+            scratch: [0; 1 << 12],
+        };
+
+        // 1. Copy filename to scratch
+        if let Some(filename) = value.storage.settings.filename.as_ref() {
+            let s = CString::new(filename.as_str())?;
+            let bytes = s.as_bytes_with_nul();
+            if bytes.len() > out.scratch.len() {
+                return Err(anyhow::anyhow!(
+                    "filename was too long for internal storage. Needed {} bytes, but only have space for {}.",
+                    bytes.len(),out.scratch.len()));
+            }
+            out.scratch[0..bytes.len()].copy_from_slice(bytes);
+
+            out.inner_.storage.settings.filename.str_ = &out.scratch[0] as *const u8 as *mut _;
+            out.inner_.storage.settings.filename.nbytes = bytes.len() as _;
+        }
+
+        // 2. Fill out the remaining storage settings
+        out.inner_.storage.settings.first_frame_id = value.storage.settings.first_frame_id;
+
+        Ok(out)
+    }
+}
+
+impl TryFrom<Properties> for capi::CpxProperties2k {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Properties) -> Result<Self, Self::Error> {
+        value.try_into()
+    }
+}
+
+impl AsRef<capi::CpxProperties> for capi::CpxProperties2k {
+    fn as_ref(&self) -> &capi::CpxProperties {
+        unsafe { *(self as *const capi::CpxProperties2k as *const _) }
+    }
+}
+
+impl AsMut<capi::CpxProperties> for capi::CpxProperties2k {
+    fn as_mut(&mut self) -> &mut capi::CpxProperties {
+        unsafe { &mut *(self as *mut capi::CpxProperties2k as *mut _) }
     }
 }

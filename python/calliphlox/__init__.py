@@ -28,11 +28,25 @@ def dbg(v):
 
 
 def setup(
-    runtime: Runtime, camera: str, storage: str, output_filename: Optional[str]
+    runtime: Runtime, camera: str, storage: str, output_filename: Optional[str]="out.tif"
 ) -> Properties:
+
     dm = runtime.device_manager()
     p = runtime.get_configuration()
-    p.camera.identifier = dbg(dm.select(DeviceKind.Camera, camera))
-    dbg(p.camera.identifier)
-    p.storage.identifier = dbg(dm.select(DeviceKind.Storage, storage))
+
+    c=p.camera
+    c.identifier=dm.select(DeviceKind.Camera, camera)
+    p.camera=c
+
+    s=p.storage
+    s.identifier=dm.select(DeviceKind.Storage, storage)
+
+    sp=p.storage.settings
+    sp.filename=output_filename
+    s.settings=sp
+    p.storage=s
+
+    p.max_frame_count=100
+    p.frame_average_count=0 # disables
+
     return p

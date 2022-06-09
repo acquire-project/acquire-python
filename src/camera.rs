@@ -59,10 +59,10 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
     }
 }
 
-impl TryFrom<CameraProperties> for capi::CameraProperties {
+impl TryFrom<&CameraProperties> for capi::CameraProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: CameraProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: &CameraProperties) -> Result<Self, Self::Error> {
         let mut triggers: capi::CameraProperties_camera_properties_triggers_s =
             unsafe { std::mem::zeroed() };
         if value.triggers.len() > triggers.lines.len() {
@@ -80,7 +80,7 @@ impl TryFrom<CameraProperties> for capi::CameraProperties {
                 x: value.shape.0,
                 y: value.shape.1,
             };
-            for (src, dst) in value.triggers.into_iter().zip(triggers.lines.iter_mut()) {
+            for (src, dst) in value.triggers.iter().zip(triggers.lines.iter_mut()) {
                 *dst = src.into()
             }
             Ok(capi::CameraProperties {
@@ -94,5 +94,11 @@ impl TryFrom<CameraProperties> for capi::CameraProperties {
             })
         }
     }
+}
 
+impl TryFrom<CameraProperties> for capi::CameraProperties {
+    type Error = anyhow::Error;
+    fn try_from(value: CameraProperties) -> Result<Self, Self::Error> {
+        value.try_into()
+    }
 }

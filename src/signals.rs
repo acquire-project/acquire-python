@@ -50,8 +50,8 @@ impl TryFrom<capi::Channel> for Channel {
     }
 }
 
-impl From<Channel> for capi::Channel {
-    fn from(value: Channel) -> Self {
+impl From<&Channel> for capi::Channel {
+    fn from(value: &Channel) -> Self {
         Self {
             sample_type: value.sample_type.into(),
             signal_type: value.signal_type.into(),
@@ -59,6 +59,12 @@ impl From<Channel> for capi::Channel {
             voltage_range: value.voltage_range.into(),
             line: value.line,
         }
+    }
+}
+
+impl From<Channel> for capi::Channel {
+    fn from(value: Channel) -> Self {
+        value.into()
     }
 }
 
@@ -94,13 +100,19 @@ impl TryFrom<capi::SignalProperties_signal_properties_timing_s> for Timing {
     }
 }
 
-impl From<Timing> for capi::SignalProperties_signal_properties_timing_s {
-    fn from(value: Timing) -> Self {
+impl From<&Timing> for capi::SignalProperties_signal_properties_timing_s {
+    fn from(value: &Timing) -> Self {
         Self {
             terminal: value.terminal,
             edge: value.edge.into(),
             samples_per_second: value.samples_per_second.into(),
         }
+    }
+}
+
+impl From<Timing> for capi::SignalProperties_signal_properties_timing_s {
+    fn from(value: Timing) -> Self {
+        value.into()
     }
 }
 
@@ -130,10 +142,10 @@ impl TryFrom<capi::SignalProperties> for SignalProperties {
     }
 }
 
-impl TryFrom<SignalProperties> for capi::SignalProperties {
+impl TryFrom<&SignalProperties> for capi::SignalProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: SignalProperties) -> Result<Self, Self::Error> {
+    fn try_from(value: &SignalProperties) -> Result<Self, Self::Error> {
         let mut triggers: capi::SignalProperties_signal_properties_triggers_s =
             unsafe { std::mem::zeroed() };
 
@@ -156,18 +168,26 @@ impl TryFrom<SignalProperties> for capi::SignalProperties {
             ));
         }
 
-        for (src, dst) in value.triggers.into_iter().zip(triggers.lines.iter_mut()) {
+        for (src, dst) in value.triggers.iter().zip(triggers.lines.iter_mut()) {
             *dst = src.into()
         }
 
-        for (src, dst) in value.channels.into_iter().zip(channels.lines.iter_mut()) {
+        for (src, dst) in value.channels.iter().zip(channels.lines.iter_mut()) {
             *dst = src.into()
         }
 
         Ok(Self {
             channels,
-            timing: value.timing.try_into()?,
+            timing: (&value.timing).try_into()?,
             triggers,
         })
+    }
+}
+
+impl TryFrom<SignalProperties> for capi::SignalProperties {
+    type Error = anyhow::Error;
+
+    fn try_from(value: SignalProperties) -> Result<Self, Self::Error> {
+        value.try_into()
     }
 }

@@ -37,6 +37,35 @@ def test_set_camera_identifier(caplog, runtime):
     )
     assert camera.identifier != None
     p.camera = camera
-    assert camera.identifier != None
+    assert p.camera.identifier != None
 
 
+def test_set_storage(caplog, runtime):
+    caplog.set_level(logging.DEBUG)
+
+    dm = runtime.device_manager()
+    devices = dm.devices()
+
+    p = runtime.get_configuration()
+    storage = p.storage
+    assert storage.identifier is None
+    storage.identifier = dm.select(
+        calliphlox.DeviceKind.Storage, "Tiff"
+    )
+    assert storage.identifier != None
+    p.storage = storage
+    assert p.storage.identifier != None
+
+    assert p.storage.settings.filename is None
+    sp = p.storage.settings
+    sp.filename="out.tif"
+    storage.settings=sp
+    p.storage=storage
+    assert p.storage.settings.filename == "out.tif"
+
+def test_setup(caplog,runtime):
+    caplog.set_level(logging.DEBUG)
+    p=calliphlox.setup(runtime,"simulated: radial sin","Tiff","out.tif")
+    assert p.camera.identifier!=None
+    assert p.storage.identifier!=None
+    assert p.storage.settings.filename == "out.tif"

@@ -97,10 +97,10 @@ impl TryFrom<capi::DeviceIdentifier> for DeviceIdentifier {
     }
 }
 
-impl TryFrom<DeviceIdentifier> for capi::DeviceIdentifier {
+impl TryFrom<&DeviceIdentifier> for capi::DeviceIdentifier {
     type Error = anyhow::Error;
 
-    fn try_from(value: DeviceIdentifier) -> Result<Self, Self::Error> {
+    fn try_from(value: &DeviceIdentifier) -> Result<Self, Self::Error> {
         let mut out = Self {
             driver_id: value.id.0,
             device_id: value.id.1,
@@ -119,5 +119,13 @@ impl TryFrom<DeviceIdentifier> for capi::DeviceIdentifier {
             }
             Ok(out)
         }
+    }
+}
+
+impl TryFrom<DeviceIdentifier> for capi::DeviceIdentifier {
+    type Error = anyhow::Error;
+
+    fn try_from(value: DeviceIdentifier) -> Result<Self, Self::Error> {
+        value.try_into()
     }
 }
