@@ -130,7 +130,10 @@ impl_plain_old_dict!(SampleRateHz);
 
 impl Default for SampleRateHz {
     fn default() -> Self {
-        Self { numerator: 1, denominator: 1 }
+        Self {
+            numerator: 1,
+            denominator: 1,
+        }
     }
 }
 

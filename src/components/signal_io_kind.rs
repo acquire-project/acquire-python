@@ -1,14 +1,14 @@
 use pyo3::prelude::*;
 
+use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use crate::{capi, components::macros::cvt};
 
 #[pyclass]
-#[derive(Debug,Clone,Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum SignalIOKind {
     Input,
-    Output
+    Output,
 }
 
 impl Default for SignalIOKind {

@@ -1,10 +1,10 @@
 use crate::{
-    components::{SampleType, Trigger, macros::impl_plain_old_dict},
     capi,
+    components::{macros::impl_plain_old_dict, SampleType, Trigger},
 };
 use anyhow::anyhow;
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -93,12 +93,5 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
                 triggers,
             })
         }
-    }
-}
-
-impl TryFrom<CameraProperties> for capi::CameraProperties {
-    type Error = anyhow::Error;
-    fn try_from(value: CameraProperties) -> Result<Self, Self::Error> {
-        value.try_into()
     }
 }

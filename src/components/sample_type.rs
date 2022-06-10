@@ -1,11 +1,11 @@
 use pyo3::prelude::*;
 
-use anyhow::anyhow;
-use serde::{Serialize, Deserialize};
 use crate::{capi, components::macros::cvt};
+use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 
 #[pyclass]
-#[derive(Debug,Clone,Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SampleType {
     U8,
     U16,

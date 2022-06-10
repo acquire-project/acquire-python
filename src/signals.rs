@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     capi,
     components::{
-        SampleRateHz, SampleType, SignalIOKind, SignalType, Trigger, TriggerEdge, VoltageRange,
-        macros::impl_plain_old_dict
+        macros::impl_plain_old_dict, SampleRateHz, SampleType, SignalIOKind, SignalType, Trigger,
+        TriggerEdge, VoltageRange,
     },
 };
 use anyhow::anyhow;
@@ -181,13 +181,5 @@ impl TryFrom<&SignalProperties> for capi::SignalProperties {
             timing: (&value.timing).try_into()?,
             triggers,
         })
-    }
-}
-
-impl TryFrom<SignalProperties> for capi::SignalProperties {
-    type Error = anyhow::Error;
-
-    fn try_from(value: SignalProperties) -> Result<Self, Self::Error> {
-        value.try_into()
     }
 }

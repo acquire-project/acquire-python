@@ -1,7 +1,10 @@
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{components::{PID, macros::impl_plain_old_dict}, capi};
+use crate::{
+    capi,
+    components::{macros::impl_plain_old_dict, PID},
+};
 
 #[pyclass]
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]

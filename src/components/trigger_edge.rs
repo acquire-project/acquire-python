@@ -4,13 +4,12 @@ use serde::{Deserialize, Serialize};
 use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 
-
 #[pyclass]
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum TriggerEdge {
     Rising,
     Falling,
-    NotApplicable
+    NotApplicable,
 }
 
 impl Default for TriggerEdge {

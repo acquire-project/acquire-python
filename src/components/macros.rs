@@ -6,7 +6,7 @@ macro_rules! cvt {
     (@tryfrom $TA:ty, $TB:ty, $($A:ident => $B:ident),+) => {
         impl TryFrom<$TB> for $TA {
             type Error=anyhow::Error;
-        
+
             fn try_from(value: $TB) -> Result<Self, Self::Error> {
                 match value as $TB {
                     $(
@@ -24,7 +24,7 @@ macro_rules! cvt {
                     $(
                         <$TA>::$A => capi::$B as _,
                     )+
-                } 
+                }
             }
         }
     }
@@ -35,20 +35,20 @@ macro_rules! impl_plain_old_dict {
     (@out $T:ty) => {
         #[pymethods]
         impl $T {
-            fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+            fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
                 Ok(pythonize::pythonize(py, self)?)
             }
 
-            fn __repr__(&self,py:Python<'_>)->PyResult<String> {
-                let obj=pythonize::pythonize(py, self)?;
-                let obj=obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
-                let args:String=obj
+            fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+                let obj = pythonize::pythonize(py, self)?;
+                let obj = obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
+                let args: String = obj
                     .iter()
-                    .map(|(k,v)| format!("{}='{}'",k,v))
-                    .reduce(|acc,e| format!("{},{}",acc,e))
+                    .map(|(k, v)| format!("{}='{}'", k, v))
+                    .reduce(|acc, e| format!("{},{}", acc, e))
                     .unwrap_or(String::new());
 
-                Ok(format!("{}({})",stringify!($T),args))
+                Ok(format!("{}({})", stringify!($T), args))
             }
         }
     };
@@ -56,29 +56,29 @@ macro_rules! impl_plain_old_dict {
         #[pymethods]
         impl $T {
             #[new]
-            #[args(kwargs="**")]
-            fn __new__(kwargs:Option<&pyo3::types::PyDict>)->anyhow::Result<Self> {
-                if let Some(kwargs)=kwargs {
+            #[args(kwargs = "**")]
+            fn __new__(kwargs: Option<&pyo3::types::PyDict>) -> anyhow::Result<Self> {
+                if let Some(kwargs) = kwargs {
                     Ok(pythonize::depythonize(kwargs)?)
                 } else {
                     Ok(Default::default())
                 }
             }
 
-            fn dict(&self,py:Python<'_>)->PyResult<Py<PyAny>> {
+            fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
                 Ok(pythonize::pythonize(py, self)?)
             }
 
-            fn __repr__(&self,py:Python<'_>)->PyResult<String> {
-                let obj=pythonize::pythonize(py, self)?;
-                let obj=obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
-                let args:String=obj
+            fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+                let obj = pythonize::pythonize(py, self)?;
+                let obj = obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
+                let args: String = obj
                     .iter()
-                    .map(|(k,v)| format!("{}='{}'",k,v))
-                    .reduce(|acc,e| format!("{},{}",acc,e))
+                    .map(|(k, v)| format!("{}='{}'", k, v))
+                    .reduce(|acc, e| format!("{},{}", acc, e))
                     .unwrap_or(String::new());
 
-                Ok(format!("{}({})",stringify!($T),args))
+                Ok(format!("{}({})", stringify!($T), args))
             }
         }
     };

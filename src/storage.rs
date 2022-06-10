@@ -1,7 +1,10 @@
-use crate::{capi, Status, components::macros::impl_plain_old_dict};
+use crate::{capi, components::macros::impl_plain_old_dict, Status};
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
-use std::{ffi::{CStr, CString}, ptr::null};
+use serde::{Deserialize, Serialize};
+use std::{
+    ffi::{CStr, CString},
+    ptr::null,
+};
 
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -38,44 +41,26 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
     }
 }
 
-impl TryFrom<StorageProperties> for capi::StorageProperties2k {
+impl TryFrom<&StorageProperties> for capi::StorageProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: StorageProperties) -> Result<Self, Self::Error> {
-        let mut out: capi::StorageProperties2k = unsafe { std::mem::zeroed() };
-        let x = if let Some(filename) = value.filename {
-            Some(CString::new(filename)?)
+    fn try_from(value: &StorageProperties) -> Result<Self, Self::Error> {
+        let mut out: capi::StorageProperties = unsafe { std::mem::zeroed() };
+        let x = if let Some(filename) = &value.filename {
+            Some(CString::new(filename.as_str())?)
         } else {
             None
         };
-        let (filename, nbytes) = if let Some(x)=x {
-            (x.as_c_str().as_ptr(),x.to_bytes_with_nul().len())
+        let (filename, nbytes) = if let Some(x) = x {
+            (x.as_c_str().as_ptr(), x.to_bytes_with_nul().len())
         } else {
-            (null(),0)
+            (null(), 0)
         };
         // This copies the string into a buffer owned by the return value.
         unsafe {
-            capi::storage_properties_init(
-                out.as_mut() as *mut capi::StoragePropertiesOwned,
-                std::mem::size_of_val(&out) as _,
-                value.first_frame_id,
-                filename,
-                nbytes as _,
-            )
-            .ok()?;
+            capi::storage_properties_init(&mut out, value.first_frame_id, filename, nbytes as _)
+                .ok()?;
         }
         Ok(out)
-    }
-}
-
-impl AsRef<capi::StorageProperties> for capi::StorageProperties2k {
-    fn as_ref(&self) -> &capi::StorageProperties {
-        unsafe { *(self as *const capi::StorageProperties2k as *const _) }
-    }
-}
-
-impl AsMut<capi::StoragePropertiesOwned> for capi::StorageProperties2k {
-    fn as_mut(&mut self) -> &mut capi::StoragePropertiesOwned {
-        unsafe { &mut *(self as *mut capi::StorageProperties2k as *mut _) }
     }
 }

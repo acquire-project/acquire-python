@@ -121,11 +121,3 @@ impl TryFrom<&DeviceIdentifier> for capi::DeviceIdentifier {
         }
     }
 }
-
-impl TryFrom<DeviceIdentifier> for capi::DeviceIdentifier {
-    type Error = anyhow::Error;
-
-    fn try_from(value: DeviceIdentifier) -> Result<Self, Self::Error> {
-        value.try_into()
-    }
-}

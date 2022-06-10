@@ -1,21 +1,19 @@
-
-pub(crate) mod capi;
-pub(crate) mod device_manager;
-pub(crate) mod components;
 pub(crate) mod camera;
-pub(crate) mod storage;
-pub(crate) mod stage_axis;
-pub(crate) mod signals;
+pub(crate) mod capi;
+pub(crate) mod components;
 pub(crate) mod core_properties;
 pub(crate) mod device;
+pub(crate) mod device_manager;
 pub(crate) mod runtime;
+pub(crate) mod signals;
+pub(crate) mod stage_axis;
+pub(crate) mod storage;
 
-
-use std::ffi::CStr;
+use anyhow::{anyhow, Result};
 use pyo3::prelude::*;
-use anyhow::{anyhow,Result};
+use std::ffi::CStr;
 
-trait Status: Copy+Sized {
+trait Status: Copy + Sized {
     fn is_ok(&self) -> bool;
 
     fn ok(&self) -> Result<Self> {
@@ -25,7 +23,6 @@ trait Status: Copy+Sized {
             Err(anyhow!("Failed capi api status check"))
         }
     }
-
 }
 
 impl Status for capi::DeviceStatusCode {

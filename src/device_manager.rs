@@ -43,16 +43,17 @@ impl DeviceManager {
 
     fn select(&self, kind: DeviceKind, name: &str) -> PyResult<Option<DeviceIdentifier>> {
         let name = CString::new(name)?;
-        let (status,ident) = unsafe {
+        let (status, ident) = unsafe {
             let mut ident: capi::DeviceIdentifier = std::mem::zeroed();
-            let status=capi::device_manager_select(
+            let status = capi::device_manager_select(
                 self.inner.as_ptr(),
                 kind.into(),
                 name.as_ptr(),
                 name.as_bytes().len() as _,
                 &mut ident,
-            ).is_ok();
-            (status,ident)
+            )
+            .is_ok();
+            (status, ident)
         };
         if status {
             Ok(Some(ident.try_into()?))

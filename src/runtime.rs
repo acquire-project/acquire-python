@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{capi, device_manager, Status, core_properties::Properties};
+use crate::{capi, core_properties::Properties, device_manager, Status};
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -55,12 +55,12 @@ impl RawRuntime {
     }
 
     fn start(&self) -> Result<()> {
-        unsafe{capi::cpx_start(self.inner.as_ptr())}.ok()?;
+        unsafe { capi::cpx_start(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
 
     fn stop(&self) -> Result<()> {
-        unsafe{capi::cpx_stop(self.inner.as_ptr())}.ok()?;
+        unsafe { capi::cpx_stop(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
 }
@@ -113,22 +113,20 @@ impl Runtime {
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {
         Ok(device_manager::DeviceManager {
             _runtime: self.inner.clone(),
-            inner: NonNull::new(unsafe {
-                capi::cpx_device_manager(self.as_ref().as_ptr())
-                as _
-            }).ok_or(anyhow!("Failed to get device manager"))?,
+            inner: NonNull::new(unsafe { capi::cpx_device_manager(self.as_ref().as_ptr()) as _ })
+                .ok_or(anyhow!("Failed to get device manager"))?,
         })
     }
 
-    fn set_configuration(&self, properties: &Properties)->PyResult<Properties> {
-        let mut props:capi::CpxProperties2k=properties.try_into()?;
-        unsafe{capi::cpx_configure(self.as_ref().as_ptr(), props.as_mut())}.ok()?;
-        Ok(props.as_ref().try_into()?)
+    fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
+        let mut props: capi::CpxProperties = properties.try_into()?;
+        unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
+        Ok(props.try_into()?)
     }
 
-    fn get_configuration(&self)->PyResult<Properties> {
-        let mut props:capi::CpxProperties=unsafe{std::mem::zeroed()};
-        unsafe{capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props)}.ok()?;
+    fn get_configuration(&self) -> PyResult<Properties> {
+        let mut props: capi::CpxProperties = unsafe { std::mem::zeroed() };
+        unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()?;
         Ok(props.try_into()?)
     }
 
@@ -258,10 +256,10 @@ impl Iterator for VideoFrameIterator {
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy)]
 struct VideoFrameTimestamps {
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     hardware: u64,
 
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     acq_thread: u64,
 }
 
@@ -277,10 +275,10 @@ impl From<capi::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy)]
 struct VideoFrameMetadata {
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     frame_id: u64,
 
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     timestamps: VideoFrameTimestamps,
 }
 
