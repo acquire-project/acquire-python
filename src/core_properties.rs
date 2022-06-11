@@ -43,7 +43,7 @@ impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_camera_s {
         let identifier = value
             .identifier
             .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Camera"))?
             .try_into()?;
         Ok(Self {
             identifier,
@@ -87,7 +87,7 @@ impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_storage_s {
         let identifier = value
             .identifier
             .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Storage"))?
             .try_into()?;
         Ok(Self {
             identifier,
@@ -133,7 +133,7 @@ impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
         let identifier = value
             .identifier
             .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required for StageAxis"))?
             .try_into()?;
         Ok(Self {
             identifier,
@@ -178,7 +178,7 @@ impl TryFrom<&Signals> for capi::CpxProperties_cpx_properties_signals_s {
         let identifier = value
             .identifier
             .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required"))?
+            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Signals"))?
             .try_into()?;
         Ok(Self {
             identifier,

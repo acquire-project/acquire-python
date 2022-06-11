@@ -121,13 +121,13 @@ impl Runtime {
     fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = properties.try_into()?;
         unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
-        Ok(props.try_into()?)
+        Ok((&props).try_into()?)
     }
 
     fn get_configuration(&self) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = unsafe { std::mem::zeroed() };
         unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()?;
-        Ok(props.try_into()?)
+        Ok((&props).try_into()?)
     }
 
     fn get_available_data(&self) -> PyResult<Option<AvailableData>> {

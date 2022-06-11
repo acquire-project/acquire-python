@@ -28,7 +28,7 @@ def dbg(v):
 
 
 def setup(
-    runtime: Runtime, camera: str, storage: str, output_filename: Optional[str]="out.tif"
+    runtime: Runtime, camera: str = "simulated: radial sin", storage: str = "Tiff", output_filename: Optional[str] = "out.tif"
 ) -> Properties:
 
     dm = runtime.device_manager()
