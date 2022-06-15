@@ -1,23 +1,30 @@
-use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
 use crate::{
     capi,
-    components::{
-        macros::impl_plain_old_dict, SampleRateHz, SampleType, SignalIOKind, SignalType, Trigger,
-        TriggerEdge, VoltageRange,
-    },
+    components::{macros::impl_plain_old_dict, Channel, Timing, Trigger},
 };
 use anyhow::anyhow;
+use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalProperties {
-    channels: Vec<Py<Channel>>,  // FIXME: should by Py<PyList>
+    channels: Vec<Py<Channel>>, // FIXME: should by Py<PyList>
     timing: Py<Timing>,
     triggers: Vec<Py<Trigger>>, // FIXME: should by Py<PyList>
 }
 
 impl_plain_old_dict!(SignalProperties);
+
+impl Default for SignalProperties {
+    fn default() -> Self {
+        Self {
+            channels: Default::default(),
+            timing: Python::with_gil(|py| Py::new(py, Timing::default())).unwrap(),
+            triggers: Default::default(),
+        }
+    }
+}
 
 impl TryFrom<capi::SignalProperties> for SignalProperties {
     type Error = anyhow::Error;

@@ -1,10 +1,13 @@
-use pyo3::{Py, Python};
+use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::capi;
 use crate::components::{SampleRateHz, TriggerEdge};
 
+use super::macros::impl_plain_old_dict;
+
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Timing {
+pub struct Timing {
     #[pyo3(get, set)]
     #[serde(default)]
     terminal: u8,

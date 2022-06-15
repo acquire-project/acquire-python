@@ -12,9 +12,12 @@ use pyo3::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
+// Exports
+pub use channel::Channel;
 pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
 pub use signal_type::SignalType;
+pub use timing::Timing;
 pub use trigger_edge::TriggerEdge;
 pub use trigger_event::TriggerEvent;
 

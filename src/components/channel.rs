@@ -1,6 +1,9 @@
-use pyo3::{Py, Python};
+use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::capi;
 use crate::components::{SampleType, SignalIOKind, SignalType, VoltageRange};
+
+use super::macros::impl_plain_old_dict;
 
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]

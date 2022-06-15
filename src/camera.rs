@@ -4,38 +4,33 @@ use crate::{
 };
 use anyhow::anyhow;
 use pyo3::prelude::*;
+use pyo3::types::PyList;
 use serde::{Deserialize, Serialize};
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CameraProperties {
     #[pyo3(get, set)]
-    #[serde(default)]
     gain_db: f32,
 
     #[pyo3(get, set)]
-    #[serde(default)]
     exposure_time_us: f32,
 
     #[pyo3(get, set)]
-    #[serde(default)]
     binning: u8,
 
     #[pyo3(get, set)]
-    #[serde(default)]
     pixel_type: SampleType,
 
     #[pyo3(get, set)]
-    #[serde(default)]
     offset: (u32, u32),
 
     #[pyo3(get, set)]
-    #[serde(default)]
     shape: (u32, u32),
 
     #[pyo3(get, set)]
-    #[serde(default)]
-    triggers: Vec<Trigger>, // FIXME: Should be Py<PyList>
+    triggers: Py<PyList>
+    // triggers: Vec<Trigger>, // FIXME: Should be Py<PyList>
 }
 
 impl_plain_old_dict!(CameraProperties);
@@ -44,9 +39,16 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::CameraProperties) -> Result<Self, Self::Error> {
-        let triggers = (0..value.triggers.line_count as usize)
-            .map(|i| value.triggers.lines[i].try_into())
-            .collect::<Result<Vec<Trigger>, anyhow::Error>>()?;
+        let triggers = Python::with_gil(|py|->PyResult<_> {
+            let v:Vec<_>=(0..value.triggers.line_count as usize)
+                .map(|i| {
+                    let t:Trigger=value.triggers.lines[i].try_into()?;
+                    Py::new(py,t)
+                }) 
+                .collect::<Result<_,_>>()?;
+            Ok(PyList::new(py,v).into())
+        })?;
+
         Ok(CameraProperties {
             gain_db: value.gain_dB,
             exposure_time_us: value.exposure_time_us,
@@ -62,36 +64,46 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
 impl TryFrom<&CameraProperties> for capi::CameraProperties {
     type Error = anyhow::Error;
 
-    fn try_from(value: &CameraProperties) -> Result<Self, Self::Error> {
-        let mut triggers: capi::CameraProperties_camera_properties_triggers_s =
+    fn try_from(src: &CameraProperties) -> Result<Self, Self::Error> {
+        let mut dst_triggers: capi::CameraProperties_camera_properties_triggers_s =
             unsafe { std::mem::zeroed() };
-        if value.triggers.len() > triggers.lines.len() {
+        let src_trigger_count=Python::with_gil(|py| {
+            src.triggers.as_ref(py).len()
+        });
+        if src_trigger_count > dst_triggers.lines.len() {
             Err(anyhow!(
                 "Expected fewer trigger lines. Require {}<{}",
-                value.triggers.len(),
-                triggers.lines.len()
+                src_trigger_count,
+                dst_triggers.lines.len()
             ))
         } else {
             let offset = capi::CameraProperties_camera_properties_offset_s {
-                x: value.offset.0,
-                y: value.offset.1,
+                x: src.offset.0,
+                y: src.offset.1,
             };
             let shape = capi::CameraProperties_camera_properties_shape_s {
-                x: value.shape.0,
-                y: value.shape.1,
+                x: src.shape.0,
+                y: src.shape.1,
             };
-            for (src, dst) in value.triggers.iter().zip(triggers.lines.iter_mut()) {
-                *dst = src.into()
-            }
+            Python::with_gil(|py| -> PyResult<()> {
+                for (src, dst) in src.triggers.as_ref(py).iter().zip(dst_triggers.lines.iter_mut()) {
+                    *dst = src.extract::<Trigger>()?.into()
+                }
+                Ok(())
+            })?;
             Ok(capi::CameraProperties {
-                gain_dB: value.gain_db,
-                exposure_time_us: value.exposure_time_us,
-                binning: value.binning,
-                pixel_type: value.pixel_type.into(),
+                gain_dB: src.gain_db,
+                exposure_time_us: src.exposure_time_us,
+                binning: src.binning,
+                pixel_type: src.pixel_type.into(),
                 offset,
                 shape,
-                triggers,
+                triggers: dst_triggers,
             })
         }
     }
+}
+
+impl Serialize for CameraProperties {
+
 }
