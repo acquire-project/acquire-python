@@ -1,7 +1,9 @@
 pub(crate) mod macros;
+mod channel;
 mod sample_type;
 mod signal_io_kind;
 mod signal_type;
+mod timing;
 mod trigger_edge;
 mod trigger_event;
 

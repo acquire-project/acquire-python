@@ -35,7 +35,7 @@ pub struct CameraProperties {
 
     #[pyo3(get, set)]
     #[serde(default)]
-    triggers: Vec<Trigger>,
+    triggers: Vec<Trigger>, // FIXME: Should be Py<PyList>
 }
 
 impl_plain_old_dict!(CameraProperties);

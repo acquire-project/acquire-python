@@ -25,6 +25,15 @@ git submodule update --init --recursive
 maturin build
 ```
 
+Occasionally when updating the 'cpx' (the c api), you may need to trigger a 
+rebuild by touching `wrapper.h`.
+
+```bash
+git submodule update # updates cpx
+touch wrapper.h # will trigger a rebuild
+maturin build
+```
+
 ## Develop
 
 ```bash

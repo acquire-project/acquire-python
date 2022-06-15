@@ -12,17 +12,20 @@ name = "calliphlox"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.16.3", features = ["extension-module","anyhow", "abi3-py38"] }
+pyo3 = { version = "0.16.3", features = [
+    "extension-module",
+    "anyhow",
+    "abi3-py38",
+    "serde",
+] }
 pyo3-log = "0.6"
-numpy="0.16.2"
-log= "0.4.17"
-anyhow="1.0.57"
-parking_lot= "0.12.1"
-serde={version="1.0.137",features = ["derive"]}
-pythonize= "0.16.0"
+numpy = "0.16.2"
+log = "0.4.17"
+anyhow = "1.0.57"
+parking_lot = "0.12.1"
+serde = { version = "1.0.137", features = ["derive"] }
+pythonize = "0.16.0"
 
 [build-dependencies]
 bindgen = "0.60.1"
 cmake = "0.1"
-
-
