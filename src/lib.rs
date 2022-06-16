@@ -49,8 +49,8 @@ fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<stage_axis::StageAxisProperties>()?;
     m.add_class::<stage_axis::StageAxisState>()?;
     m.add_class::<signals::SignalProperties>()?;
-    m.add_class::<signals::Channel>()?;
-
+    
+    m.add_class::<components::Channel>()?;
     m.add_class::<components::PID>()?;
     m.add_class::<components::SampleRateHz>()?;
     m.add_class::<components::SampleType>()?;
