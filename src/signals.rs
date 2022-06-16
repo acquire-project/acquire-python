@@ -1,5 +1,3 @@
-use std::time;
-
 use crate::{
     capi,
     components::{macros::impl_plain_old_dict, Channel, Timing, Trigger},
@@ -95,7 +93,7 @@ impl TryFrom<&SignalProperties> for capi::SignalProperties {
             ));
         }
 
-        Python::with_gil(|py| -> PyResult<()> {
+        Ok(Python::with_gil(|py| -> PyResult<_> {
             for (src, dst) in src
                 .channels
                 .as_ref(py)
@@ -113,13 +111,13 @@ impl TryFrom<&SignalProperties> for capi::SignalProperties {
             {
                 *dst = src.extract::<Trigger>()?.into()
             }
-            Ok(())
-        })?;
 
-        Ok(Self {
-            channels: dst_channels,
-            timing: (&src.timing).try_into()?,
-            triggers: dst_triggers,
-        })
+            let timing:Timing=src.timing.extract(py)?;
+            Ok(Self {
+                channels: dst_channels,
+                timing: timing.try_into()?,
+                triggers: dst_triggers,
+            })
+        })?)
     }
 }

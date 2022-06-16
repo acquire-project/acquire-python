@@ -143,7 +143,7 @@ impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize)]
 struct Signals {
     #[pyo3(get, set)]
     identifier: Option<DeviceIdentifier>,
