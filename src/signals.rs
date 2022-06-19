@@ -3,7 +3,6 @@ use crate::{
     components::{macros::impl_plain_old_dict, Channel, Timing, Trigger},
 };
 use anyhow::anyhow;
-use log::info;
 use pyo3::{prelude::*, types::PyList};
 use serde::{
     de::{self, Visitor},

@@ -1,4 +1,3 @@
-use log::info;
 use pyo3::prelude::*;
 use serde::{Serialize, Deserialize};
 use crate::capi;

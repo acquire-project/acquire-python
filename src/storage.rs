@@ -46,13 +46,14 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
 
     fn try_from(value: &StorageProperties) -> Result<Self, Self::Error> {
         let mut out: capi::StorageProperties = unsafe { std::mem::zeroed() };
+        // Careful: x needs to live long enough
         let x = if let Some(filename) = &value.filename {
             Some(CString::new(filename.as_str())?)
         } else {
             None
         };
-        let (filename, nbytes) = if let Some(x) = x {
-            (x.as_c_str().as_ptr(), x.to_bytes_with_nul().len())
+        let (filename, nbytes) = if let Some(ref x) = x {
+            (x.as_ptr(), x.to_bytes_with_nul().len())
         } else {
             (null(), 0)
         };
