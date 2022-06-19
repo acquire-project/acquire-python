@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
-    ptr::null,
+    ptr::{null, null_mut},
 };
 
 #[pyclass]
@@ -62,5 +62,24 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                 .ok()?;
         }
         Ok(out)
+    }
+}
+
+impl Default for capi::StorageProperties {
+    fn default() -> Self {
+        Self {
+            filename: Default::default(),
+            first_frame_id: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::StorageProperties_storage_properties_filename_s {
+    fn default() -> Self {
+        Self {
+            str_: null_mut(),
+            nbytes: Default::default(),
+            is_ref: Default::default(),
+        }
     }
 }

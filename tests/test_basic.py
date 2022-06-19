@@ -51,7 +51,7 @@ def test_set_storage(caplog, runtime):
 
 def test_setup(caplog,runtime):
     caplog.set_level(logging.DEBUG)
-    p=calliphlox.setup(runtime,"simulated: radial sin","Tiff","out.tif")
+    p=calliphlox.setup(runtime,"simulated: radial sin","Tiff")
     assert p.camera.identifier!=None
     assert p.storage.identifier!=None
     assert p.storage.settings.filename == "out.tif"

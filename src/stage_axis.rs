@@ -71,3 +71,22 @@ impl From<&StageAxisProperties> for capi::StageAxisProperties {
         }
     }
 }
+
+impl Default for capi::StageAxisProperties {
+    fn default() -> Self {
+        Self {
+            target: Default::default(),
+            immediate: Default::default(),
+            feedback: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::StageAxisProperties_stage_axis_properties_state_s {
+    fn default() -> Self {
+        Self {
+            position: Default::default(),
+            velocity: Default::default(),
+        }
+    }
+}

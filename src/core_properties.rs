@@ -1,4 +1,3 @@
-use log::info;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -249,19 +248,17 @@ pub struct Properties {
 
 impl Default for Properties {
     fn default() -> Self {
-        Python::with_gil(|py| {
-            Self {
-                camera: Py::new(py,Camera::default()).unwrap(),
-                storage: Py::new(py,Storage::default()).unwrap(),
-                stages: (
-                    Py::new(py,StageAxis::default()).unwrap(),
-                    Py::new(py,StageAxis::default()).unwrap(),
-                    Py::new(py,StageAxis::default()).unwrap()
-                ),
-                signals: Py::new(py,Signals::default()).unwrap(),
-                max_frame_count: Default::default(),
-                frame_average_count: Default::default(),
-            }
+        Python::with_gil(|py| Self {
+            camera: Py::new(py, Camera::default()).unwrap(),
+            storage: Py::new(py, Storage::default()).unwrap(),
+            stages: (
+                Py::new(py, StageAxis::default()).unwrap(),
+                Py::new(py, StageAxis::default()).unwrap(),
+                Py::new(py, StageAxis::default()).unwrap(),
+            ),
+            signals: Py::new(py, Signals::default()).unwrap(),
+            max_frame_count: Default::default(),
+            frame_average_count: Default::default(),
         })
     }
 }
@@ -302,22 +299,22 @@ impl TryFrom<&capi::CpxProperties> for Properties {
         Ok(Python::with_gil(|py| -> PyResult<_> {
             let camera: Camera = value.camera.try_into()?;
             let storage: Storage = value.storage.try_into()?;
-            let stages : (StageAxis, StageAxis, StageAxis)= (
+            let stages: (StageAxis, StageAxis, StageAxis) = (
                 value.stages[0].try_into()?,
                 value.stages[1].try_into()?,
                 value.stages[2].try_into()?,
             );
             let stages = (
-                Py::new(py,stages.0)?,
-                Py::new(py,stages.1)?,
-                Py::new(py,stages.2)?,
+                Py::new(py, stages.0)?,
+                Py::new(py, stages.1)?,
+                Py::new(py, stages.2)?,
             );
             let signals: Signals = value.signals.try_into()?;
             Ok(Self {
-                camera: Py::new(py,camera)?,
-                storage: Py::new(py,storage)?,
+                camera: Py::new(py, camera)?,
+                storage: Py::new(py, storage)?,
                 stages,
-                signals: Py::new(py,signals)?,
+                signals: Py::new(py, signals)?,
                 max_frame_count: value.max_frame_count,
                 frame_average_count: value.frame_average_count,
             })
@@ -330,28 +327,23 @@ impl TryFrom<&Properties> for capi::CpxProperties {
 
     fn try_from(value: &Properties) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            info!("HERE");
             let camera: Camera = value.camera.extract(py)?;
-            let camera= (&camera).try_into()?;
-            info!("HERE");
+            let camera = (&camera).try_into()?;
             let storage: Storage = value.storage.extract(py)?;
             let storage = (&storage).try_into()?;
-            info!("HERE");
-            let stages: (StageAxis,StageAxis,StageAxis) = (
+            let stages: (StageAxis, StageAxis, StageAxis) = (
                 value.stages.0.extract(py)?,
                 value.stages.1.extract(py)?,
                 value.stages.2.extract(py)?,
             );
-            let stages= [
-                    (&stages.0).try_into()?,
-                    (&stages.1).try_into()?,
-                    (&stages.2).try_into()?,
-                ];
-            info!("HERE");
+            let stages = [
+                (&stages.0).try_into()?,
+                (&stages.1).try_into()?,
+                (&stages.2).try_into()?,
+            ];
             let signals: Signals = value.signals.extract(py)?;
-            let signals= (&signals).try_into()?;
-            info!("HERE");
-            let out=Ok(capi::CpxProperties {
+            let signals = (&signals).try_into()?;
+            let out = Ok(capi::CpxProperties {
                 camera,
                 storage,
                 stages,
@@ -359,8 +351,57 @@ impl TryFrom<&Properties> for capi::CpxProperties {
                 max_frame_count: value.max_frame_count,
                 frame_average_count: value.frame_average_count,
             });
-            info!("HERE");
             out
         })?)
+    }
+}
+
+impl Default for capi::CpxProperties {
+    fn default() -> Self {
+        Self {
+            camera: Default::default(),
+            storage: Default::default(),
+            stages: Default::default(),
+            signals: Default::default(),
+            max_frame_count: Default::default(),
+            frame_average_count: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CpxProperties_cpx_properties_camera_s {
+    fn default() -> Self {
+        Self {
+            identifier: Default::default(),
+            settings: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CpxProperties_cpx_properties_storage_s {
+    fn default() -> Self {
+        Self {
+            identifier: Default::default(),
+            settings: Default::default(),
+            write_delay_ms: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CpxProperties_cpx_properties_stages_s {
+    fn default() -> Self {
+        Self {
+            identifier: Default::default(),
+            settings: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CpxProperties_cpx_properties_signals_s {
+    fn default() -> Self {
+        Self {
+            identifier: Default::default(),
+            settings: Default::default(),
+        }
     }
 }

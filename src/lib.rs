@@ -20,7 +20,7 @@ trait Status: Copy + Sized {
         if self.is_ok() {
             Ok(*self)
         } else {
-            Err(anyhow!("Failed capi api status check"))
+            Err(anyhow!("Failed cpx api status check"))
         }
     }
 }

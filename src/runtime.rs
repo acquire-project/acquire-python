@@ -119,18 +119,13 @@ impl Runtime {
     }
 
     fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
-        info!("HERE");
         let mut props: capi::CpxProperties = properties.try_into()?;
-        info!("HERE");
         unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
-        info!("HERE");
-        unimplemented!();
-
         Ok((&props).try_into()?)
     }
 
     fn get_configuration(&self) -> PyResult<Properties> {
-        let mut props: capi::CpxProperties = unsafe { std::mem::zeroed() };
+        let mut props: capi::CpxProperties = Default::default(); //unsafe { std::mem::zeroed() };
         unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()?;
         Ok((&props).try_into()?)
     }

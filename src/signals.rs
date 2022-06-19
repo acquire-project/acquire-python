@@ -6,8 +6,9 @@ use anyhow::anyhow;
 use log::info;
 use pyo3::{prelude::*, types::PyList};
 use serde::{
+    de::{self, Visitor},
     ser::{SerializeSeq, SerializeStruct},
-    Deserialize, Serialize, de::{Visitor, self},
+    Deserialize, Serialize,
 };
 
 #[pyclass]
@@ -116,7 +117,6 @@ impl TryFrom<&SignalProperties> for capi::SignalProperties {
             }
 
             let timing: Timing = src.timing.extract(py)?;
-            info!("HERE");
             let timing = (&timing).into();
             Ok(Self {
                 channels: dst_channels,
@@ -192,19 +192,20 @@ impl<'de> Deserialize<'de> for SignalProperties {
         struct SelfVisitor;
 
         impl<'de> Visitor<'de> for SelfVisitor {
-            type Value=SignalProperties;
+            type Value = SignalProperties;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("struct SignalProperties")
-             }
+            }
 
-             fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-                 where
-                     A: serde::de::MapAccess<'de>, {
-                let mut channels=None;
-                let mut timing=None;
-                let mut triggers=None;
-                while let Some(key)=map.next_key()? {
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut channels = None;
+                let mut timing = None;
+                let mut triggers = None;
+                while let Some(key) = map.next_key()? {
                     match key {
                         Field::Channels => {
                             if channels.is_some() {
@@ -220,8 +221,8 @@ impl<'de> Deserialize<'de> for SignalProperties {
                             if timing.is_some() {
                                 return Err(de::Error::duplicate_field("timing"));
                             }
-                            timing=Some(map.next_value()?);
-                        },
+                            timing = Some(map.next_value()?);
+                        }
                         Field::Triggers => {
                             if triggers.is_some() {
                                 return Err(de::Error::duplicate_field("triggers"));
@@ -231,7 +232,7 @@ impl<'de> Deserialize<'de> for SignalProperties {
                                 PyList::new(py, v.into_iter().map(|w| Py::new(py, w).unwrap()))
                                     .into()
                             }));
-                        },
+                        }
                     }
                 }
 
@@ -239,15 +240,53 @@ impl<'de> Deserialize<'de> for SignalProperties {
                 let timing = timing.ok_or_else(|| de::Error::missing_field("timing"))?;
                 let triggers = triggers.ok_or_else(|| de::Error::missing_field("triggers"))?;
 
-                Ok(SignalProperties{
+                Ok(SignalProperties {
                     channels,
                     timing,
-                    triggers
+                    triggers,
                 })
-             }
+            }
         }
 
         const FIELDS: &'static [&'static str] = &["channels", "timing", "triggers"];
         deserializer.deserialize_struct("Character", FIELDS, SelfVisitor)
+    }
+}
+
+impl Default for capi::SignalProperties {
+    fn default() -> Self {
+        Self {
+            channels: Default::default(),
+            timing: Default::default(),
+            triggers: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::SignalProperties_signal_properties_channels_s {
+    fn default() -> Self {
+        Self {
+            line_count: Default::default(),
+            lines: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::SignalProperties_signal_properties_timing_s {
+    fn default() -> Self {
+        Self {
+            terminal: Default::default(),
+            edge: Default::default(),
+            samples_per_second: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::SignalProperties_signal_properties_triggers_s {
+    fn default() -> Self {
+        Self {
+            line_count: Default::default(),
+            lines: Default::default(),
+        }
     }
 }

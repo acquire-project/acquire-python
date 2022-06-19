@@ -1,5 +1,5 @@
-pub(crate) mod macros;
 mod channel;
+pub(crate) mod macros;
 mod sample_type;
 mod signal_io_kind;
 mod signal_type;
@@ -81,6 +81,18 @@ impl From<Trigger> for capi::Trigger {
     }
 }
 
+impl Default for capi::Trigger {
+    fn default() -> Self {
+        Self {
+            enable: Default::default(),
+            line: Default::default(),
+            event: Default::default(),
+            kind: Default::default(),
+            edge: Default::default(),
+        }
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct PID {
@@ -115,6 +127,16 @@ impl From<PID> for capi::PID {
             proportional: value.proportional,
             integral: value.integral,
             derivative: value.derivative,
+        }
+    }
+}
+
+impl Default for capi::PID {
+    fn default() -> Self {
+        Self {
+            proportional: Default::default(),
+            integral: Default::default(),
+            derivative: Default::default(),
         }
     }
 }
@@ -160,6 +182,12 @@ impl From<SampleRateHz> for capi::SampleRateHz {
     }
 }
 
+impl Default for capi::SampleRateHz {
+    fn default() -> Self {
+        Self { numerator: 1, denominator: 1 }
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct VoltageRange {
@@ -189,5 +217,11 @@ impl From<VoltageRange> for capi::VoltageRange {
             mn: value.mn,
             mx: value.mx,
         }
+    }
+}
+
+impl Default for capi::VoltageRange {
+    fn default() -> Self {
+        Self { mn: -1.0, mx: 1.0 }
     }
 }

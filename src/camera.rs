@@ -289,6 +289,38 @@ impl<'de> Deserialize<'de> for CameraProperties {
     }
 }
 
+impl Default for capi::CameraProperties {
+    fn default() -> Self {
+        Self {
+            gain_dB: 1.0,
+            exposure_time_us: Default::default(),
+            binning: 1,
+            pixel_type: capi::SampleType_SampleType_u16,
+            offset: Default::default(),
+            shape: Default::default(),
+            triggers: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CameraProperties_camera_properties_offset_s {
+    fn default() -> Self {
+        Self { x: Default::default(), y: Default::default() }
+    }
+}
+
+impl Default for capi::CameraProperties_camera_properties_shape_s {
+    fn default() -> Self {
+        Self { x: Default::default(), y: Default::default() }
+    }
+}
+
+impl Default for capi::CameraProperties_camera_properties_triggers_s {
+    fn default() -> Self {
+        Self { line_count: Default::default(), lines: Default::default() }
+    }
+}
+
 // TODO: (nclack) having to completely implement Serialize and Deserialize
 //                here is terrible. Find an alternative...something where
 //                the fields can be spec'd once
