@@ -24,19 +24,11 @@ def test_set_camera_identifier(caplog, runtime):
     dm = runtime.device_manager()
     devices = dm.devices()
 
-    # FIXME: (nclack) This is a terribly awkward pattern. getattr is returning
-    #         a clone of the underlying attribute, not a reference, so
-    #         dot-expressions don't really work as lvalues here - dots don't 
-    #         compose
-
     p = runtime.get_configuration()
-    camera = p.camera
-    assert camera.identifier is None
-    camera.identifier = dm.select(
+    assert p.camera.identifier.kind==calliphlox.DeviceKind.NONE
+    p.camera.identifier = dm.select(
         calliphlox.DeviceKind.Camera, "simulated: radial sin"
     )
-    assert camera.identifier != None
-    p.camera = camera
     assert p.camera.identifier != None
 
 
@@ -47,20 +39,14 @@ def test_set_storage(caplog, runtime):
     devices = dm.devices()
 
     p = runtime.get_configuration()
-    storage = p.storage
-    assert storage.identifier is None
-    storage.identifier = dm.select(
+    assert p.storage.identifier.kind == calliphlox.DeviceKind.NONE
+    p.storage.identifier = dm.select(
         calliphlox.DeviceKind.Storage, "Tiff"
     )
-    assert storage.identifier != None
-    p.storage = storage
     assert p.storage.identifier != None
 
     assert p.storage.settings.filename is None
-    sp = p.storage.settings
-    sp.filename="out.tif"
-    storage.settings=sp
-    p.storage=storage
+    p.storage.settings.filename="out.tif"
     assert p.storage.settings.filename == "out.tif"
 
 def test_setup(caplog,runtime):
@@ -69,3 +55,4 @@ def test_setup(caplog,runtime):
     assert p.camera.identifier!=None
     assert p.storage.identifier!=None
     assert p.storage.settings.filename == "out.tif"
+    runtime.set_configuration(p)

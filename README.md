@@ -46,3 +46,12 @@ ipython
 >>> calliphlox.Trigger(enable=True,line=0,event="AcquisitionStart",kind="Input",edge="Rising")
 Trigger(enable='True',line='0',event='AcquisitionStart',kind='Input',edge='Rising')
 ```
+
+## LESSONS/TODO
+
+- Should've implemented serialize and deserialize for the c api objects instead
+  of python objects (recommendation: rework later)
+    - Then dict to python looks like: dict <-> c api <-> python object
+    - More naturally reuse the serde code for format support
+    - serde chokes on the python types bc they erase types which makes the code
+      more complicated.

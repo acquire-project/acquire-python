@@ -1,3 +1,4 @@
+use log::info;
 use pyo3::prelude::*;
 use serde::{Serialize, Deserialize};
 use crate::capi;
@@ -41,10 +42,12 @@ impl TryFrom<capi::SignalProperties_signal_properties_timing_s> for Timing {
         value: capi::SignalProperties_signal_properties_timing_s,
     ) -> Result<Self, Self::Error> {
         let samples_per_second: SampleRateHz = value.samples_per_second.into();
-        let samples_per_second = Python::with_gil(|py| Py::new(py, samples_per_second)).unwrap();
+        let samples_per_second = Python::with_gil(|py| 
+            Py::new(py, samples_per_second))?;
+        let edge=value.edge.try_into()?;
         Ok(Self {
             terminal: value.terminal,
-            edge: value.edge.try_into()?,
+            edge,
             samples_per_second,
         })
     }
@@ -64,11 +67,5 @@ impl From<&Timing> for capi::SignalProperties_signal_properties_timing_s {
             edge: value.edge.into(),
             samples_per_second,
         }
-    }
-}
-
-impl From<Timing> for capi::SignalProperties_signal_properties_timing_s {
-    fn from(value: Timing) -> Self {
-        value.into()
     }
 }

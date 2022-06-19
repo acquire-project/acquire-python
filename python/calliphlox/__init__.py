@@ -34,18 +34,9 @@ def setup(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 
-    c=p.camera
-    c.identifier=dm.select(DeviceKind.Camera, camera)
-    p.camera=c
-
-    s=p.storage
-    s.identifier=dm.select(DeviceKind.Storage, storage)
-
-    sp=p.storage.settings
-    sp.filename=output_filename
-    s.settings=sp
-    p.storage=s
-
+    p.camera.identifier=dm.select(DeviceKind.Camera, camera)
+    p.storage.identifier=dm.select(DeviceKind.Storage, storage)
+    p.storage.settings.filename=output_filename
     p.max_frame_count=100
     p.frame_average_count=0 # disables
 

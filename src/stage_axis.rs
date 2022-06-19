@@ -62,8 +62,8 @@ impl From<capi::StageAxisProperties> for StageAxisProperties {
     }
 }
 
-impl From<StageAxisProperties> for capi::StageAxisProperties {
-    fn from(value: StageAxisProperties) -> Self {
+impl From<&StageAxisProperties> for capi::StageAxisProperties {
+    fn from(value: &StageAxisProperties) -> Self {
         Self {
             target: value.target.into(),
             immediate: value.immediate.into(),

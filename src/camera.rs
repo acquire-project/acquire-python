@@ -192,17 +192,17 @@ impl<'de> Deserialize<'de> for CameraProperties {
                 formatter.write_str("struct CameraProperties")
             }
 
-            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
             where
                 A: serde::de::MapAccess<'de>,
             {
-                let gain_db = None;
-                let exposure_time_us = None;
-                let binning = None;
-                let pixel_type = None;
-                let offset = None;
-                let shape = None;
-                let triggers = None;
+                let mut gain_db = None;
+                let mut exposure_time_us = None;
+                let mut binning = None;
+                let mut pixel_type = None;
+                let mut offset = None;
+                let mut shape = None;
+                let mut triggers = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::GainDb => {

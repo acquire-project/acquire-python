@@ -1,5 +1,6 @@
+use log::info;
 use pyo3::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     camera::CameraProperties, capi, components::macros::impl_plain_old_dict,
@@ -8,13 +9,22 @@ use crate::{
 };
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Camera {
     #[pyo3(get, set)]
-    identifier: Option<DeviceIdentifier>,
+    identifier: Py<DeviceIdentifier>,
 
     #[pyo3(get, set)]
-    settings: CameraProperties,
+    settings: Py<CameraProperties>,
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Python::with_gil(|py| Self {
+            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            settings: Py::new(py, CameraProperties::default()).unwrap(),
+        })
+    }
 }
 
 impl_plain_old_dict!(@out Camera);
@@ -29,10 +39,14 @@ impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::CpxProperties_cpx_properties_camera_s) -> Result<Self, Self::Error> {
-        Ok(Self {
-            identifier: value.identifier.try_into().ok(),
-            settings: value.settings.try_into()?,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.try_into()?;
+            let settings: CameraProperties = value.settings.try_into()?;
+            Ok(Self {
+                identifier: Py::new(py, identifier)?,
+                settings: Py::new(py, settings)?,
+            })
+        })?)
     }
 }
 
@@ -40,26 +54,25 @@ impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_camera_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &Camera) -> Result<Self, Self::Error> {
-        let identifier = value
-            .identifier
-            .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Camera"))?
-            .try_into()?;
-        Ok(Self {
-            identifier,
-            settings: (&value.settings).try_into()?,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let settings: CameraProperties = value.settings.extract(py)?;
+            Ok(Self {
+                identifier: (&identifier).try_into()?,
+                settings: (&settings).try_into()?,
+            })
+        })?)
     }
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Storage {
     #[pyo3(get, set)]
-    identifier: Option<DeviceIdentifier>,
+    identifier: Py<DeviceIdentifier>,
 
     #[pyo3(get, set)]
-    settings: StorageProperties,
+    settings: Py<StorageProperties>,
 
     write_delay_ms: f32,
 }
@@ -68,15 +81,29 @@ struct Storage {
 
 impl_plain_old_dict!(@out Storage);
 
+impl Default for Storage {
+    fn default() -> Self {
+        Python::with_gil(|py| Self {
+            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            settings: Py::new(py, StorageProperties::default()).unwrap(),
+            write_delay_ms: Default::default(),
+        })
+    }
+}
+
 impl TryFrom<capi::CpxProperties_cpx_properties_storage_s> for Storage {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::CpxProperties_cpx_properties_storage_s) -> Result<Self, Self::Error> {
-        Ok(Self {
-            identifier: value.identifier.try_into().ok(),
-            settings: value.settings.try_into()?,
-            write_delay_ms: value.write_delay_ms,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.try_into()?;
+            let settings: StorageProperties = value.settings.try_into()?;
+            Ok(Self {
+                identifier: Py::new(py, identifier)?,
+                settings: Py::new(py, settings)?,
+                write_delay_ms: value.write_delay_ms,
+            })
+        })?)
     }
 }
 
@@ -84,27 +111,26 @@ impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_storage_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &Storage) -> Result<Self, Self::Error> {
-        let identifier = value
-            .identifier
-            .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Storage"))?
-            .try_into()?;
-        Ok(Self {
-            identifier,
-            settings: (&value.settings).try_into()?,
-            write_delay_ms: value.write_delay_ms,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let settings: StorageProperties = value.settings.extract(py)?;
+            Ok(Self {
+                identifier: (&identifier).try_into()?,
+                settings: (&settings).try_into()?,
+                write_delay_ms: value.write_delay_ms,
+            })
+        })?)
     }
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct StageAxis {
     #[pyo3(get, set)]
-    identifier: Option<DeviceIdentifier>,
+    identifier: Py<DeviceIdentifier>,
 
     #[pyo3(get, set)]
-    settings: StageAxisProperties,
+    settings: Py<StageAxisProperties>,
 }
 
 impl_plain_old_dict!(@out StageAxis);
@@ -115,14 +141,27 @@ impl AsRef<StageAxis> for StageAxis {
     }
 }
 
+impl Default for StageAxis {
+    fn default() -> Self {
+        Python::with_gil(|py| Self {
+            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            settings: Py::new(py, StageAxisProperties::default()).unwrap(),
+        })
+    }
+}
+
 impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::CpxProperties_cpx_properties_stages_s) -> Result<Self, Self::Error> {
-        Ok(Self {
-            identifier: value.identifier.try_into().ok(),
-            settings: value.settings.try_into()?,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.try_into()?;
+            let settings: StageAxisProperties = value.settings.try_into()?;
+            Ok(Self {
+                identifier: Py::new(py, identifier)?,
+                settings: Py::new(py, settings)?,
+            })
+        })?)
     }
 }
 
@@ -130,20 +169,19 @@ impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &StageAxis) -> Result<Self, Self::Error> {
-        let identifier = value
-            .identifier
-            .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required for StageAxis"))?
-            .try_into()?;
-        Ok(Self {
-            identifier,
-            settings: value.settings.try_into()?,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let settings: StageAxisProperties = value.settings.extract(py)?;
+            Ok(Self {
+                identifier: (&identifier).try_into()?,
+                settings: (&settings).into(),
+            })
+        })?)
     }
 }
 
 #[pyclass]
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 struct Signals {
     #[pyo3(get, set)]
     identifier: Option<DeviceIdentifier>,
@@ -178,8 +216,8 @@ impl TryFrom<&Signals> for capi::CpxProperties_cpx_properties_signals_s {
         let identifier = value
             .identifier
             .as_ref()
-            .ok_or(anyhow::anyhow!("DeviceIdentifier required for Signals"))?
-            .try_into()?;
+            .map(|e| e.try_into())
+            .unwrap_or_else(|| Ok(Default::default()))?;
         Ok(Self {
             identifier,
             settings: (&value.settings).try_into()?,
@@ -188,19 +226,19 @@ impl TryFrom<&Signals> for capi::CpxProperties_cpx_properties_signals_s {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Properties {
     #[pyo3(get, set)]
-    camera: Camera,
+    camera: Py<Camera>,
 
     #[pyo3(get, set)]
-    storage: Storage,
+    storage: Py<Storage>,
 
     #[pyo3(get, set)]
-    stages: (StageAxis, StageAxis, StageAxis),
+    stages: (Py<StageAxis>, Py<StageAxis>, Py<StageAxis>), // FIXME: (nclack) this isn't ideal, should be PyList
 
     #[pyo3(get, set)]
-    signals: Signals,
+    signals: Py<Signals>,
 
     #[pyo3(get, set)]
     max_frame_count: u64,
@@ -209,64 +247,32 @@ pub struct Properties {
     frame_average_count: u32,
 }
 
+impl Default for Properties {
+    fn default() -> Self {
+        Python::with_gil(|py| {
+            Self {
+                camera: Py::new(py,Camera::default()).unwrap(),
+                storage: Py::new(py,Storage::default()).unwrap(),
+                stages: (
+                    Py::new(py,StageAxis::default()).unwrap(),
+                    Py::new(py,StageAxis::default()).unwrap(),
+                    Py::new(py,StageAxis::default()).unwrap()
+                ),
+                signals: Py::new(py,Signals::default()).unwrap(),
+                max_frame_count: Default::default(),
+                frame_average_count: Default::default(),
+            }
+        })
+    }
+}
+
 #[pymethods]
 impl Properties {
     #[new]
     #[args(kwargs = "**")]
     fn __new__(kwargs: Option<&pyo3::types::PyDict>) -> anyhow::Result<Self> {
         if let Some(kwargs) = kwargs {
-            macro_rules! get_device_field {
-                ($field:ident, $T:tt) => {
-                    if let Some(obj) = kwargs.get_item(stringify!($field)) {
-                        $T {
-                            identifier: None,
-                            settings: pythonize::depythonize(obj)?,
-                        }
-                    } else {
-                        Default::default()
-                    }
-                };
-            }
-
-            let camera = get_device_field!(camera, Camera);
-            let signals = get_device_field!(signals, Signals);
-            let stage_axis = get_device_field!(stage_axis, StageAxis);
-
-            let storage = if let Some(obj) = kwargs.get_item("storage") {
-                let write_delay_ms = if let Some(x) = obj.get_item("write_delay_ms").ok() {
-                    pythonize::depythonize(x)?
-                } else {
-                    0.0
-                };
-                Storage {
-                    identifier: None,
-                    settings: pythonize::depythonize(obj)?,
-                    write_delay_ms,
-                }
-            } else {
-                Default::default()
-            };
-
-            let max_frame_count = if let Some(obj) = kwargs.get_item("max_frame_count") {
-                obj.extract()?
-            } else {
-                0
-            };
-
-            let frame_average_count = if let Some(obj) = kwargs.get_item("frame_average_count") {
-                obj.extract()?
-            } else {
-                0
-            };
-
-            Ok(Self {
-                camera,
-                storage,
-                signals,
-                stages: (stage_axis.clone(), stage_axis.clone(), stage_axis.clone()),
-                max_frame_count,
-                frame_average_count,
-            })
+            Ok(pythonize::depythonize(kwargs)?)
         } else {
             Ok(Default::default())
         }
@@ -293,22 +299,29 @@ impl TryFrom<&capi::CpxProperties> for Properties {
     type Error = anyhow::Error;
 
     fn try_from(value: &capi::CpxProperties) -> Result<Self, Self::Error> {
-        let camera = value.camera.try_into()?;
-        let storage = value.storage.try_into()?;
-        let stages = (
-            value.stages[0].try_into()?,
-            value.stages[1].try_into()?,
-            value.stages[2].try_into()?,
-        );
-        let signals = value.signals.try_into()?;
-        Ok(Self {
-            camera,
-            storage,
-            stages,
-            signals,
-            max_frame_count: value.max_frame_count,
-            frame_average_count: value.frame_average_count,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let camera: Camera = value.camera.try_into()?;
+            let storage: Storage = value.storage.try_into()?;
+            let stages : (StageAxis, StageAxis, StageAxis)= (
+                value.stages[0].try_into()?,
+                value.stages[1].try_into()?,
+                value.stages[2].try_into()?,
+            );
+            let stages = (
+                Py::new(py,stages.0)?,
+                Py::new(py,stages.1)?,
+                Py::new(py,stages.2)?,
+            );
+            let signals: Signals = value.signals.try_into()?;
+            Ok(Self {
+                camera: Py::new(py,camera)?,
+                storage: Py::new(py,storage)?,
+                stages,
+                signals: Py::new(py,signals)?,
+                max_frame_count: value.max_frame_count,
+                frame_average_count: value.frame_average_count,
+            })
+        })?)
     }
 }
 
@@ -316,17 +329,38 @@ impl TryFrom<&Properties> for capi::CpxProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: &Properties) -> Result<Self, Self::Error> {
-        Ok(capi::CpxProperties {
-            camera: value.camera.as_ref().try_into()?,
-            storage: (&value.storage).try_into()?,
-            stages: [
-                value.stages.0.as_ref().try_into()?,
-                value.stages.1.as_ref().try_into()?,
-                value.stages.2.as_ref().try_into()?,
-            ],
-            signals: (&value.signals).try_into()?,
-            max_frame_count: value.max_frame_count,
-            frame_average_count: value.frame_average_count,
-        })
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            info!("HERE");
+            let camera: Camera = value.camera.extract(py)?;
+            let camera= (&camera).try_into()?;
+            info!("HERE");
+            let storage: Storage = value.storage.extract(py)?;
+            let storage = (&storage).try_into()?;
+            info!("HERE");
+            let stages: (StageAxis,StageAxis,StageAxis) = (
+                value.stages.0.extract(py)?,
+                value.stages.1.extract(py)?,
+                value.stages.2.extract(py)?,
+            );
+            let stages= [
+                    (&stages.0).try_into()?,
+                    (&stages.1).try_into()?,
+                    (&stages.2).try_into()?,
+                ];
+            info!("HERE");
+            let signals: Signals = value.signals.extract(py)?;
+            let signals= (&signals).try_into()?;
+            info!("HERE");
+            let out=Ok(capi::CpxProperties {
+                camera,
+                storage,
+                stages,
+                signals,
+                max_frame_count: value.max_frame_count,
+                frame_average_count: value.frame_average_count,
+            });
+            info!("HERE");
+            out
+        })?)
     }
 }

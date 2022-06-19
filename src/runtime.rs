@@ -119,8 +119,13 @@ impl Runtime {
     }
 
     fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
+        info!("HERE");
         let mut props: capi::CpxProperties = properties.try_into()?;
+        info!("HERE");
         unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
+        info!("HERE");
+        unimplemented!();
+
         Ok((&props).try_into()?)
     }
 

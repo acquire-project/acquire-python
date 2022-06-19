@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::ffi::CStr;
 
 use crate::{capi, components::macros::cvt};
@@ -13,16 +13,35 @@ impl capi::DeviceIdentifier {
     }
 }
 
+impl Default for capi::DeviceIdentifier {
+    fn default() -> Self {
+        Self {
+            driver_id: Default::default(),
+            device_id: Default::default(),
+            kind: capi::DeviceKind_DeviceKind_None,
+            name: [0;256],
+        }
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DeviceKind {
+    NONE,
     Camera,
     Storage,
     StageAxis,
     Signals,
 }
 
+impl Default for DeviceKind {
+    fn default() -> Self {
+        DeviceKind::NONE
+    }
+}
+
 cvt!(DeviceKind=>capi::DeviceKind,
+    NONE      => DeviceKind_DeviceKind_None,
     Camera    => DeviceKind_DeviceKind_Camera,
     Storage   => DeviceKind_DeviceKind_Storage,
     StageAxis => DeviceKind_DeviceKind_StageAxis,
@@ -36,6 +55,7 @@ impl TryFrom<&str> for DeviceKind {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
+            "None"|"NONE" => Ok(DeviceKind::NONE),
             "Camera" => Ok(DeviceKind::Camera),
             "Storage" => Ok(DeviceKind::Storage),
             "StageAxis" => Ok(DeviceKind::StageAxis),
@@ -46,7 +66,7 @@ impl TryFrom<&str> for DeviceKind {
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct DeviceIdentifier {
     #[pyo3(get)]
     id: (u8, u8),
@@ -58,17 +78,22 @@ pub(crate) struct DeviceIdentifier {
     name: String,
 }
 
-impl Serialize for DeviceIdentifier {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("DeviceIdentifier", 2)?;
-        state.serialize_field("kind", &self.kind)?;
-        state.serialize_field("name", &self.name)?;
-        state.end()
-    }
-}
+// FIXME: (nclack) don't want to serialize the id field.  It's unstable,
+//                 only makes sense in context of an active runtime.
+//                 Should probably drop the id's altogether except maybe for
+//                 internal debugging.
+
+// impl Serialize for DeviceIdentifier {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut state = serializer.serialize_struct("DeviceIdentifier", 2)?;
+//         state.serialize_field("kind", &self.kind)?;
+//         state.serialize_field("name", &self.name)?;
+//         state.end()
+//     }
+// }
 
 #[pymethods]
 impl DeviceIdentifier {
@@ -85,6 +110,10 @@ impl TryFrom<capi::DeviceIdentifier> for DeviceIdentifier {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::DeviceIdentifier) -> Result<Self, Self::Error> {
+        if value.kind==capi::DeviceKind_DeviceKind_None {
+            return Ok(DeviceIdentifier::default());
+        }
+
         if value.name[0] == 0 {
             Err(anyhow!("Invalid device identifier (empty name)."))
         } else {
