@@ -55,4 +55,8 @@ def test_setup(caplog,runtime):
     assert p.camera.identifier!=None
     assert p.storage.identifier!=None
     assert p.storage.settings.filename == "out.tif"
-    runtime.set_configuration(p)
+    p=runtime.set_configuration(p)
+    from pprint import pprint
+    pprint(p.dict())
+    runtime.start()
+    runtime.stop()

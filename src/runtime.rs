@@ -21,17 +21,17 @@ unsafe extern "C" fn reporter(
     function: *const ::std::os::raw::c_char,
     msg: *const ::std::os::raw::c_char,
 ) {
-    fn as_str(ptr: *const ::std::os::raw::c_char) -> &'static str {
+    fn as_string(ptr: *const ::std::os::raw::c_char) -> String {
         if !ptr.is_null() {
-            unsafe { CStr::from_ptr(ptr) }.to_str().unwrap()
+            unsafe { CStr::from_ptr(ptr) }.to_string_lossy().into()
         } else {
-            "(null)"
+            "(null)".into()
         }
     }
 
-    let file = as_str(file);
-    let function = as_str(function);
-    let msg = as_str(msg);
+    let file = as_string(file);
+    let function = as_string(function);
+    let msg = as_string(msg);
     if is_error > 0 {
         error!("{}:{} - {}(): {}", file, line, function, msg);
     } else {
@@ -120,6 +120,7 @@ impl Runtime {
 
     fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = properties.try_into()?;
+        info!("{:?} {}",props.storage.settings.filename,props.storage.settings.filename);
         unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
         Ok((&props).try_into()?)
     }
