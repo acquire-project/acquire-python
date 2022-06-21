@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 import pytest
 from calliphlox import Trigger
 import calliphlox
@@ -59,4 +60,5 @@ def test_setup(caplog,runtime):
     from pprint import pprint
     pprint(p.dict())
     runtime.start()
+    sleep(1)
     runtime.stop()

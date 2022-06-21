@@ -106,8 +106,8 @@ impl Runtime {
         Ok(self.inner.start()?)
     }
 
-    fn stop(&self) -> PyResult<()> {
-        Ok(self.inner.stop()?)
+    fn stop(&self,py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py,||Ok(self.inner.stop()?))
     }
 
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {
