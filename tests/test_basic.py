@@ -1,5 +1,7 @@
 import logging
 from time import sleep
+from pprint import pprint
+import time
 import pytest
 from calliphlox import Trigger
 import calliphlox
@@ -56,9 +58,20 @@ def test_setup(caplog,runtime):
     assert p.camera.identifier!=None
     assert p.storage.identifier!=None
     assert p.storage.settings.filename == "out.tif"
+    p.camera.settings.shape=(1920,1080)
     p=runtime.set_configuration(p)
-    from pprint import pprint
     pprint(p.dict())
     runtime.start()
-    sleep(1)
+    
+    nframes=0
+    throttle=0.1
+    while nframes<p.max_frame_count:
+        clock=time.time()
+        if a:=runtime.get_available_data():
+            packet=a.get_frame_count()
+            nframes+=packet
+            logging.info(f'frame count: {nframes} - frames in packet: {packet}')
+        elapsed=time.time()-clock
+        sleep(max(0,0.1-elapsed))
+
     runtime.stop()

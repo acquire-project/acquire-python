@@ -175,11 +175,13 @@ unsafe impl Sync for RawAvailableData {}
 impl RawAvailableData {
     fn get_frame_count(&self) -> usize {
         let mut count = 0;
-        unsafe {
-            let end = self.buf.as_ptr().offset(self.nbytes as _);
-            let mut cur = self.buf.as_ptr();
+        unsafe {            
+            let mut cur = self.buf.as_ptr() as *mut u8;
+            let end = cur.offset(self.nbytes as _);
             while cur < end {
-                cur = cur.offset((*cur).bytes_of_frame as _);
+                let frame:&capi::VideoFrame = &*(cur as *const capi::VideoFrame);
+                assert!(frame.bytes_of_frame>0);
+                cur = cur.offset(frame.bytes_of_frame as _);
                 count += 1;
             }
         }

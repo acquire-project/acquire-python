@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dev-dependencies=["black","pytest"]
+dev-dependencies=["black","pytest>=7"]
 dynamic = [
     "authors",
     "description",
@@ -25,6 +25,7 @@ line-length = 79
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+addopts = "--tb=short -s"
 # log_format = "%(asctime)s %(levelname)s %(message)s"
 # log_date_format = "%Y-%m-%d %H:%M:%S"
 log_cli=true # when true, messages are printed immediately
