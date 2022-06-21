@@ -106,8 +106,8 @@ impl Runtime {
         Ok(self.inner.start()?)
     }
 
-    fn stop(&self,py: Python<'_>) -> PyResult<()> {
-        Python::allow_threads(py,||Ok(self.inner.stop()?))
+    fn stop(&self, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || Ok(self.inner.stop()?))
     }
 
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {
@@ -118,15 +118,20 @@ impl Runtime {
         })
     }
 
-    fn set_configuration(&self, properties: &Properties) -> PyResult<Properties> {
+    fn set_configuration(&self, properties: &Properties, py: Python<'_>) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = properties.try_into()?;
-        info!("{:?} {}",props.storage.settings.filename,props.storage.settings.filename);
-        unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()?;
+        info!(
+            "{:?} {}",
+            props.storage.settings.filename, props.storage.settings.filename
+        );
+        Python::allow_threads(py, || {
+            unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()
+        })?;
         Ok((&props).try_into()?)
     }
 
     fn get_configuration(&self) -> PyResult<Properties> {
-        let mut props: capi::CpxProperties = Default::default(); //unsafe { std::mem::zeroed() };
+        let mut props: capi::CpxProperties = Default::default();
         unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()?;
         Ok((&props).try_into()?)
     }

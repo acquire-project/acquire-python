@@ -356,6 +356,11 @@ impl TryFrom<&Properties> for capi::CpxProperties {
     }
 }
 
+// The main concern here is `storage.settings.filename.str`
+// Specifically it needs to remain pinned during the call 
+// to Runtime::set_configuration().
+unsafe impl Send for capi::CpxProperties {}
+
 impl Default for capi::CpxProperties {
     fn default() -> Self {
         Self {

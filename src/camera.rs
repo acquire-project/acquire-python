@@ -46,7 +46,7 @@ impl Default for CameraProperties {
             binning: Default::default(),
             pixel_type: Default::default(),
             offset: Default::default(),
-            shape: Default::default(),
+            shape: (1920,1080),
             triggers: Python::with_gil(|py| PyList::empty(py).into()),
         }
     }
@@ -152,7 +152,7 @@ impl Serialize for CameraProperties {
 
         macro_rules! ser_field {
             ($name:tt) => {
-                item.serialize_field(stringify!(name), &self.$name)
+                item.serialize_field(stringify!($name), &self.$name)
             };
         }
         ser_field!(gain_db)?;

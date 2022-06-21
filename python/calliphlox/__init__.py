@@ -35,6 +35,8 @@ def setup(
     p = runtime.get_configuration()
 
     p.camera.identifier=dm.select(DeviceKind.Camera, camera)
+    p.camera.settings.binning=1
+    p.camera.settings.shape=(640,480)
     p.storage.identifier=dm.select(DeviceKind.Storage, storage)
     p.storage.settings.filename=output_filename
     p.max_frame_count=100
