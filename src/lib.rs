@@ -38,8 +38,11 @@ fn core_api_version() -> PyResult<String> {
 }
 
 #[pymodule]
-fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
-    pyo3_log::init();
+fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
+    pyo3_log::Logger::new(py, pyo3_log::Caching::LoggersAndLevels)?
+        .filter(log::LevelFilter::Debug)
+        .install()
+        .expect("Failed to init logger");
 
     m.add_class::<runtime::Runtime>()?;
     m.add_class::<core_properties::Properties>()?;
@@ -49,7 +52,7 @@ fn calliphlox(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<stage_axis::StageAxisProperties>()?;
     m.add_class::<stage_axis::StageAxisState>()?;
     m.add_class::<signals::SignalProperties>()?;
-    
+
     m.add_class::<components::Channel>()?;
     m.add_class::<components::PID>()?;
     m.add_class::<components::SampleRateHz>()?;

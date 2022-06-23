@@ -64,14 +64,16 @@ def test_setup(caplog,runtime):
     runtime.start()
     
     nframes=0
-    throttle=0.1
     while nframes<p.max_frame_count:
         clock=time.time()
         if a:=runtime.get_available_data():
             packet=a.get_frame_count()
-            nframes+=packet
+            a=None # <-- will fail to get the last frames if this is held?
+            nframes+=packet            
             logging.info(f'frame count: {nframes} - frames in packet: {packet}')
+
         elapsed=time.time()-clock
         sleep(max(0,0.1-elapsed))
+    logging.info("stopping")
 
     runtime.stop()
