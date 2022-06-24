@@ -6,13 +6,17 @@ use numpy::{
 };
 use parking_lot::Mutex;
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{
     ffi::CStr,
     ptr::{null_mut, NonNull},
     sync::Arc,
 };
 
-use crate::{capi, core_properties::Properties, device_manager, Status};
+use crate::{
+    capi, components::macros::impl_plain_old_dict, core_properties::Properties, device_manager,
+    Status,
+};
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -142,7 +146,7 @@ impl Runtime {
         unsafe {
             capi::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
-        log::trace!("ACQUIRED {}",nbytes);
+        log::trace!("ACQUIRED {}", nbytes);
         Ok(if nbytes > 0 {
             Some(AvailableData {
                 inner: Arc::new(RawAvailableData {
@@ -176,12 +180,12 @@ unsafe impl Sync for RawAvailableData {}
 impl RawAvailableData {
     fn get_frame_count(&self) -> usize {
         let mut count = 0;
-        unsafe {            
+        unsafe {
             let mut cur = self.buf.as_ptr() as *mut u8;
             let end = cur.offset(self.nbytes as _);
             while cur < end {
-                let frame:&capi::VideoFrame = &*(cur as *const capi::VideoFrame);
-                assert!(frame.bytes_of_frame>0);
+                let frame: &capi::VideoFrame = &*(cur as *const capi::VideoFrame);
+                assert!(frame.bytes_of_frame > 0);
                 cur = cur.offset(frame.bytes_of_frame as _);
                 count += 1;
             }
@@ -191,9 +195,9 @@ impl RawAvailableData {
 }
 
 impl Drop for RawAvailableData {
-    fn drop(&mut self) {        
+    fn drop(&mut self) {
         let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
-        log::trace!("DROP read region: {}",consumed_bytes);
+        log::trace!("DROP read region: {}", consumed_bytes);
         unsafe {
             capi::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
                 .ok()
@@ -218,7 +222,8 @@ impl AvailableData {
             store: self.inner.clone(),
             cur: Mutex::new(self.inner.buf),
             end: unsafe {
-                NonNull::new_unchecked(self.inner.buf.as_ptr().offset(self.inner.nbytes as _))
+                let ptr = self.inner.buf.as_ptr() as *mut u8;
+                NonNull::new_unchecked(ptr.offset(self.inner.nbytes as _) as *mut _)
             },
         }
     }
@@ -237,7 +242,15 @@ struct VideoFrameIterator {
 
 unsafe impl Send for VideoFrameIterator {}
 
-impl VideoFrameIterator {}
+#[pymethods]
+impl VideoFrameIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+    fn __next__(&mut self) -> Option<VideoFrame> {
+        self.next()
+    }
+}
 
 impl Iterator for VideoFrameIterator {
     type Item = VideoFrame;
@@ -263,7 +276,7 @@ impl Iterator for VideoFrameIterator {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 struct VideoFrameTimestamps {
     #[pyo3(get, set)]
     hardware: u64,
@@ -282,7 +295,7 @@ impl From<capi::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 struct VideoFrameMetadata {
     #[pyo3(get, set)]
     frame_id: u64,
@@ -290,6 +303,8 @@ struct VideoFrameMetadata {
     #[pyo3(get, set)]
     timestamps: VideoFrameTimestamps,
 }
+
+impl_plain_old_dict!(VideoFrameMetadata);
 
 enum SupportedImageView {
     U8(RawArrayView<u8, Ix4>),

@@ -68,6 +68,9 @@ def test_setup(caplog,runtime):
         clock=time.time()
         if a:=runtime.get_available_data():
             packet=a.get_frame_count()
+            for f in a.frames():
+                logging.info(f"{f.data().shape} {f.metadata()}")
+                f=None # <-- will fail to get the last frames if this is held?
             a=None # <-- will fail to get the last frames if this is held?
             nframes+=packet            
             logging.info(f'frame count: {nframes} - frames in packet: {packet}')
@@ -77,3 +80,5 @@ def test_setup(caplog,runtime):
     logging.info("stopping")
 
     runtime.stop()
+
+# FIXME: (nclack) awkwardness around references  (available frames, f)
