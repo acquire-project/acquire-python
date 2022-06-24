@@ -20,6 +20,11 @@ def test_set():
     t.enable = True
     assert t.enable == True
 
+def test_list_devices(caplog,runtime):    
+    caplog.set_level(logging.DEBUG)
+    dm = runtime.device_manager()
+    for d in dm.devices():
+        print(d.dict())
 
 def test_set_camera_identifier(caplog, runtime):
     caplog.set_level(logging.DEBUG)
