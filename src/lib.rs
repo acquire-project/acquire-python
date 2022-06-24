@@ -39,7 +39,7 @@ fn core_api_version() -> PyResult<String> {
 
 #[pymodule]
 fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
-    pyo3_log::Logger::new(py, pyo3_log::Caching::LoggersAndLevels)?
+    pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?
         .filter(log::LevelFilter::Debug)
         .install()
         .expect("Failed to init logger");

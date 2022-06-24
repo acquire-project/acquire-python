@@ -142,7 +142,7 @@ impl Runtime {
         unsafe {
             capi::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
         }
-        debug!("ACQUIRED {}",nbytes);
+        log::trace!("ACQUIRED {}",nbytes);
         Ok(if nbytes > 0 {
             Some(AvailableData {
                 inner: Arc::new(RawAvailableData {
@@ -185,7 +185,6 @@ impl RawAvailableData {
                 cur = cur.offset(frame.bytes_of_frame as _);
                 count += 1;
             }
-            debug!("bytes per frame: {}", if count>0 {self.nbytes as f32/count as f32} else {0f32});
         }
         count
     }
@@ -194,7 +193,7 @@ impl RawAvailableData {
 impl Drop for RawAvailableData {
     fn drop(&mut self) {        
         let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
-        debug!("DROP read region: {}",consumed_bytes);
+        log::trace!("DROP read region: {}",consumed_bytes);
         unsafe {
             capi::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
                 .ok()
