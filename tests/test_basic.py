@@ -69,7 +69,7 @@ def test_setup(caplog,runtime):
         if a:=runtime.get_available_data():
             packet=a.get_frame_count()
             for f in a.frames():
-                logging.info(f"{f.data().shape} {f.metadata()}")
+                logging.info(f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}")
                 f=None # <-- will fail to get the last frames if this is held?
             a=None # <-- will fail to get the last frames if this is held?
             nframes+=packet            

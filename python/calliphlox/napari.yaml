@@ -1,0 +1,11 @@
+name: cpx-python
+display_name: Calliphlox
+contributions:
+  commands:
+    - id: cpx-python.gui
+      title: Demo video streaming in calliphlox
+      python_name: calliphlox:gui
+  widgets:
+    - command: cpx-python.gui
+      display_name: Stream
+      autogenerate: true

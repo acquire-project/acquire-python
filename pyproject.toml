@@ -19,6 +19,11 @@ dynamic = [
     "readme",
     "version"
 ]
+[project.entry-points."napari.manifest"]
+cpx-python = "calliphlox:napari.yaml"
+
+[options.package_data]
+example-plugin = "napari.yaml"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310']

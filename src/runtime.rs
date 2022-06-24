@@ -338,10 +338,10 @@ impl IntoDimension for capi::ImageShape_image_dims_s {
 
     fn into_dimension(self) -> Self::Dim {
         Dim([
-            self.channels as usize,
-            self.width as usize,
-            self.height as usize,
             self.planes as usize,
+            self.height as usize,
+            self.width as usize,
+            self.channels as usize,
         ])
     }
 }
