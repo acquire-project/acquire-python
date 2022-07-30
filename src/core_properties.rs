@@ -9,7 +9,7 @@ use crate::{
 
 #[pyclass]
 #[derive(Clone, Serialize, Deserialize)]
-struct Camera {
+pub struct Camera {
     #[pyo3(get, set)]
     identifier: Py<DeviceIdentifier>,
 
@@ -66,7 +66,7 @@ impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_camera_s {
 
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Storage {
+pub struct Storage {
     #[pyo3(get, set)]
     identifier: Py<DeviceIdentifier>,
 
@@ -124,7 +124,7 @@ impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_storage_s {
 
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct StageAxis {
+pub struct StageAxis {
     #[pyo3(get, set)]
     identifier: Py<DeviceIdentifier>,
 
@@ -181,7 +181,7 @@ impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
 
 #[pyclass]
 #[derive(Clone, Default, Serialize, Deserialize)]
-struct Signals {
+pub struct Signals {
     #[pyo3(get, set)]
     identifier: Option<DeviceIdentifier>,
 

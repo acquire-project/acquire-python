@@ -16,6 +16,8 @@ pub struct StageAxisState {
     velocity: f32,
 }
 
+impl_plain_old_dict!(StageAxisState);
+
 impl From<capi::StageAxisProperties_stage_axis_properties_state_s> for StageAxisState {
     fn from(value: capi::StageAxisProperties_stage_axis_properties_state_s) -> Self {
         Self {

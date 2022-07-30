@@ -10,6 +10,7 @@ pub(crate) mod stage_axis;
 pub(crate) mod storage;
 
 use anyhow::{anyhow, Result};
+use device_manager::DeviceManager;
 use pyo3::prelude::*;
 use std::ffi::CStr;
 
@@ -45,9 +46,16 @@ fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
         .expect("Failed to init logger");
 
     m.add_class::<runtime::Runtime>()?;
+    m.add_class::<DeviceManager>()?;
     m.add_class::<core_properties::Properties>()?;
+    m.add_class::<core_properties::Camera>()?;
+    m.add_class::<core_properties::Signals>()?;
+    m.add_class::<core_properties::StageAxis>()?;
+    m.add_class::<core_properties::Storage>()?;
 
+    m.add_class::<device::DeviceIdentifier>()?;
     m.add_class::<camera::CameraProperties>()?;
+    m.add_class::<signals::SignalProperties>()?;
     m.add_class::<storage::StorageProperties>()?;
     m.add_class::<stage_axis::StageAxisProperties>()?;
     m.add_class::<stage_axis::StageAxisState>()?;
@@ -59,6 +67,7 @@ fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<components::SampleType>()?;
     m.add_class::<components::SignalIOKind>()?;
     m.add_class::<components::SignalType>()?;
+    m.add_class::<components::Timing>()?;
     m.add_class::<components::Trigger>()?;
     m.add_class::<components::TriggerEdge>()?;
     m.add_class::<components::TriggerEvent>()?;

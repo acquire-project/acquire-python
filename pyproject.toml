@@ -10,20 +10,19 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies=["numpy>=1.16.0"]
-dev-dependencies=["black","pytest>=7"]
-dynamic = [
-    "authors",
-    "description",
-    "license",
-    "readme",
-    "version"
-]
+dependencies = ["numpy>=1.16.0"]
+dev-dependencies = ["black", "pytest>=7"]
+dynamic = ["authors", "description", "license", "readme", "version"]
 [project.entry-points."napari.manifest"]
 cpx-python = "calliphlox:napari.yaml"
 
 [tool.setuptools.package_data]
-cpx-python = ["napari.yaml","dcam_plugin.dll"]
+cpx-python = [
+    "napari.yaml",
+    "dcam_plugin.dll",
+    "__init__.pyi",
+    "calliphlox.pyi",
+]
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310']
@@ -34,4 +33,4 @@ minversion = "7.0"
 addopts = "--tb=short -s"
 # log_format = "%(asctime)s %(levelname)s %(message)s"
 # log_date_format = "%Y-%m-%d %H:%M:%S"
-log_cli=true # when true, messages are printed immediately
+log_cli = true # when true, messages are printed immediately

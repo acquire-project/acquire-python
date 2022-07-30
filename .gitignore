@@ -73,3 +73,6 @@ docs/_build/
 
 # Output data files
 *.tif
+
+# mypy stubgen
+out/

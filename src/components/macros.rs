@@ -31,10 +31,12 @@ macro_rules! cvt {
 }
 pub(crate) use cvt;
 
+// FIXME: (nclack) modularize the parts, dedup code
 macro_rules! impl_plain_old_dict {
     (@out $T:ty) => {
         #[pymethods]
         impl $T {
+            #[doc=concat!("Make a dict representation of ",stringify!($T))]
             fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
                 Ok(pythonize::pythonize(py, self)?)
             }
@@ -65,6 +67,7 @@ macro_rules! impl_plain_old_dict {
                 }
             }
 
+            #[doc=concat!("Make a dict representation of ",stringify!($T))]
             fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
                 Ok(pythonize::pythonize(py, self)?)
             }
@@ -74,7 +77,7 @@ macro_rules! impl_plain_old_dict {
                 let obj = obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
                 let args: String = obj
                     .iter()
-                    .map(|(k, v)| format!("{}='{}'", k, v))
+                    .map(|(k, v)| format!("{}={:?}", k, v))
                     .reduce(|acc, e| format!("{},{}", acc, e))
                     .unwrap_or(String::new());
 

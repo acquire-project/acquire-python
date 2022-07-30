@@ -2,12 +2,12 @@ import time
 from typing import Optional
 from . import calliphlox
 
-from .calliphlox import (
-    Runtime,
-    Properties,
-    DeviceKind,
-    SampleType,
-)  # To make PyLance happy, I seem to have to this <--
+# from .calliphlox import (
+#     Runtime,
+#     Properties,
+#     DeviceKind,
+#     SampleType,
+# )  # To make PyLance happy, I seem to have to this <--
 from .calliphlox import *
 
 __doc__ = calliphlox.__doc__
@@ -34,7 +34,7 @@ def setup(
 
     dm = runtime.device_manager()
     p = runtime.get_configuration()
-
+    
     p.camera.identifier=dm.select(DeviceKind.Camera, camera)
     p.camera.settings.binning=1
     p.camera.settings.shape=(640,480)
