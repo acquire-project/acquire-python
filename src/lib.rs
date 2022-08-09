@@ -21,7 +21,7 @@ trait Status: Copy + Sized {
         if self.is_ok() {
             Ok(*self)
         } else {
-            Err(anyhow!("Failed cpx api status check"))
+            Err(anyhow!("Failed cpx api status check")) // TODO: (nclack) adapt to thiserror maybe, need to know which api called, params etc
         }
     }
 }

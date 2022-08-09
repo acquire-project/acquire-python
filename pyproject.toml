@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["numpy>=1.16.0"]
+dependencies = ["numpy>=1.16.0"]  #FIXME: (nclack) fails when no internet access?
 dev-dependencies = ["black", "pytest>=7"]
 dynamic = ["authors", "description", "license", "readme", "version"]
 [project.entry-points."napari.manifest"]
