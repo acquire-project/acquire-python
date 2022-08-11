@@ -9,14 +9,16 @@ Requires
 * A C++ compiler (Microsoft Visual Studio Community [download page](https://visualstudio.microsoft.com/downloads/)) 
 * Rust (via rustup, see [install page](https://www.rust-lang.org/tools/install))
 * conda (optional; via [miniconda](https://docs.conda.io/en/latest/miniconda.html))
-
-
+* libclang >= v5.0 (via `[choco](https://chocolatey.org/) install [llvm](https://community.chocolatey.org/packages/llvm)` on windows or `[brew](https://brew.sh/) install [llvm](https://formulae.brew.sh/formula/llvm#default)`)
 
 ```
 conda create --name calliphlox python=3.10
 conda activate calliphlox
 pip install maturin
 ```
+
+`Maturin` is a command line tool associated with [`pyo3`](https://pyo3.rs/v0.16.4/). It 
+helps automate the build and packaging process.
 
 ## Build
 
