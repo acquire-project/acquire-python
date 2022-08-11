@@ -1,3 +1,4 @@
+![Build](https://github.com/calliphlox/cpx-python/actions/workflows/CI.yml/badge.svg)
 # cpx-python
 
 Python interface for calliphlox.
