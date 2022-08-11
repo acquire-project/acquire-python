@@ -25,7 +25,7 @@ git submodule update --init --recursive
 maturin build
 ```
 
-Occasionally when updating the 'cpx' (the c api), you may need to trigger a 
+**Important** When updating the 'cpx' (the c api), to need to manually trigger a 
 rebuild by touching `wrapper.h`.
 
 ```bash
