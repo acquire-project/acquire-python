@@ -27,6 +27,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         submodules: recursive
     - uses: messense/maturin-action@v1
       with:
