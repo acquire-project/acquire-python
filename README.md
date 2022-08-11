@@ -9,14 +9,16 @@ Requires
 * A C++ compiler (Microsoft Visual Studio Community [download page](https://visualstudio.microsoft.com/downloads/)) 
 * Rust (via rustup, see [install page](https://www.rust-lang.org/tools/install))
 * conda (optional; via [miniconda](https://docs.conda.io/en/latest/miniconda.html))
-
-
+* libclang >= v5.0 (on windows via [choco](https://chocolatey.org/) `choco install llvm` or, on osx, via [brew](https://brew.sh/) `brew install llvm`)
 
 ```
 conda create --name calliphlox python=3.10
 conda activate calliphlox
 pip install maturin
 ```
+
+`Maturin` is a command line tool associated with [`pyo3`](https://pyo3.rs/v0.16.4/). It 
+helps automate the build and packaging process.
 
 ## Build
 
@@ -47,11 +49,11 @@ ipython
 Trigger(enable='True',line='0',event='AcquisitionStart',kind='Input',edge='Rising')
 ```
 
-## LESSONS/TODO
+## Troubleshooting
 
-- Should've implemented serialize and deserialize for the c api objects instead
-  of python objects (recommendation: rework later)
-    - Then dict to python looks like: dict <-> c api <-> python object
-    - More naturally reuse the serde code for format support
-    - serde chokes on the python types bc they erase types which makes the code
-      more complicated.
+### Maturin can't find a python interpreter.
+
+1. Double-check you've activated the right conda environment.
+2. Try `maturin build -i python`
+
+This seems to happen on windows in anaconda environments when multiple python interpreter is available on the path.
