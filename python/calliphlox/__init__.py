@@ -53,15 +53,18 @@ def get_runtime():
     return RUNTIME
 
 
-from napari.qt.threading import thread_worker
-from numpy import cumsum, histogram, ones, where
-
-
 def gui(
     viewer: "napari.Viewer",
     frame_count: int = 1000,
     camera_name: str = "simulated: radial sin",
 ):
+    """Napari dock-widget plugin entry-point
+
+    This instances a magicgui dock widget that streams video to a layer.
+    """
+    from napari.qt.threading import thread_worker
+    from numpy import cumsum, histogram, where
+
     update_times = []
 
     def update_layer(new_image):
@@ -124,6 +127,5 @@ def gui(
     do_acquisition()
 
 
-# FIXME: (nclack) would rather not have this depend on napari
 # FIXME: (nclack) crashes on seconds button press
 # FIXME: (nclack) napari view doesn't update right on
