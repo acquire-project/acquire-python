@@ -1,0 +1,49 @@
+name: PR Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: ${{ matrix.platform }} ${{ matrix.python }} ${{ matrix.toxenv }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ["windows-latest","macos-latest"]
+        python: ["3.8","3.9","3.10"]
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.10.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+          submodules: recursive
+
+      - uses: messense/maturin-action@v1
+        with:
+          command: build
+          args: --release --no-sdist -o dist
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install setuptools tox tox-gh-actions
+
+      - name: Test with tox
+        run: python -m tox
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          TOXENV: ${{ matrix.toxenv }}
+          
+      - uses: actions/upload-artifact@v3
+        with:
+          name: upload pytest timing reports as json
+          path: |
+            ./report-*.json

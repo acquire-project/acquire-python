@@ -1,7 +1,7 @@
 import time
 from typing import Optional
-from . import calliphlox
 
+from . import calliphlox
 from .calliphlox import *
 
 __doc__ = calliphlox.__doc__
@@ -15,11 +15,6 @@ FORMAT = (
 )
 logging.basicConfig(format=FORMAT)
 logging.getLogger().setLevel(logging.INFO)
-
-
-def dbg(v):
-    logging.debug(v)
-    return v
 
 
 def setup(
@@ -46,13 +41,6 @@ def setup(
 RUNTIME = None
 
 
-def get_runtime():
-    global RUNTIME
-    if RUNTIME is None:
-        RUNTIME = calliphlox.Runtime()
-    return RUNTIME
-
-
 def gui(
     viewer: "napari.Viewer",
     frame_count: int = 1000,
@@ -66,6 +54,12 @@ def gui(
     from numpy import cumsum, histogram, where
 
     update_times = []
+
+    def get_runtime():
+        global RUNTIME
+        if RUNTIME is None:
+            RUNTIME = calliphlox.Runtime()
+        return RUNTIME
 
     def update_layer(new_image):
         try:
