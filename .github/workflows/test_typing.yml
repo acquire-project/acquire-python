@@ -9,16 +9,15 @@ jobs:
   typing:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.PAT }}
           submodules: recursive
-      - uses: messense/maturin-action@v1
-        with:
-          command: develop
-      - name: Install mypy
+
+      - name: Install 
         run: |
           pip install --upgrade pip
-          pip install mypy
+          pip install -e '.[testing]'
+          
       - name: Run mypy on typed modules
         run: mypy -p calliphlox

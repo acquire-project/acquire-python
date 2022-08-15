@@ -1,4 +1,4 @@
-name: PR Test
+name: Test
 
 on:
   pull_request:
@@ -27,11 +27,6 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           submodules: recursive
-
-      - uses: messense/maturin-action@v1
-        with:
-          command: build
-          args: --release --no-sdist -o dist
 
       - name: Install dependencies
         run: |
