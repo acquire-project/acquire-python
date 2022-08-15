@@ -14,11 +14,10 @@ jobs:
           token: ${{ secrets.PAT }}
           submodules: recursive
 
-      - name: Set up Python ${{ matrix.python }}
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python }}
-          cache: "pip"
+          python-version: "3.10"
 
       - name: Install 
         run: |
