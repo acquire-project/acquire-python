@@ -14,6 +14,12 @@ jobs:
           token: ${{ secrets.PAT }}
           submodules: recursive
 
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+
       - name: Install 
         run: |
           pip install --upgrade pip
