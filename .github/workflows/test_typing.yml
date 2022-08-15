@@ -1,0 +1,24 @@
+name: Test typing
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  typing:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT }}
+          submodules: recursive
+      - uses: messense/maturin-action@v1
+        with:
+          command: develop
+      - name: Install mypy
+        run: |
+          pip install --upgrade pip
+          pip install mypy
+      - name: Run mypy on typed modules
+        run: mypy -p calliphlox

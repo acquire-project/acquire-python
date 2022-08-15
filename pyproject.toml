@@ -4,15 +4,18 @@ build-backend = "maturin"
 
 [project]
 name = "cpx-python"
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["numpy>=1.16.0"]  #FIXME: (nclack) fails when no internet access?
-dev-dependencies = ["black", "pytest>=7"]
+dependencies = ["numpy>=1.20.0"]  #FIXME: (nclack) fails when no internet access?
 dynamic = ["authors", "description", "license", "readme", "version"]
+
+[project.optional-dependencies]
+testing = ["black", "pytest>=7", "mypy", "tox", "pytest-cov"]
+
 [project.entry-points."napari.manifest"]
 cpx-python = "calliphlox:napari.yaml"
 
