@@ -1,11 +1,10 @@
 import logging
 import time
-from pprint import pprint
 from time import sleep
 
 import calliphlox
 import pytest
-from calliphlox import Trigger
+from calliphlox import DeviceKind, Trigger
 
 
 @pytest.fixture(scope="module")
@@ -71,7 +70,6 @@ def test_setup(caplog, runtime):
     assert p.storage.settings.filename == "out.tif"
     p.camera.settings.shape = (1920, 1080)
     p = runtime.set_configuration(p)
-    pprint(p.dict())
     runtime.start()
 
     nframes = 0
@@ -97,4 +95,12 @@ def test_setup(caplog, runtime):
     runtime.stop()
 
 
+def test_selection_is_consistent(caplog, runtime):
+    caplog.set_level(logging.DEBUG)
+    hcam1 = runtime.device_manager().select(DeviceKind.Camera)
+    hcam2 = runtime.device_manager().select(DeviceKind.Camera, hcam1.name)
+    assert hcam1 == hcam2
+
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
+# TODO: (nclack) control log level from pytest invocation? use caplog default.

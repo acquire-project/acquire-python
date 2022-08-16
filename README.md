@@ -77,3 +77,11 @@ process. It's invoked by `setuptools` during a build.
 
 This seems to happen on windows in anaconda environments when multiple python
 interpreters are available on the path.
+
+### Working with an editable install, how do I update the build?
+
+It depends on what you changed:
+
+- **cpx** (c/c++ code): `touch wrapper.h; maturin develop`
+- **rust code**: `maturin develop`
+- **python code**: nothing

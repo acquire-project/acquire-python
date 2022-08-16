@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict, List, Literal, Tuple, final, overload
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, final, overload
 
 @final
 class DeviceKind:
@@ -45,12 +45,14 @@ class DeviceIdentifier:
     kind: DeviceKind
     name: str
     def dict(self) -> Dict[str, Any]: ...
+    def __eq__(self, other) -> bool: ...
+    def __ne__(self, other) -> bool: ...
 
 @final
 class DeviceManager:
     def devices(self) -> List[DeviceIdentifier]: ...
     def select(
-        self, kind: DeviceKind, name: str
+        self, kind: DeviceKind, name: Optional[str]
     ) -> None | DeviceIdentifier: ...
 
 @final

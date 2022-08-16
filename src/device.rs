@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{prelude::*, pyclass::CompareOp};
 use serde::{Deserialize, Serialize};
 use std::ffi::CStr;
 
@@ -19,13 +19,13 @@ impl Default for capi::DeviceIdentifier {
             driver_id: Default::default(),
             device_id: Default::default(),
             kind: capi::DeviceKind_DeviceKind_None,
-            name: [0;256],
+            name: [0; 256],
         }
     }
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DeviceKind {
     NONE,
     Camera,
@@ -55,7 +55,7 @@ impl TryFrom<&str> for DeviceKind {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            "None"|"NONE" => Ok(DeviceKind::NONE),
+            "None" | "NONE" => Ok(DeviceKind::NONE),
             "Camera" => Ok(DeviceKind::Camera),
             "Storage" => Ok(DeviceKind::Storage),
             "StageAxis" => Ok(DeviceKind::StageAxis),
@@ -66,7 +66,7 @@ impl TryFrom<&str> for DeviceKind {
 }
 
 #[pyclass]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct DeviceIdentifier {
     #[pyo3(get)]
     id: (u8, u8),
@@ -83,17 +83,7 @@ pub(crate) struct DeviceIdentifier {
 //                 Should probably drop the id's altogether except maybe for
 //                 internal debugging.
 
-// impl Serialize for DeviceIdentifier {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         let mut state = serializer.serialize_struct("DeviceIdentifier", 2)?;
-//         state.serialize_field("kind", &self.kind)?;
-//         state.serialize_field("name", &self.name)?;
-//         state.end()
-//     }
-// }
+// TODO: (nclack) maybe use impl_plain_old_dict for device identifier. caveat ^
 
 #[pymethods]
 impl DeviceIdentifier {
@@ -104,13 +94,23 @@ impl DeviceIdentifier {
     fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         Ok(pythonize::pythonize(py, self)?)
     }
+
+    fn __richcmp__(&self, other: &DeviceIdentifier, op: CompareOp) -> Py<PyAny> {
+        Python::with_gil(|py|{
+            match op {
+                CompareOp::Eq => (self == other).into_py(py),
+                CompareOp::Ne => (self != other).into_py(py),
+                _ => py.NotImplemented(),
+            }
+        })
+    }
 }
 
 impl TryFrom<capi::DeviceIdentifier> for DeviceIdentifier {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::DeviceIdentifier) -> Result<Self, Self::Error> {
-        if value.kind==capi::DeviceKind_DeviceKind_None {
+        if value.kind == capi::DeviceKind_DeviceKind_None {
             return Ok(DeviceIdentifier::default());
         }
 
