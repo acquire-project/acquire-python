@@ -1,4 +1,8 @@
-use std::{ffi::CString, ptr::{NonNull, null}, sync::Arc};
+use std::{
+    ffi::CString,
+    ptr::{null, NonNull},
+    sync::Arc,
+};
 
 use crate::{
     capi,
@@ -42,11 +46,11 @@ impl DeviceManager {
     }
 
     fn select(&self, kind: DeviceKind, name: Option<&str>) -> PyResult<Option<DeviceIdentifier>> {
-        let (name,bytes,_owned_name)=if let Some(name)=name {
+        let (name, bytes, _owned_name) = if let Some(name) = name {
             let name_ = CString::new(name)?;
-            (name_.as_ptr(),name_.as_bytes().len(),Some(name_))
+            (name_.as_ptr(), name_.as_bytes().len(), Some(name_))
         } else {
-            (null(),0,None)
+            (null(), 0, None)
         };
         let (status, ident) = unsafe {
             let mut ident: capi::DeviceIdentifier = std::mem::zeroed();
@@ -65,5 +69,12 @@ impl DeviceManager {
         } else {
             Ok(None)
         }
+    }
+
+    fn select_one_of(&self, kind: DeviceKind, names: Vec<&str>) -> Option<DeviceIdentifier> {
+        names
+            .into_iter()
+            .filter_map(|name| self.select(kind, Some(name)).ok().flatten())
+            .next()
     }
 }

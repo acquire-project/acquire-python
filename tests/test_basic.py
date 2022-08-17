@@ -41,10 +41,32 @@ def test_set_camera_identifier(caplog, runtime):
     assert p.camera.identifier is not None
 
 
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        (["does not exist 1", "does not exist 2", "does not exist 3"], None),
+        (
+            [
+                "does not exist 1",
+                "simulated: radial sin",
+                "simulated: uniform random",
+            ],
+            "simulated: radial sin",
+        ),
+        (["simulated: radial sin"], "simulated: radial sin"),
+        ([], None),
+    ],
+)
+def test_select_one_of(caplog, runtime, input, expected):
+    h = runtime.device_manager().select_one_of(DeviceKind.Camera, input)
+    result = None if h is None else h.name
+    assert result == expected
+
+
 def test_zero_conf_start(caplog, runtime):
     caplog.set_level(logging.DEBUG)
     with pytest.raises(RuntimeError):
-        runtime.start()  # Expect - RuntimeError: Failed cpx api status check
+        runtime.start()
 
 
 def test_set_storage(caplog, runtime):
