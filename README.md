@@ -1,6 +1,5 @@
 ![Build](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml/badge.svg)
 ![Tests](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml/badge.svg)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/calliphlox/cpx-python/main.svg?badge_token=u4kR6Y9_REe92P1OpdtXIQ)](https://results.pre-commit.ci/latest/github/calliphlox/cpx-python/main?badge_token=u4kR6Y9_REe92P1OpdtXIQ)
 
 # cpx-python
 
