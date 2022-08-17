@@ -1,4 +1,4 @@
-name: PR Test
+name: Test
 
 on:
   pull_request:
@@ -12,9 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ["windows-latest","macos-latest"]
-        python: ["3.8","3.9","3.10"]
+        platform: ["windows-latest", "macos-latest"]
+        python: ["3.8", "3.9", "3.10"]
 
+    permissions:
+      actions: write
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.10.0
@@ -26,24 +28,16 @@ jobs:
           token: ${{ secrets.PAT }}
           submodules: recursive
 
-      - uses: messense/maturin-action@v1
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
         with:
-          command: build
-          args: --release --no-sdist -o dist
+          python-version: ${{ matrix.python }}
 
-      - name: Install dependencies
+      - name: Install
         run: |
           pip install --upgrade pip
-          pip install setuptools tox tox-gh-actions
+          pip install -e .[testing]
 
-      - name: Test with tox
-        run: python -m tox
-        env:
-          PLATFORM: ${{ matrix.platform }}
-          TOXENV: ${{ matrix.toxenv }}
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: upload pytest timing reports as json
-          path: |
-            ./report-*.json
+      - name: Test
+        run: |
+          python -m pytest --color=yes --cov-report=xml --cov=calliphlox --maxfail=5
