@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ["windows-latest","macos-latest"]
-        python: ["3.8","3.9","3.10"]
+        platform: ["windows-latest", "macos-latest"]
+        python: ["3.8", "3.9", "3.10"]
 
     steps:
       - name: Cancel Previous Runs
@@ -34,14 +34,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install setuptools tox tox-gh-actions
+          pip install -e .[testing]
 
-      - name: Test with tox
-        run: python -m tox
-        env:
-          PLATFORM: ${{ matrix.platform }}
-          TOXENV: ${{ matrix.toxenv }}
-          
+      - name: Test with pytest
+        run: |
+          python -m pytest --color=yes --cov-report=xml --cov=calliphlox --maxfail=5
+
       - uses: actions/upload-artifact@v3
         with:
           name: upload pytest timing reports as json
