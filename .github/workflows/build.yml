@@ -1,75 +1,45 @@
 name: Build
 
 on:
-  push:
-  pull_request:
+    push:
+        branches:
+            - main
 
 jobs:
-#   linux:
-#     runs-on: ubuntu-latest
-#     steps:
-#     - uses: actions/checkout@v2
-#       with:
-#         token: ${{ secrets.PAT }}
-#         submodules: recursive
-#     - uses: messense/maturin-action@v1
-#       with:
-#         manylinux: auto
-#         command: build
-#         args: --release -o dist
-#     - name: Upload wheels
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: wheels
-#         path: dist
+    build:
+        strategy:
+            matrix:
+                platform: [windows-latest, macos-latest]
 
-  windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.PAT }}
-        submodules: recursive
-    - uses: messense/maturin-action@v1
-      with:
-        command: build
-        args: --release --no-sdist -o dist
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
+        runs-on: ${{matrix.platform}}
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  token: ${{ secrets.PAT }}
+                  submodules: recursive
+            - uses: messense/maturin-action@v1
+              with:
+                  command: build
+                  args: --release --no-sdist -o dist --universal2
+            - name: Upload wheels
+              uses: actions/upload-artifact@v2
+              with:
+                  name: ${{matrix.platform}} wheels
+                  path: dist
 
-  macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.PAT }}
-        submodules: recursive
-    - uses: messense/maturin-action@v1
-      with:
-        command: build
-        args: --release --no-sdist -o dist --universal2
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ macos, windows]
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: wheels
-      - name: Publish to PyPI
-        uses: messense/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --skip-existing *
+    release:
+        name: Release
+        runs-on: ubuntu-latest
+        if: "startsWith(github.ref, 'refs/tags/')"
+        needs: build
+        steps:
+            - uses: actions/download-artifact@v2
+              with:
+                  name: wheels
+            - name: Publish to PyPI
+              uses: messense/maturin-action@v1
+              env:
+                  MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+              with:
+                  command: upload
+                  args: --skip-existing *
