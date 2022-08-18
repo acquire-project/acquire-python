@@ -1,5 +1,5 @@
-![Build](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml/badge.svg)
-![Tests](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml/badge.svg)
+[![Build](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml/badge.svg)](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml)
+[![Test](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml/badge.svg)](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml)
 
 # cpx-python
 
