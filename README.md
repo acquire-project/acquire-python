@@ -45,7 +45,7 @@ python -m build
 ## Develop
 
 ```bash
-pip install -e '.[testing]'
+pip install -e ".[testing]"
 pytest
 ```
 
