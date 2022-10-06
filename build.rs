@@ -4,7 +4,7 @@ fn main() {
         .profile("RelWithDebInfo")
         .static_crt(true)
         .define("NOTEST", "TRUE")
-        .build();
+        .build();    
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=cpx");
@@ -17,6 +17,10 @@ fn main() {
             "cargo:rustc-link-search=native=cpx/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/"
         );
         println!("cargo:rustc-link-lib=static=NIDAQmx");
+
+        // Copy dcam lib 
+        std::fs::copy(format!("{}/lib/dcam_plugin.dll",dst.display()),"python/calliphlox/dcam_plugin.dll")
+            .expect("Failed to copy dcam_plugin.dll to python folder.");
     }
 
     println!("cargo:rerun-if-changed=wrapper.h");
