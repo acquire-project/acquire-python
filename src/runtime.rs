@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use log::{debug, error, info};
+use log::{debug, error};
 use numpy::{
     ndarray::{Dim, IntoDimension, RawArrayView},
     Ix4, ToPyArray,
@@ -14,8 +14,8 @@ use std::{
 };
 
 use crate::{
-    capi, components::macros::impl_plain_old_dict, core_properties::Properties, device_manager,
-    Status,
+    capi, components::macros::impl_plain_old_dict, core_properties::Properties,
+    device::DeviceState, device_manager, Status,
 };
 
 unsafe extern "C" fn reporter(
@@ -39,7 +39,7 @@ unsafe extern "C" fn reporter(
     if is_error > 0 {
         error!("{}:{} - {}(): {}", file, line, function, msg);
     } else {
-        info!("{}:{} - {}(): {}", file, line, function, msg);
+        debug!("{}:{} - {}(): {}", file, line, function, msg);
     }
 }
 
@@ -87,6 +87,7 @@ impl AsRef<NonNull<capi::CpxRuntime>> for RawRuntime {
 }
 
 #[pyclass]
+/// The core runtime state
 pub struct Runtime {
     inner: Arc<RawRuntime>,
 }
@@ -100,14 +101,15 @@ impl AsRef<NonNull<capi::CpxRuntime>> for Runtime {
 #[pymethods]
 impl Runtime {
     #[new]
+    #[args()]
     fn new() -> PyResult<Self> {
         Ok(Self {
             inner: Arc::new(RawRuntime::new()?),
         })
     }
 
-    fn start(&self) -> PyResult<()> {
-        Ok(self.inner.start()?)
+    fn start(&self, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || Ok(self.inner.start()?))
     }
 
     fn stop(&self, py: Python<'_>) -> PyResult<()> {
@@ -124,35 +126,49 @@ impl Runtime {
 
     fn set_configuration(&self, properties: &Properties, py: Python<'_>) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = properties.try_into()?;
-        info!(
-            "{:?} {}",
-            props.storage.settings.filename, props.storage.settings.filename
-        );
         Python::allow_threads(py, || {
             unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()
         })?;
         Ok((&props).try_into()?)
     }
 
-    fn get_configuration(&self) -> PyResult<Properties> {
+    fn get_configuration(&self, py: Python<'_>) -> PyResult<Properties> {
         let mut props: capi::CpxProperties = Default::default();
-        unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()?;
+        Python::allow_threads(py, || {
+            unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()
+        })?;
         Ok((&props).try_into()?)
     }
 
-    fn get_available_data(&self) -> PyResult<Option<AvailableData>> {
-        let mut buf = null_mut();
-        let mut nbytes = 0;
+    fn get_state(&self, py: Python<'_>) -> PyResult<DeviceState> {
+        Ok(Python::allow_threads(py, || 
+            unsafe { capi::cpx_get_state(self.as_ref().as_ptr()) }
+        ).try_into()?)
+    }
+
+    fn get_available_data(&self, istream: u32) -> PyResult<Option<AvailableData>> {
+        let mut beg = null_mut();
+        let mut end = null_mut();
         unsafe {
-            capi::cpx_map_read(self.as_ref().as_ptr(), &mut buf, &mut nbytes).ok()?;
+            capi::cpx_map_read(self.as_ref().as_ptr(), istream, &mut beg, &mut end).ok()?;
         }
-        log::trace!("ACQUIRED {}", nbytes);
+        let nbytes = unsafe { byte_offset_from(beg, end) };
+        if nbytes > 0 {
+            log::trace!(
+                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+                istream,
+                beg,
+                end,
+                nbytes
+            )
+        };
         Ok(if nbytes > 0 {
             Some(AvailableData {
                 inner: Arc::new(RawAvailableData {
                     runtime: self.inner.clone(),
-                    buf: NonNull::new(buf).ok_or(anyhow!("Expected non-null buffer"))?,
-                    nbytes: nbytes as _,
+                    beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                    end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                    istream,
                     consumed_bytes: None,
                 }),
             })
@@ -167,26 +183,46 @@ struct RawAvailableData {
     /// Reference to the context that owns the region
     runtime: Arc<RawRuntime>,
     /// Pointer to the reserved region
-    buf: NonNull<capi::VideoFrame>,
-    /// Number of bytes in the mapped region
-    nbytes: usize,
+    beg: NonNull<capi::VideoFrame>,
+    end: NonNull<capi::VideoFrame>,
 
+    /// The video stream owning the region
+    istream: u32,
+
+    /// When none, the entire region will be unmapped. Otherwise just the first
+    /// `consumed_bytes`.
     consumed_bytes: Option<usize>,
 }
 
 unsafe impl Send for RawAvailableData {}
 unsafe impl Sync for RawAvailableData {}
 
+// Can replace this if `pointer_byte_offsets` gets stabilized.
+unsafe fn byte_offset<T>(origin: *mut T, count: isize) -> *mut T {
+    (origin as *const u8).offset(count) as *mut T
+}
+
+// Can replace this if `pointer_byte_offsets` gets stabilized.
+unsafe fn byte_offset_from<T>(beg: *mut T, end: *mut T) -> isize {
+    (end as *const u8).offset_from(beg as *const u8)
+}
+
 impl RawAvailableData {
     fn get_frame_count(&self) -> usize {
         let mut count = 0;
         unsafe {
-            let mut cur = self.buf.as_ptr() as *mut u8;
-            let end = cur.offset(self.nbytes as _);
+            let mut cur = self.beg.as_ptr();
+            let end = self.end.as_ptr();
             while cur < end {
-                let frame: &capi::VideoFrame = &*(cur as *const capi::VideoFrame);
+                let frame: &capi::VideoFrame = &*cur;
+                log::trace!(
+                    "[stream {}] Advancing count for frame {} w size {}",
+                    self.istream,
+                    frame.frame_id,
+                    frame.bytes_of_frame
+                );
                 assert!(frame.bytes_of_frame > 0);
-                cur = cur.offset(frame.bytes_of_frame as _);
+                cur = byte_offset(cur, frame.bytes_of_frame as _);
                 count += 1;
             }
         }
@@ -196,12 +232,24 @@ impl RawAvailableData {
 
 impl Drop for RawAvailableData {
     fn drop(&mut self) {
-        let consumed_bytes = self.consumed_bytes.unwrap_or(self.nbytes);
-        log::trace!("DROP read region: {}", consumed_bytes);
+        let consumed_bytes = self
+            .consumed_bytes
+            .unwrap_or(unsafe { byte_offset_from(self.beg.as_ptr(), self.end.as_ptr()) } as usize);
+        log::debug!(
+            "[stream {}] DROP read region: {:p}-{:p}:{}",
+            self.istream,
+            self.beg.as_ptr(),
+            self.end.as_ptr(),
+            consumed_bytes
+        );
         unsafe {
-            capi::cpx_unmap_read(self.runtime.inner.as_ptr(), consumed_bytes as _)
-                .ok()
-                .expect("Unexpected failure: Was the CoreRuntime NULL?");
+            capi::cpx_unmap_read(
+                self.runtime.inner.as_ptr(),
+                self.istream,
+                consumed_bytes as _,
+            )
+            .ok()
+            .expect("Unexpected failure: Was the CoreRuntime NULL?");
         }
     }
 }
@@ -220,11 +268,8 @@ impl AvailableData {
     fn frames(&self) -> VideoFrameIterator {
         VideoFrameIterator {
             store: self.inner.clone(),
-            cur: Mutex::new(self.inner.buf),
-            end: unsafe {
-                let ptr = self.inner.buf.as_ptr() as *mut u8;
-                NonNull::new_unchecked(ptr.offset(self.inner.nbytes as _) as *mut _)
-            },
+            cur: Mutex::new(self.inner.beg),
+            end: self.inner.end,
         }
     }
 

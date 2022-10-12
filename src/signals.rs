@@ -112,7 +112,7 @@ impl TryFrom<&SignalProperties> for capi::SignalProperties {
                 .iter()
                 .zip(dst_triggers.lines.iter_mut())
             {
-                *dst = src.extract::<Trigger>()?.into()
+                *dst = src.extract::<Trigger>()?.as_ref().into()
             }
 
             let timing: Timing = src.timing.extract(py)?;

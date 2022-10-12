@@ -3,8 +3,9 @@ fn main() {
         .target("cpx")
         .profile("RelWithDebInfo")
         .static_crt(true)
-        .define("NOTEST", "TRUE")
-        .build();    
+        .define("NO_UNIT_TESTS", "TRUE")
+        .define("NO_EXAMPLES", "TRUE")
+        .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=cpx");
@@ -18,9 +19,12 @@ fn main() {
         );
         println!("cargo:rustc-link-lib=static=NIDAQmx");
 
-        // Copy dcam lib 
-        std::fs::copy(format!("{}/lib/dcam_plugin.dll",dst.display()),"python/calliphlox/dcam_plugin.dll")
-            .expect("Failed to copy dcam_plugin.dll to python folder.");
+        // Copy dcam lib
+        std::fs::copy(
+            format!("{}/lib/dcam_plugin.dll", dst.display()),
+            "python/calliphlox/dcam_plugin.dll",
+        )
+        .expect("Failed to copy dcam_plugin.dll to python folder.");
     }
 
     println!("cargo:rerun-if-changed=wrapper.h");

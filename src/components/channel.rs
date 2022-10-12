@@ -117,7 +117,7 @@ impl Default for capi::Channel {
             signal_io_kind: Default::default(),
             voltage_range: Default::default(),
             line: Default::default(),
-            display_name: [0;64],
+            display_name: [0; 64],
         }
     }
 }

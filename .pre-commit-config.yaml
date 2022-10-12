@@ -29,5 +29,3 @@ repos:
     hooks:
     - id: import-linter
       stages: [manual]
-
-

@@ -1,5 +1,6 @@
 /target
-*.dll
+imgui.ini
+*.dll 
 Testing
 
 # Byte-compiled / optimized / DLL files

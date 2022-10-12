@@ -1,7 +1,7 @@
-use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::capi;
 use crate::components::{SampleRateHz, TriggerEdge};
+use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use super::macros::impl_plain_old_dict;
 
@@ -41,9 +41,8 @@ impl TryFrom<capi::SignalProperties_signal_properties_timing_s> for Timing {
         value: capi::SignalProperties_signal_properties_timing_s,
     ) -> Result<Self, Self::Error> {
         let samples_per_second: SampleRateHz = value.samples_per_second.into();
-        let samples_per_second = Python::with_gil(|py| 
-            Py::new(py, samples_per_second))?;
-        let edge=value.edge.try_into()?;
+        let samples_per_second = Python::with_gil(|py| Py::new(py, samples_per_second))?;
+        let edge = value.edge.try_into()?;
         Ok(Self {
             terminal: value.terminal,
             edge,

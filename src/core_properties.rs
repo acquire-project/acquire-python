@@ -34,10 +34,12 @@ impl AsRef<Camera> for Camera {
     }
 }
 
-impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
+impl TryFrom<capi::CpxProperties_cpx_properties_video_s_cpx_properties_camera_s> for Camera {
     type Error = anyhow::Error;
 
-    fn try_from(value: capi::CpxProperties_cpx_properties_camera_s) -> Result<Self, Self::Error> {
+    fn try_from(
+        value: capi::CpxProperties_cpx_properties_video_s_cpx_properties_camera_s,
+    ) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
             let identifier: DeviceIdentifier = value.identifier.try_into()?;
             let settings: CameraProperties = value.settings.try_into()?;
@@ -49,7 +51,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_camera_s> for Camera {
     }
 }
 
-impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_camera_s {
+impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_video_s_cpx_properties_camera_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &Camera) -> Result<Self, Self::Error> {
@@ -90,10 +92,12 @@ impl Default for Storage {
     }
 }
 
-impl TryFrom<capi::CpxProperties_cpx_properties_storage_s> for Storage {
+impl TryFrom<capi::CpxProperties_cpx_properties_video_s_cpx_properties_storage_s> for Storage {
     type Error = anyhow::Error;
 
-    fn try_from(value: capi::CpxProperties_cpx_properties_storage_s) -> Result<Self, Self::Error> {
+    fn try_from(
+        value: capi::CpxProperties_cpx_properties_video_s_cpx_properties_storage_s,
+    ) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
             let identifier: DeviceIdentifier = value.identifier.try_into()?;
             let settings: StorageProperties = value.settings.try_into()?;
@@ -106,7 +110,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_storage_s> for Storage {
     }
 }
 
-impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_storage_s {
+impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_video_s_cpx_properties_storage_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &Storage) -> Result<Self, Self::Error> {
@@ -226,18 +230,12 @@ impl TryFrom<&Signals> for capi::CpxProperties_cpx_properties_signals_s {
 
 #[pyclass]
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Properties {
+pub struct VideoStream {
     #[pyo3(get, set)]
     camera: Py<Camera>,
 
     #[pyo3(get, set)]
     storage: Py<Storage>,
-
-    #[pyo3(get, set)]
-    stages: (Py<StageAxis>, Py<StageAxis>, Py<StageAxis>), // FIXME: (nclack) this isn't ideal, should be PyList
-
-    #[pyo3(get, set)]
-    signals: Py<Signals>,
 
     #[pyo3(get, set)]
     max_frame_count: u64,
@@ -246,19 +244,83 @@ pub struct Properties {
     frame_average_count: u32,
 }
 
-impl Default for Properties {
+impl_plain_old_dict!(VideoStream);
+
+impl Default for VideoStream {
     fn default() -> Self {
         Python::with_gil(|py| Self {
             camera: Py::new(py, Camera::default()).unwrap(),
             storage: Py::new(py, Storage::default()).unwrap(),
+            max_frame_count: Default::default(),
+            frame_average_count: Default::default(),
+        })
+    }
+}
+
+impl TryFrom<capi::CpxProperties_cpx_properties_video_s> for VideoStream {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::CpxProperties_cpx_properties_video_s) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let camera: Camera = value.camera.try_into()?;
+            let storage: Storage = value.storage.try_into()?;
+
+            Ok(Self {
+                camera: Py::new(py, camera)?,
+                storage: Py::new(py, storage)?,
+                max_frame_count: value.max_frame_count,
+                frame_average_count: value.frame_average_count,
+            })
+        })?)
+    }
+}
+
+impl TryFrom<&VideoStream> for capi::CpxProperties_cpx_properties_video_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &VideoStream) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|py| -> PyResult<_> {
+            let camera: Camera = value.camera.extract(py)?;
+            let camera = (&camera).try_into()?;
+            let storage: Storage = value.storage.extract(py)?;
+            let storage = (&storage).try_into()?;
+            let out = Ok(Self {
+                camera,
+                storage,
+                max_frame_count: value.max_frame_count,
+                frame_average_count: value.frame_average_count,
+            });
+            out
+        })?)
+    }
+}
+
+#[pyclass]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Properties {
+    #[pyo3(get, set)]
+    video: (Py<VideoStream>, Py<VideoStream>), // TODO: should be List of VideoStream? Are there ownership/reference problems?
+
+    #[pyo3(get, set)]
+    stages: (Py<StageAxis>, Py<StageAxis>, Py<StageAxis>), // FIXME: (nclack) this isn't ideal, should be PyList
+
+    #[pyo3(get, set)]
+    signals: Py<Signals>,
+}
+
+impl Default for Properties {
+    fn default() -> Self {
+        Python::with_gil(|py| Self {
+            video: (
+                Py::new(py, VideoStream::default()).unwrap(),
+                Py::new(py, VideoStream::default()).unwrap(),
+            ),
             stages: (
                 Py::new(py, StageAxis::default()).unwrap(),
                 Py::new(py, StageAxis::default()).unwrap(),
                 Py::new(py, StageAxis::default()).unwrap(),
             ),
             signals: Py::new(py, Signals::default()).unwrap(),
-            max_frame_count: Default::default(),
-            frame_average_count: Default::default(),
         })
     }
 }
@@ -297,8 +359,10 @@ impl TryFrom<&capi::CpxProperties> for Properties {
 
     fn try_from(value: &capi::CpxProperties) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            let camera: Camera = value.camera.try_into()?;
-            let storage: Storage = value.storage.try_into()?;
+            let video_streams: (VideoStream, VideoStream) =
+                (value.video[0].try_into()?, value.video[1].try_into()?);
+            let video = (Py::new(py, video_streams.0)?, Py::new(py, video_streams.1)?);
+
             let stages: (StageAxis, StageAxis, StageAxis) = (
                 value.stages[0].try_into()?,
                 value.stages[1].try_into()?,
@@ -311,12 +375,9 @@ impl TryFrom<&capi::CpxProperties> for Properties {
             );
             let signals: Signals = value.signals.try_into()?;
             Ok(Self {
-                camera: Py::new(py, camera)?,
-                storage: Py::new(py, storage)?,
+                video,
                 stages,
                 signals: Py::new(py, signals)?,
-                max_frame_count: value.max_frame_count,
-                frame_average_count: value.frame_average_count,
             })
         })?)
     }
@@ -327,10 +388,10 @@ impl TryFrom<&Properties> for capi::CpxProperties {
 
     fn try_from(value: &Properties) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            let camera: Camera = value.camera.extract(py)?;
-            let camera = (&camera).try_into()?;
-            let storage: Storage = value.storage.extract(py)?;
-            let storage = (&storage).try_into()?;
+            let video: (VideoStream, VideoStream) =
+                (value.video.0.extract(py)?, value.video.1.extract(py)?);
+            let video = [(&video.0).try_into()?, (&video.1).try_into()?];
+
             let stages: (StageAxis, StageAxis, StageAxis) = (
                 value.stages.0.extract(py)?,
                 value.stages.1.extract(py)?,
@@ -344,12 +405,9 @@ impl TryFrom<&Properties> for capi::CpxProperties {
             let signals: Signals = value.signals.extract(py)?;
             let signals = (&signals).try_into()?;
             let out = Ok(capi::CpxProperties {
-                camera,
-                storage,
+                video,
                 stages,
                 signals,
-                max_frame_count: value.max_frame_count,
-                frame_average_count: value.frame_average_count,
             });
             out
         })?)
@@ -357,24 +415,32 @@ impl TryFrom<&Properties> for capi::CpxProperties {
 }
 
 // The main concern here is `storage.settings.filename.str`
-// Specifically it needs to remain pinned during the call 
+// Specifically it needs to remain pinned during the call
 // to Runtime::set_configuration().
 unsafe impl Send for capi::CpxProperties {}
 
 impl Default for capi::CpxProperties {
     fn default() -> Self {
         Self {
-            camera: Default::default(),
-            storage: Default::default(),
+            video: Default::default(),
             stages: Default::default(),
             signals: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::CpxProperties_cpx_properties_video_s {
+    fn default() -> Self {
+        Self {
+            camera: Default::default(),
+            storage: Default::default(),
             max_frame_count: Default::default(),
             frame_average_count: Default::default(),
         }
     }
 }
 
-impl Default for capi::CpxProperties_cpx_properties_camera_s {
+impl Default for capi::CpxProperties_cpx_properties_video_s_cpx_properties_camera_s {
     fn default() -> Self {
         Self {
             identifier: Default::default(),
@@ -383,7 +449,7 @@ impl Default for capi::CpxProperties_cpx_properties_camera_s {
     }
 }
 
-impl Default for capi::CpxProperties_cpx_properties_storage_s {
+impl Default for capi::CpxProperties_cpx_properties_video_s_cpx_properties_storage_s {
     fn default() -> Self {
         Self {
             identifier: Default::default(),

@@ -31,6 +31,9 @@ cpx-python = [
 target-version = ['py38', 'py39', 'py310']
 line-length = 79
 
+[tool.isort]
+profile = "black"
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "--tb=short -s"

@@ -12,6 +12,7 @@ jobs:
     test:
         name: ${{ matrix.platform }} ${{ matrix.python }} ${{ matrix.toxenv }}
         runs-on: ${{ matrix.platform }}
+        timeout-minutes: 20
         strategy:
             fail-fast: false
             matrix:
@@ -48,4 +49,4 @@ jobs:
 
             - name: Test
               run: |
-                  python -m pytest --color=yes --cov-report=xml --cov=calliphlox --maxfail=5
+                  python -m pytest --color=yes --cov-report=xml --cov=calliphlox --maxfail=5 --log-cli-level=0

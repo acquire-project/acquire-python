@@ -9,6 +9,18 @@ class DeviceKind:
     Storage: ClassVar[DeviceKind] = ...
 
 @final
+class DeviceState:
+    Closed: ClassVar[DeviceState] = ...
+    AwaitingConfiguration: ClassVar[DeviceState] = ...
+    Armed: ClassVar[DeviceState] = ...
+    Running: ClassVar[DeviceState] = ...
+
+@final
+class Direction:
+    Backward: ClassVar[Direction] = ...
+    Forward: ClassVar[Direction] = ...
+
+@final
 class SampleType:
     F32: ClassVar[SampleType] = ...
     I16: ClassVar[SampleType] = ...
@@ -69,10 +81,11 @@ class Trigger:
 
 @final
 class CameraProperties:
-    gain_db: float
     exposure_time_us: float
+    line_interval_us: float
     binning: float
     pixel_type: SampleType
+    readout_direction: Direction
     offset: Tuple[int, int]
     shape: Tuple[int, int]
     triggers: List[Trigger]
@@ -169,13 +182,18 @@ class Signals:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class Properties:
+class VideoStream:
     camera: Camera
     storage: Storage
-    stages: Tuple[StageAxis, StageAxis, StageAxis]
-    signals: Signals
     max_frame_count: int
     frame_average_count: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class Properties:
+    video: Tuple[VideoStream, VideoStream]
+    stages: Tuple[StageAxis, StageAxis, StageAxis]
+    signals: Signals
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -186,7 +204,15 @@ class Runtime:
     def set_configuration(self, properties: Properties) -> Properties: ...
     def get_configuration(self) -> Properties: ...
     def get_available_data(
-        self,
+        self, stream_id: int
     ) -> Any: ...  # FIXME(nclack): type AvailableData
+    def get_state(self) -> DeviceState: ...
 
 def core_api_version() -> str: ...
+
+# def setup(
+#     runtime: Runtime,
+#     camera: Union[str, List[str]] = "simulated: radial sin",
+#     storage: Union[str, List[str]] = "Tiff",
+#     output_filename: Optional[str] = "out.tif",
+# ) -> Properties: ...

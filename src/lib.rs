@@ -41,19 +41,26 @@ fn core_api_version() -> PyResult<String> {
 #[pymodule]
 fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::Logger::new(py, pyo3_log::Caching::LoggersAndLevels)?
-        .filter(log::LevelFilter::Debug)
+        .filter(log::LevelFilter::Trace)
         .install()
         .expect("Failed to init logger");
+    log::trace!("Log: trace enabled");
+    log::debug!("Log: debug enabled");
+    log::info!("Log: info enabled");
+    log::warn!("Log: warn enabled");
+    log::error!("Log: error enabled");
 
     m.add_class::<runtime::Runtime>()?;
     m.add_class::<DeviceManager>()?;
     m.add_class::<core_properties::Properties>()?;
+    m.add_class::<core_properties::VideoStream>()?;
     m.add_class::<core_properties::Camera>()?;
     m.add_class::<core_properties::Signals>()?;
     m.add_class::<core_properties::StageAxis>()?;
     m.add_class::<core_properties::Storage>()?;
 
     m.add_class::<device::DeviceIdentifier>()?;
+    m.add_class::<device::DeviceState>()?;
     m.add_class::<camera::CameraProperties>()?;
     m.add_class::<signals::SignalProperties>()?;
     m.add_class::<storage::StorageProperties>()?;
@@ -62,6 +69,7 @@ fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<signals::SignalProperties>()?;
 
     m.add_class::<components::Channel>()?;
+    m.add_class::<components::Direction>()?;
     m.add_class::<components::PID>()?;
     m.add_class::<components::SampleRateHz>()?;
     m.add_class::<components::SampleType>()?;

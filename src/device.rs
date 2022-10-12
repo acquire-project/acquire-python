@@ -25,6 +25,28 @@ impl Default for capi::DeviceIdentifier {
 }
 
 #[pyclass]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum DeviceState {
+    Closed,
+    AwaitingConfiguration,
+    Armed,
+    Running,
+}
+
+impl Default for DeviceState {
+    fn default() -> Self {
+        DeviceState::Closed
+    }
+}
+
+cvt!(DeviceState => capi::DeviceState,
+    Closed => DeviceState_DeviceState_Closed,
+    AwaitingConfiguration => DeviceState_DeviceState_AwaitingConfiguration,
+    Armed => DeviceState_DeviceState_Armed,
+    Running => DeviceState_DeviceState_Running
+);
+
+#[pyclass]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DeviceKind {
     NONE,
@@ -96,12 +118,10 @@ impl DeviceIdentifier {
     }
 
     fn __richcmp__(&self, other: &DeviceIdentifier, op: CompareOp) -> Py<PyAny> {
-        Python::with_gil(|py|{
-            match op {
-                CompareOp::Eq => (self == other).into_py(py),
-                CompareOp::Ne => (self != other).into_py(py),
-                _ => py.NotImplemented(),
-            }
+        Python::with_gil(|py| match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         })
     }
 }

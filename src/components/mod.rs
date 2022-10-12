@@ -1,4 +1,5 @@
 mod channel;
+mod direction;
 pub(crate) mod macros;
 mod sample_type;
 mod signal_io_kind;
@@ -14,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 // Exports
 pub use channel::Channel;
+pub use direction::Direction;
 pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
 pub use signal_type::SignalType;
@@ -49,6 +51,12 @@ pub struct Trigger {
 
 impl_plain_old_dict!(Trigger);
 
+impl AsRef<Trigger> for Trigger {
+    fn as_ref(&self) -> &Trigger {
+        self
+    }
+}
+
 impl TryFrom<capi::Trigger> for Trigger {
     type Error = anyhow::Error;
 
@@ -72,12 +80,6 @@ impl From<&Trigger> for capi::Trigger {
             kind: value.kind.into(),
             edge: value.edge.into(),
         }
-    }
-}
-
-impl From<Trigger> for capi::Trigger {
-    fn from(value: Trigger) -> Self {
-        value.into()
     }
 }
 
@@ -184,7 +186,10 @@ impl From<SampleRateHz> for capi::SampleRateHz {
 
 impl Default for capi::SampleRateHz {
     fn default() -> Self {
-        Self { numerator: 1, denominator: 1 }
+        Self {
+            numerator: 1,
+            denominator: 1,
+        }
     }
 }
 
@@ -192,7 +197,7 @@ impl Default for capi::SampleRateHz {
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct VoltageRange {
-    /// Minimum voltage 
+    /// Minimum voltage
     #[pyo3(get, set)]
     #[serde(default)]
     mn: f32,

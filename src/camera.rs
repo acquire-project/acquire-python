@@ -1,6 +1,6 @@
 use crate::{
     capi,
-    components::{macros::impl_plain_old_dict, SampleType, Trigger},
+    components::{macros::impl_plain_old_dict, Direction, SampleType, Trigger},
 };
 use anyhow::anyhow;
 use pyo3::prelude::*;
@@ -15,10 +15,13 @@ use serde::{
 #[derive(Debug, Clone)]
 pub struct CameraProperties {
     #[pyo3(get, set)]
-    gain_db: f32,
+    exposure_time_us: f32,
 
     #[pyo3(get, set)]
-    exposure_time_us: f32,
+    line_interval_us: f32,
+
+    #[pyo3(get, set)]
+    readout_direction: Direction,
 
     #[pyo3(get, set)]
     binning: u8,
@@ -33,7 +36,7 @@ pub struct CameraProperties {
     shape: (u32, u32),
 
     #[pyo3(get, set)]
-    triggers: Py<PyList>, // triggers: Vec<Trigger>, // FIXME: Should be Py<PyList>
+    triggers: Py<PyList>, // List of Triggers
 }
 
 impl_plain_old_dict!(CameraProperties);
@@ -41,12 +44,13 @@ impl_plain_old_dict!(CameraProperties);
 impl Default for CameraProperties {
     fn default() -> Self {
         Self {
-            gain_db: Default::default(),
             exposure_time_us: Default::default(),
+            line_interval_us: Default::default(),
+            readout_direction: Default::default(),
             binning: Default::default(),
             pixel_type: Default::default(),
             offset: Default::default(),
-            shape: (1920,1080),
+            shape: (1920, 1080),
             triggers: Python::with_gil(|py| PyList::empty(py).into()),
         }
     }
@@ -67,8 +71,9 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
         })?;
 
         Ok(CameraProperties {
-            gain_db: value.gain_dB,
             exposure_time_us: value.exposure_time_us,
+            line_interval_us: value.line_interval_us,
+            readout_direction: value.readout_direction.try_into()?,
             binning: value.binning,
             pixel_type: value.pixel_type.try_into()?,
             offset: (value.offset.x, value.offset.y),
@@ -107,13 +112,14 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
                     .iter()
                     .zip(dst_triggers.lines.iter_mut())
                 {
-                    *dst = src.extract::<Trigger>()?.into()
+                    *dst = src.extract::<Trigger>()?.as_ref().into()
                 }
                 Ok(())
             })?;
             Ok(capi::CameraProperties {
-                gain_dB: src.gain_db,
                 exposure_time_us: src.exposure_time_us,
+                line_interval_us: src.line_interval_us,
+                readout_direction: src.readout_direction.into(),
                 binning: src.binning,
                 pixel_type: src.pixel_type.into(),
                 offset,
@@ -155,8 +161,9 @@ impl Serialize for CameraProperties {
                 item.serialize_field(stringify!($name), &self.$name)
             };
         }
-        ser_field!(gain_db)?;
         ser_field!(exposure_time_us)?;
+        ser_field!(line_interval_us)?;
+        ser_field!(readout_direction)?;
         ser_field!(binning)?;
         ser_field!(pixel_type)?;
         ser_field!(offset)?;
@@ -174,8 +181,9 @@ impl<'de> Deserialize<'de> for CameraProperties {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "snake_case")]
         enum Field {
-            GainDb,
-            ExposureTimeUs,
+            ExposureTimeMicroseconds,
+            LineIntervalMicroseconds,
+            ReadoutDirection,
             Binning,
             PixelType,
             Offset,
@@ -196,8 +204,9 @@ impl<'de> Deserialize<'de> for CameraProperties {
             where
                 A: serde::de::MapAccess<'de>,
             {
-                let mut gain_db = None;
                 let mut exposure_time_us = None;
+                let mut line_interval_us = None;
+                let mut readout_direction = None;
                 let mut binning = None;
                 let mut pixel_type = None;
                 let mut offset = None;
@@ -205,17 +214,23 @@ impl<'de> Deserialize<'de> for CameraProperties {
                 let mut triggers = None;
                 while let Some(key) = map.next_key()? {
                     match key {
-                        Field::GainDb => {
-                            if gain_db.is_some() {
-                                return Err(de::Error::duplicate_field("gain_db"));
-                            }
-                            gain_db = Some(map.next_value()?);
-                        }
-                        Field::ExposureTimeUs => {
+                        Field::ExposureTimeMicroseconds => {
                             if exposure_time_us.is_some() {
                                 return Err(de::Error::duplicate_field("exposure_time_us"));
                             }
                             exposure_time_us = Some(map.next_value()?);
+                        }
+                        Field::LineIntervalMicroseconds => {
+                            if line_interval_us.is_some() {
+                                return Err(de::Error::duplicate_field("line_interval_us"));
+                            }
+                            line_interval_us = Some(map.next_value()?);
+                        }
+                        Field::ReadoutDirection => {
+                            if readout_direction.is_some() {
+                                return Err(de::Error::duplicate_field("readout_direction"));
+                            }
+                            readout_direction = Some(map.next_value()?);
                         }
                         Field::Binning => {
                             if binning.is_some() {
@@ -254,9 +269,12 @@ impl<'de> Deserialize<'de> for CameraProperties {
                     }
                 }
 
-                let gain_db = gain_db.ok_or_else(|| de::Error::missing_field("gain_db"))?;
                 let exposure_time_us =
                     exposure_time_us.ok_or_else(|| de::Error::missing_field("exposure_time_us"))?;
+                let line_interval_us =
+                    line_interval_us.ok_or_else(|| de::Error::missing_field("line_interval_us"))?;
+                let readout_direction = readout_direction
+                    .ok_or_else(|| de::Error::missing_field("readout_direction"))?;
                 let binning = binning.ok_or_else(|| de::Error::missing_field("binning"))?;
                 let pixel_type =
                     pixel_type.ok_or_else(|| de::Error::missing_field("pixel_type"))?;
@@ -265,8 +283,9 @@ impl<'de> Deserialize<'de> for CameraProperties {
                 let triggers = triggers.ok_or_else(|| de::Error::missing_field("triggers"))?;
 
                 Ok(CameraProperties {
-                    gain_db,
                     exposure_time_us,
+                    line_interval_us,
+                    readout_direction,
                     binning,
                     pixel_type,
                     offset,
@@ -292,8 +311,9 @@ impl<'de> Deserialize<'de> for CameraProperties {
 impl Default for capi::CameraProperties {
     fn default() -> Self {
         Self {
-            gain_dB: 1.0,
             exposure_time_us: Default::default(),
+            line_interval_us: Default::default(),
+            readout_direction: capi::Direction_Direction_Forward,
             binning: 1,
             pixel_type: capi::SampleType_SampleType_u16,
             offset: Default::default(),
@@ -305,19 +325,28 @@ impl Default for capi::CameraProperties {
 
 impl Default for capi::CameraProperties_camera_properties_offset_s {
     fn default() -> Self {
-        Self { x: Default::default(), y: Default::default() }
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
     }
 }
 
 impl Default for capi::CameraProperties_camera_properties_shape_s {
     fn default() -> Self {
-        Self { x: Default::default(), y: Default::default() }
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
     }
 }
 
 impl Default for capi::CameraProperties_camera_properties_triggers_s {
     fn default() -> Self {
-        Self { line_count: Default::default(), lines: Default::default() }
+        Self {
+            line_count: Default::default(),
+            lines: Default::default(),
+        }
     }
 }
 

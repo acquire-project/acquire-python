@@ -3,7 +3,8 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
-    ptr::{null, null_mut}, fmt::{Debug,Display},
+    fmt::{Debug, Display},
+    ptr::{null, null_mut},
 };
 
 #[pyclass]
@@ -87,8 +88,8 @@ impl Default for capi::StorageProperties_storage_properties_filename_s {
 
 impl Display for capi::StorageProperties_storage_properties_filename_s {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s=unsafe{CStr::from_ptr(self.str_)}.to_string_lossy();
-        write!(f,"{}",s)
+        let s = unsafe { CStr::from_ptr(self.str_) }.to_string_lossy();
+        write!(f, "{}", s)
     }
 }
 
