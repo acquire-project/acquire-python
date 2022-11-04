@@ -11,6 +11,7 @@ pub enum TriggerEvent {
     FrameStart,
     Exposure,
     FrameTriggerWait,
+    Unknown,
 }
 
 impl Default for TriggerEvent {
@@ -23,5 +24,6 @@ cvt!( TriggerEvent => capi::TriggerEvent,
     AcquisitionStart => TriggerEvent_TriggerEvent_AcquisitionStart,
     FrameStart => TriggerEvent_TriggerEvent_FrameStart,
     Exposure => TriggerEvent_TriggerEvent_Exposure,
-    FrameTriggerWait => TriggerEvent_TriggerEvent_FrameTriggerWait
+    FrameTriggerWait => TriggerEvent_TriggerEvent_FrameTriggerWait,
+    Unknown => TriggerEvent_TriggerEvent_Unknown
 );

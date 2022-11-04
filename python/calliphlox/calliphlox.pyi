@@ -50,6 +50,7 @@ class TriggerEvent:
     Exposure: ClassVar[TriggerEvent] = ...
     FrameStart: ClassVar[TriggerEvent] = ...
     FrameTriggerWait: ClassVar[TriggerEvent] = ...
+    Unknown: ClassVar[TriggerEvent] = ...
 
 @final
 class DeviceIdentifier:
@@ -57,8 +58,10 @@ class DeviceIdentifier:
     kind: DeviceKind
     name: str
     def dict(self) -> Dict[str, Any]: ...
-    def __eq__(self, other) -> bool: ...
-    def __ne__(self, other) -> bool: ...
+    @staticmethod
+    def none() -> DeviceIdentifier: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
 
 @final
 class DeviceManager:
@@ -93,7 +96,7 @@ class CameraProperties:
 
 @final
 class Camera:
-    identifier: DeviceIdentifier
+    identifier: Optional[DeviceIdentifier]
     settings: CameraProperties
     def dict(self) -> Dict[str, Any]: ...
 
@@ -105,7 +108,7 @@ class StorageProperties:
 
 @final
 class Storage:
-    identifier: DeviceIdentifier
+    identifier: Optional[DeviceIdentifier]
     settings: StorageProperties
     def dict(self) -> Dict[str, Any]: ...
 
@@ -131,7 +134,7 @@ class StageAxisProperties:
 
 @final
 class StageAxis:
-    identifier: DeviceIdentifier
+    identifier: Optional[DeviceIdentifier]
     settings: StageAxisProperties
     def dict(self) -> Dict[str, Any]: ...
 
@@ -177,7 +180,7 @@ class SignalProperties:
 
 @final
 class Signals:
-    identifier: DeviceIdentifier
+    identifier: Optional[DeviceIdentifier]
     settings: SignalProperties
     def dict(self) -> Dict[str, Any]: ...
 
@@ -209,10 +212,3 @@ class Runtime:
     def get_state(self) -> DeviceState: ...
 
 def core_api_version() -> str: ...
-
-# def setup(
-#     runtime: Runtime,
-#     camera: Union[str, List[str]] = "simulated: radial sin",
-#     storage: Union[str, List[str]] = "Tiff",
-#     output_filename: Optional[str] = "out.tif",
-# ) -> Properties: ...

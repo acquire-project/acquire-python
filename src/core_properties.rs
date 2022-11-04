@@ -11,7 +11,7 @@ use crate::{
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Camera {
     #[pyo3(get, set)]
-    identifier: Py<DeviceIdentifier>,
+    identifier: Option<Py<DeviceIdentifier>>,
 
     #[pyo3(get, set)]
     settings: Py<CameraProperties>,
@@ -20,7 +20,7 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         Python::with_gil(|py| Self {
-            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            identifier: Some(Py::new(py, DeviceIdentifier::default()).unwrap()),
             settings: Py::new(py, CameraProperties::default()).unwrap(),
         })
     }
@@ -44,7 +44,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_video_s_cpx_properties_camera_s>
             let identifier: DeviceIdentifier = value.identifier.try_into()?;
             let settings: CameraProperties = value.settings.try_into()?;
             Ok(Self {
-                identifier: Py::new(py, identifier)?,
+                identifier: Some(Py::new(py, identifier)?),
                 settings: Py::new(py, settings)?,
             })
         })?)
@@ -56,7 +56,10 @@ impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_video_s_cpx_propert
 
     fn try_from(value: &Camera) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let identifier: DeviceIdentifier = match &value.identifier {
+                None => DeviceIdentifier::none(),
+                Some(inner) => inner.extract(py)?,
+            };
             let settings: CameraProperties = value.settings.extract(py)?;
             Ok(Self {
                 identifier: (&identifier).try_into()?,
@@ -70,7 +73,7 @@ impl TryFrom<&Camera> for capi::CpxProperties_cpx_properties_video_s_cpx_propert
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Storage {
     #[pyo3(get, set)]
-    identifier: Py<DeviceIdentifier>,
+    identifier: Option<Py<DeviceIdentifier>>,
 
     #[pyo3(get, set)]
     settings: Py<StorageProperties>,
@@ -85,7 +88,7 @@ impl_plain_old_dict!(@out Storage);
 impl Default for Storage {
     fn default() -> Self {
         Python::with_gil(|py| Self {
-            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            identifier: Some(Py::new(py, DeviceIdentifier::default()).unwrap()),
             settings: Py::new(py, StorageProperties::default()).unwrap(),
             write_delay_ms: Default::default(),
         })
@@ -102,7 +105,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_video_s_cpx_properties_storage_s
             let identifier: DeviceIdentifier = value.identifier.try_into()?;
             let settings: StorageProperties = value.settings.try_into()?;
             Ok(Self {
-                identifier: Py::new(py, identifier)?,
+                identifier: Some(Py::new(py, identifier)?),
                 settings: Py::new(py, settings)?,
                 write_delay_ms: value.write_delay_ms,
             })
@@ -115,7 +118,10 @@ impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_video_s_cpx_proper
 
     fn try_from(value: &Storage) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let identifier: DeviceIdentifier = match &value.identifier {
+                None => DeviceIdentifier::none(),
+                Some(inner) => inner.extract(py)?,
+            };
             let settings: StorageProperties = value.settings.extract(py)?;
             Ok(Self {
                 identifier: (&identifier).try_into()?,
@@ -130,7 +136,7 @@ impl TryFrom<&Storage> for capi::CpxProperties_cpx_properties_video_s_cpx_proper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StageAxis {
     #[pyo3(get, set)]
-    identifier: Py<DeviceIdentifier>,
+    identifier: Option<Py<DeviceIdentifier>>,
 
     #[pyo3(get, set)]
     settings: Py<StageAxisProperties>,
@@ -147,7 +153,7 @@ impl AsRef<StageAxis> for StageAxis {
 impl Default for StageAxis {
     fn default() -> Self {
         Python::with_gil(|py| Self {
-            identifier: Py::new(py, DeviceIdentifier::default()).unwrap(),
+            identifier: Some(Py::new(py, DeviceIdentifier::default()).unwrap()),
             settings: Py::new(py, StageAxisProperties::default()).unwrap(),
         })
     }
@@ -161,7 +167,7 @@ impl TryFrom<capi::CpxProperties_cpx_properties_stages_s> for StageAxis {
             let identifier: DeviceIdentifier = value.identifier.try_into()?;
             let settings: StageAxisProperties = value.settings.try_into()?;
             Ok(Self {
-                identifier: Py::new(py, identifier)?,
+                identifier: Some(Py::new(py, identifier)?),
                 settings: Py::new(py, settings)?,
             })
         })?)
@@ -173,7 +179,10 @@ impl TryFrom<&StageAxis> for capi::CpxProperties_cpx_properties_stages_s {
 
     fn try_from(value: &StageAxis) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|py| -> PyResult<_> {
-            let identifier: DeviceIdentifier = value.identifier.extract(py)?;
+            let identifier: DeviceIdentifier = match &value.identifier {
+                None => DeviceIdentifier::none(),
+                Some(inner) => inner.extract(py)?,
+            };
             let settings: StageAxisProperties = value.settings.extract(py)?;
             Ok(Self {
                 identifier: (&identifier).try_into()?,

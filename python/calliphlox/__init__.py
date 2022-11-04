@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from . import calliphlox
 from .calliphlox import *
@@ -23,8 +23,8 @@ def setup(
     storage: Union[str, List[str]] = "Tiff",
     output_filename: Optional[str] = "out.tif",
 ) -> Properties:
-    def normalize_fallback_arg(arg: Union[str, List[str]]):
-        if type(arg) != List:
+    def normalize_fallback_arg(arg: Union[str, List[str]]) -> List[str]:
+        if isinstance(arg, str):
             return [arg]
         return arg
 
@@ -104,7 +104,7 @@ def setup_two_streams(runtime: Runtime, frame_count: int) -> Properties:
     return p
 
 
-RUNTIME = None
+g_runtime = None
 
 
 def gui(
@@ -115,21 +115,22 @@ def gui(
 
     This instances a magicgui dock widget that streams video to a layer.
     """
+    import numpy.typing as npt
     from napari.qt.threading import thread_worker
-    from numpy import cumsum, histogram, where, zeros
+    from numpy import cumsum, histogram, where
 
-    update_times = []
+    update_times: List[float] = []
 
     def get_runtime():
-        global RUNTIME
-        if RUNTIME is None:
+        global g_runtime
+        if g_runtime is None:
             logging.info("INITING RUNTIME")
-            RUNTIME = calliphlox.Runtime()
+            g_runtime = calliphlox.Runtime()
         else:
             logging.info("REUSING RUNTIME")
-        return RUNTIME
+        return g_runtime
 
-    def update_layer(args):
+    def update_layer(args: Tuple[npt.NDArray[Any], int]):
         (new_image, stream_id) = args
         layer_key = f"Video {stream_id}"
         try:
@@ -162,7 +163,6 @@ def gui(
 
         nframes = [0, 0]
         stream_id = 0
-        t0 = time.time()
 
         def is_not_done() -> bool:
             return (nframes[0] < p.video[0].max_frame_count) or (
@@ -210,8 +210,5 @@ def gui(
 
     do_acquisition()
 
-
-# FIXME: (nclack) crashes on seconds button press
-# FIXME: (nclack) napari view doesn't update right on
 
 # TODO: (nclack) add context manager around runtime and start/stop

@@ -26,3 +26,6 @@ jobs:
           
       - name: Run mypy on typed modules
         run: mypy -p calliphlox
+
+      - name: Run stubtest on typed modules
+        run: stubtest calliphlox

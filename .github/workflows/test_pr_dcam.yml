@@ -10,19 +10,12 @@ on:
 
 jobs:
     test:
-        name: ${{ matrix.platform }} ${{ matrix.python }} ${{ matrix.toxenv }}
-        runs-on: ${{ matrix.platform }}
+        runs-on: [self-hosted,dcam]
         timeout-minutes: 20
         strategy:
             fail-fast: false
             matrix:
-                platform: ["windows-latest", "macos-latest"]
                 python: ["3.8", "3.9", "3.10"]
-                exclude:
-                    - platform: macos-latest
-                      python: "3.8"
-                    - platform: macos-latest
-                      python: "3.9"
 
         permissions:
             actions: write
@@ -49,4 +42,4 @@ jobs:
 
             - name: Test
               run: |
-                  python -m pytest -k test_basic --color=yes --cov-report=xml --cov=calliphlox --maxfail=5 --log-cli-level=0
+                  python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=calliphlox --maxfail=5 --log-cli-level=0

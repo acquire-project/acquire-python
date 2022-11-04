@@ -124,6 +124,14 @@ impl DeviceIdentifier {
             _ => py.NotImplemented(),
         })
     }
+
+    #[staticmethod]
+    pub(crate) fn none() -> DeviceIdentifier {
+        DeviceIdentifier {
+            kind: DeviceKind::NONE,
+            ..Default::default()
+        }
+    }
 }
 
 impl TryFrom<capi::DeviceIdentifier> for DeviceIdentifier {
