@@ -21,6 +21,7 @@ def test_ext_triggering(runtime: calliphlox.Runtime):
         for d in dm.devices()
         if (d.kind == DeviceKind.Camera) and ("C15440" in d.name)
     ]
+    assert len(cameras)>0,"No C15440 cameras found"
     logging.warning(f"Cameras {cameras}")
 
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, cameras[0])

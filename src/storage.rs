@@ -72,11 +72,12 @@ impl Default for capi::StorageProperties {
         Self {
             filename: Default::default(),
             first_frame_id: Default::default(),
+            external_metadata_json: Default::default(),
         }
     }
 }
 
-impl Default for capi::StorageProperties_storage_properties_filename_s {
+impl Default for capi::String {
     fn default() -> Self {
         Self {
             str_: null_mut(),
@@ -86,7 +87,7 @@ impl Default for capi::StorageProperties_storage_properties_filename_s {
     }
 }
 
-impl Display for capi::StorageProperties_storage_properties_filename_s {
+impl Display for capi::String {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = unsafe { CStr::from_ptr(self.str_) }.to_string_lossy();
         write!(f, "{}", s)

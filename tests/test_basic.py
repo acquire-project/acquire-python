@@ -124,12 +124,12 @@ def test_repeat_with_no_stop(caplog: pytest.LogCaptureFixture, runtime: Runtime)
     runtime.stop()
 
 
-def test_set_storage(caplog: pytest.LogCaptureFixture, runtime: Runtime):
-    caplog.set_level(logging.DEBUG)
-
+def test_set_storage(runtime: Runtime):
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
+    p.video[0].storage.identifier=None
+    p=runtime.set_configuration(p)
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.identifier.kind == calliphlox.DeviceKind.NONE
     p.video[0].storage.identifier = dm.select(
@@ -251,6 +251,31 @@ def test_two_video_streams(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     runtime.stop()
     assert nframes[0] == p.video[0].max_frame_count
     assert nframes[1] == p.video[1].max_frame_count
+
+
+def test_change_filename(runtime:Runtime):
+    dm=runtime.device_manager()
+    p=runtime.get_configuration()
+    p.video[0].camera.identifier=dm.select(DeviceKind.Camera,"simulated.*")
+    p.video[0].storage.identifier=dm.select(DeviceKind.Storage,"Tiff")
+    p.video[0].max_frame_count=1;
+
+
+    names=["out1.tif","quite a bit longer.tif","s.tif","another long one ok it is really long this time.tif"]
+    for name in names:
+        p.video[0].storage.settings.filename=name
+        p=runtime.set_configuration(p)
+        assert p.video[0].storage.settings.filename==name
+        assert runtime.get_configuration().video[0].storage.settings.filename==name
+
+        nframes=0
+        runtime.start()
+        while nframes<p.video[0].max_frame_count:
+            if packet := runtime.get_available_data(0):
+                nframes += packet.get_frame_count()
+                packet = None
+        logging.info("Stopping")
+        runtime.stop()
 
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)
