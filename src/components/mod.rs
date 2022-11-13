@@ -96,7 +96,7 @@ impl Default for capi::Trigger {
 }
 
 #[pyclass]
-#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct PID {
     #[pyo3(get, set)]
     #[serde(default)]

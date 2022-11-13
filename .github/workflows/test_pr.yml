@@ -1,4 +1,4 @@
-name: Test
+name: Test Platforms
 
 on:
     push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
     test:
-        name: ${{ matrix.platform }} ${{ matrix.python }} ${{ matrix.toxenv }}
+        name: ${{ matrix.platform }} ${{ matrix.python }}
         runs-on: ${{ matrix.platform }}
         timeout-minutes: 20
         strategy:

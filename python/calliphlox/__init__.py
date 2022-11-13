@@ -1,12 +1,18 @@
 import time
-from typing import Any, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from . import calliphlox
 from .calliphlox import *
 
 __doc__ = calliphlox.__doc__
-if hasattr(calliphlox, "__all__"):
-    __all__ = calliphlox.__all__
+# if hasattr(calliphlox, "__all__"):
+#     __all__ = calliphlox.__all__
 
 import logging
 
@@ -115,7 +121,9 @@ def gui(
 
     This instances a magicgui dock widget that streams video to a layer.
     """
+    from typing import TYPE_CHECKING
     import numpy.typing as npt
+
     from napari.qt.threading import thread_worker
     from numpy import cumsum, histogram, where
 
@@ -177,7 +185,7 @@ def gui(
                 if packet := runtime.get_available_data(stream_id):
                     n = packet.get_frame_count()
                     f = next(packet.frames())
-                    im = f.data().squeeze().copy()  # TODO: copy?
+                    im = f.data().squeeze().copy()
                     logging.debug(
                         f"stream {stream_id} frame {f.metadata().frame_id}"
                     )

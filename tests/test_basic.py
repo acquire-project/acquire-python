@@ -1,11 +1,12 @@
 import logging
 import time
 from time import sleep
+from typing import List
+
+import pytest
 
 import calliphlox
-import pytest
-from calliphlox import DeviceKind, Trigger
-from calliphlox.calliphlox import Runtime
+from calliphlox import DeviceKind, Trigger, Runtime
 
 
 @pytest.fixture(scope="module")
@@ -22,20 +23,20 @@ def test_set():
     assert t.enable
 
 
-def test_list_devices(caplog, runtime):
+def test_list_devices(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(logging.DEBUG)
     dm = runtime.device_manager()
     for d in dm.devices():
         print(d.dict())
 
 
-def test_set_camera_identifier(caplog, runtime):
+def test_set_camera_identifier(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(logging.DEBUG)
 
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
-    assert p.video[0].camera.identifier.kind == calliphlox.DeviceKind.NONE
+    assert p.video[0].camera.identifier is not None and p.video[0].camera.identifier.kind == calliphlox.DeviceKind.NONE
     p.video[0].camera.identifier = dm.select(
         calliphlox.DeviceKind.Camera, "simulated: radial sin"
     )
@@ -60,20 +61,20 @@ def test_set_camera_identifier(caplog, runtime):
         ([], None),
     ],
 )
-def test_select_one_of(caplog, runtime, input, expected):
+def test_select_one_of(caplog: pytest.LogCaptureFixture, runtime: Runtime, input:List[str], expected:str ):
     h = runtime.device_manager().select_one_of(DeviceKind.Camera, input)
     result = None if h is None else h.name
     assert result == expected
 
 
-def test_zero_conf_start(caplog, runtime):
+def test_zero_conf_start(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(logging.DEBUG)
     with pytest.raises(RuntimeError):
         runtime.start()
 
 
-def test_repeat_acq(caplog, runtime: Runtime):
-    caplog.set_level(logging.DEBUG)
+def test_repeat_acq(caplog: pytest.LogCaptureFixture, runtime: Runtime):
+    caplog.set_level(logging.DEBUG)    
     p = calliphlox.setup(runtime, "simulated: radial sin", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
@@ -99,7 +100,7 @@ def test_repeat_acq(caplog, runtime: Runtime):
     # TODO: (nclack) assert 1 more acquired frame. stop cancels and waits.
 
 
-def test_repeat_with_no_stop(caplog, runtime):
+def test_repeat_with_no_stop(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     """Stop is required between starts. This tests that an exception is
     raised."""
     caplog.set_level(0)  # logging.DEBUG)
@@ -123,12 +124,13 @@ def test_repeat_with_no_stop(caplog, runtime):
     runtime.stop()
 
 
-def test_set_storage(caplog, runtime):
+def test_set_storage(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(logging.DEBUG)
 
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
+    assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.identifier.kind == calliphlox.DeviceKind.NONE
     p.video[0].storage.identifier = dm.select(
         calliphlox.DeviceKind.Storage, "Tiff"
@@ -139,7 +141,7 @@ def test_set_storage(caplog, runtime):
     assert p.video[0].storage.settings.filename == "out.tif"
 
 
-def test_setup(caplog, runtime):
+def test_setup(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(0)  # logging.DEBUG)
     p = calliphlox.setup(runtime, "simulated: radial sin", "Trash")
     assert p.video[0].camera.identifier is not None
@@ -158,7 +160,7 @@ def test_setup(caplog, runtime):
 
     def took_too_long():
         # Time limit the test
-        time.time() - t0 > 20.0
+        return time.time() - t0 > 20.0
 
     while nframes < p.video[0].max_frame_count and not took_too_long():
         clock = time.time()
@@ -184,14 +186,15 @@ def test_setup(caplog, runtime):
         raise RuntimeError("Took too long")
 
 
-def test_selection_is_consistent(caplog, runtime):
+def test_selection_is_consistent(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     caplog.set_level(logging.DEBUG)
     hcam1 = runtime.device_manager().select(DeviceKind.Camera)
+    assert hcam1 is not None
     hcam2 = runtime.device_manager().select(DeviceKind.Camera, hcam1.name)
     assert hcam1 == hcam2
 
 
-def test_two_video_streams(caplog, runtime: calliphlox.Runtime):
+def test_two_video_streams(caplog: pytest.LogCaptureFixture, runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 

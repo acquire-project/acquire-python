@@ -255,7 +255,7 @@ impl Drop for RawAvailableData {
 }
 
 #[pyclass]
-struct AvailableData {
+pub(crate) struct AvailableData {
     inner: Arc<RawAvailableData>,
 }
 
@@ -322,13 +322,15 @@ impl Iterator for VideoFrameIterator {
 
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
-struct VideoFrameTimestamps {
+pub(crate) struct VideoFrameTimestamps {
     #[pyo3(get, set)]
     hardware: u64,
 
     #[pyo3(get, set)]
     acq_thread: u64,
 }
+
+impl_plain_old_dict!(VideoFrameTimestamps);
 
 impl From<capi::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
     fn from(x: capi::VideoFrame_video_frame_timestamps_s) -> Self {
@@ -341,7 +343,7 @@ impl From<capi::VideoFrame_video_frame_timestamps_s> for VideoFrameTimestamps {
 
 #[pyclass]
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
-struct VideoFrameMetadata {
+pub(crate) struct VideoFrameMetadata {
     #[pyo3(get, set)]
     frame_id: u64,
 
@@ -400,7 +402,7 @@ impl IntoDimension for capi::ImageShape {
 }
 
 #[pyclass]
-struct VideoFrame {
+pub(crate) struct VideoFrame {
     _store: Arc<RawAvailableData>,
     cur: NonNull<capi::VideoFrame>,
 }

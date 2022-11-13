@@ -26,7 +26,7 @@ impl Default for Camera {
     }
 }
 
-impl_plain_old_dict!(@out Camera);
+impl_plain_old_dict!(Camera);
 
 impl AsRef<Camera> for Camera {
     fn as_ref(&self) -> &Camera {

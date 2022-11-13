@@ -14,6 +14,8 @@ use device_manager::DeviceManager;
 use pyo3::prelude::*;
 use std::ffi::CStr;
 
+use crate::runtime::{AvailableData, VideoFrame, VideoFrameMetadata, VideoFrameTimestamps};
+
 trait Status: Copy + Sized {
     fn is_ok(&self) -> bool;
 
@@ -52,12 +54,17 @@ fn calliphlox(py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<runtime::Runtime>()?;
     m.add_class::<DeviceManager>()?;
+    m.add_class::<AvailableData>()?;
+    m.add_class::<VideoFrame>()?;
+    m.add_class::<VideoFrameMetadata>()?;
+    m.add_class::<VideoFrameTimestamps>()?;
+
     m.add_class::<core_properties::Properties>()?;
     m.add_class::<core_properties::VideoStream>()?;
     m.add_class::<core_properties::Camera>()?;
     m.add_class::<core_properties::Signals>()?;
     m.add_class::<core_properties::StageAxis>()?;
-    m.add_class::<core_properties::Storage>()?;
+    m.add_class::<core_properties::Storage>()?;    
 
     m.add_class::<device::DeviceIdentifier>()?;
     m.add_class::<device::DeviceState>()?;
