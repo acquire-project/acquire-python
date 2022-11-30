@@ -9,7 +9,6 @@ from calliphlox import DeviceKind, SampleType, TriggerEvent
 def runtime():
     runtime = calliphlox.Runtime()
     yield runtime
-    runtime = None
 
 
 def test_ext_triggering(runtime: calliphlox.Runtime):
@@ -21,7 +20,7 @@ def test_ext_triggering(runtime: calliphlox.Runtime):
         for d in dm.devices()
         if (d.kind == DeviceKind.Camera) and ("C15440" in d.name)
     ]
-    assert len(cameras)>0,"No C15440 cameras found"
+    assert len(cameras) > 0, "No C15440 cameras found"
     logging.warning(f"Cameras {cameras}")
 
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, cameras[0])
@@ -32,9 +31,13 @@ def test_ext_triggering(runtime: calliphlox.Runtime):
     p.video[0].max_frame_count = 1
     p.video[0].frame_average_count = 0  # disables
 
+    # Set the camera here so we can query it's triggering capabilities.
+    # This comes in the form of the returned properties.
+    p = runtime.set_configuration(p)
+
     p.video[0].camera.settings.triggers[1].enable = True
     p.video[0].camera.settings.triggers[1].event = TriggerEvent.FrameStart
-
+    # Call set_configuration() again to apply the trigger properties
     p = runtime.set_configuration(p)
 
     assert p.video[0].camera.settings.triggers[1].enable is True

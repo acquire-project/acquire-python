@@ -14,6 +14,10 @@ pub struct StorageProperties {
     #[serde(default)]
     pub(crate) filename: Option<String>,
 
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) external_metadata_json: Option<String>,
+
     /// Doesn't do anything right now. One day could be used for file-rollover.
     #[pyo3(get, set)]
     #[serde(default)]
@@ -35,9 +39,19 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
                     .to_owned(),
             )
         };
+        let external_metadata_json = if value.external_metadata_json.nbytes == 0 {
+            None
+        } else {
+            Some(
+                unsafe { CStr::from_ptr(value.external_metadata_json.str_) }
+                    .to_str()?
+                    .to_owned(),
+            )
+        };
         Ok(Self {
             filename,
             first_frame_id: value.first_frame_id,
+            external_metadata_json,
         })
     }
 }
@@ -53,15 +67,35 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } else {
             None
         };
-        let (filename, nbytes) = if let Some(ref x) = x {
+        let (filename, bytes_of_filename) = if let Some(ref x) = x {
             (x.as_ptr(), x.to_bytes_with_nul().len())
         } else {
             (null(), 0)
         };
+
+        // Careful: y needs to live long enough
+        let y = if let Some(metadata) = &value.external_metadata_json {
+            Some(CString::new(metadata.as_str())?)
+        } else {
+            None
+        };
+        let (metadata, bytes_of_metadata) = if let Some(ref y) = y {
+            (y.as_ptr(), y.to_bytes_with_nul().len())
+        } else {
+            (null(), 0)
+        };
+
         // This copies the string into a buffer owned by the return value.
         unsafe {
-            capi::storage_properties_init(&mut out, value.first_frame_id, filename, nbytes as _)
-                .ok()?;
+            capi::storage_properties_init(
+                &mut out,
+                value.first_frame_id,
+                filename,
+                bytes_of_filename as _,
+                metadata,
+                bytes_of_metadata as _,
+            )
+            .ok()?;
         }
         Ok(out)
     }
@@ -94,9 +128,5 @@ impl Display for capi::String {
     }
 }
 
-// impl Debug for capi::StorageProperties_storage_properties_filename_s {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let s=unsafe{CStr::from_ptr(self.str_)}.to_string_lossy();
-//         write!(f,"filename(is_ref:{} length:{} \"{}\"",self.is_ref,self.nbytes,s)
 //     }
 // }

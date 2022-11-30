@@ -234,7 +234,8 @@ class Storage:
 
 @final
 class StorageProperties:
-    filename: None | str
+    external_metadata_json: Optional[str]
+    filename: Optional[str]
     first_frame_id: int
     def dict(self) -> Dict[str, Any]: ...
 
