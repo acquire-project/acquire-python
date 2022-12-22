@@ -21,7 +21,7 @@ jobs:
             actions: write
         steps:
             - name: Cancel Previous Runs
-              uses: styfle/cancel-workflow-action@0.10.0
+              uses: styfle/cancel-workflow-action@0.11.0
               with:
                   access_token: ${{ github.token }}
 
@@ -30,12 +30,19 @@ jobs:
                   token: ${{ secrets.PAT }}
                   submodules: recursive
 
+            - name: Get CMake 3.24
+              uses: lukka/get-cmake@latest
+              with:
+                cmakeVersion: 3.24.3
+
             - name: Set up Python ${{ matrix.python }}
               uses: actions/setup-python@v4
               with:
                   python-version: ${{ matrix.python }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
 
             - name: Install
               run: |
