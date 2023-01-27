@@ -1,18 +1,10 @@
 import time
-from typing import (
-    Any,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, List, Optional, Tuple, Union
 
 from . import calliphlox
 from .calliphlox import *
 
 __doc__ = calliphlox.__doc__
-# if hasattr(calliphlox, "__all__"):
-#     __all__ = calliphlox.__all__
 
 import logging
 
@@ -121,9 +113,7 @@ def gui(
 
     This instances a magicgui dock widget that streams video to a layer.
     """
-    from typing import TYPE_CHECKING
     import numpy.typing as npt
-
     from napari.qt.threading import thread_worker
     from numpy import cumsum, histogram, where
 
@@ -191,16 +181,14 @@ def gui(
                     )
 
                     # TODO: (nclack) fix this awkwardness.
-                    #       could be that available data should be a context manager
-                    #       that forces the drop on exit.
-                    f = None  # <-- will fail to get the last frames if this is held?
-                    packet = None  # <-- will fail to get the last frames if this is held?
+                    f = None
+                    packet = None
 
                     yield (im, stream_id)
 
                     nframes[stream_id] += n
                     logging.info(
-                        f"[stream {stream_id}] frame count: {nframes} - frames in packet: {n}"
+                        f"[stream {stream_id}] frame count: {nframes}"
                     )
             stream_id = (stream_id + 1) % 2
 

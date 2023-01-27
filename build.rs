@@ -12,12 +12,17 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     {
-        // FIXME: hardcoded path to lib daqmx. Ideally this would be a plugin and
-        //        we'd be building it separately.  This is a fine hack till then.
+        // FIXME: hardcoded path to daqmx and blosc libs. Ideally these would be plugins and
+        //        we'd be building them separately.  This is a fine hack till then.
         println!(
             "cargo:rustc-link-search=native=cpx/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/"
         );
         println!("cargo:rustc-link-lib=static=NIDAQmx");
+
+        println!(
+            "cargo:rustc-link-search=native=cpx/src/devices/storage/3rdParty/c-blosc/lib/win64/"
+        );
+        println!("cargo:rustc-link-lib=static=libblosc");
 
         // Copy dcam lib
         std::fs::copy(

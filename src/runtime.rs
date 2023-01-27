@@ -67,6 +67,11 @@ impl RawRuntime {
         unsafe { capi::cpx_stop(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
+
+    fn abort(&self) -> Result<()> {
+        unsafe { capi::cpx_abort(self.inner.as_ptr()) }.ok()?;
+        Ok(())
+    }
 }
 
 impl Drop for RawRuntime {
@@ -114,6 +119,10 @@ impl Runtime {
 
     fn stop(&self, py: Python<'_>) -> PyResult<()> {
         Python::allow_threads(py, || Ok(self.inner.stop()?))
+    }
+
+    fn abort(&self, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || Ok(self.inner.abort()?))
     }
 
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {

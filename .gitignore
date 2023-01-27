@@ -2,6 +2,9 @@
 imgui.ini
 *.dll 
 Testing
+*.zarr
+*.tif
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

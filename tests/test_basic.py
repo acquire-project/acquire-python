@@ -7,7 +7,10 @@ from typing import Any, Dict, List
 import calliphlox
 import pytest
 import tifffile
-from calliphlox import DeviceKind, Runtime, Trigger
+import zarr
+import numcodecs.blosc as blosc
+import dask.array as da
+from calliphlox.calliphlox import DeviceKind, Runtime, Trigger
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +33,6 @@ def test_list_devices(runtime: Runtime):
 
 
 def test_set_camera_identifier(runtime: Runtime):
-
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
@@ -110,7 +112,7 @@ def test_repeat_with_no_stop(runtime: Runtime):
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     p.video[0].camera.settings.shape = (192, 108)
-    p.video[0].max_frame_count = 10
+    p.video[0].max_frame_count = 11
     p = runtime.set_configuration(p)
     runtime.start()
     # wait for 1 frame
@@ -194,65 +196,6 @@ def test_selection_is_consistent(runtime: Runtime):
     assert hcam1 == hcam2
 
 
-def test_two_video_streams(runtime: Runtime):
-    dm = runtime.device_manager()
-    p = runtime.get_configuration()
-
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*random.*"
-    )
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    p.video[0].camera.settings.binning = 1
-    p.video[0].camera.settings.shape = (64, 64)
-    p.video[0].camera.settings.pixel_type = calliphlox.SampleType.U8
-    p.video[0].max_frame_count = 90
-    p.video[0].frame_average_count = 0  # disables
-
-    p.video[1].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
-    )
-    p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    p.video[1].camera.settings.binning = 1
-    p.video[1].camera.settings.shape = (64, 64)
-    p.video[1].camera.settings.pixel_type = calliphlox.SampleType.U8
-    p.video[1].max_frame_count = 70
-    p.video[1].frame_average_count = 0  # disables
-
-    p = runtime.set_configuration(p)
-
-    nframes = [0, 0]
-
-    def is_not_done() -> bool:
-        return (nframes[0] < p.video[0].max_frame_count) or (
-            nframes[1] < p.video[1].max_frame_count
-        )
-
-    runtime.start()
-
-    stream_id = 0
-    while is_not_done():
-        if nframes[stream_id] < p.video[stream_id].max_frame_count:
-            if packet := runtime.get_available_data(stream_id):
-                n = packet.get_frame_count()
-                for (i, frame) in enumerate(packet.frames()):
-                    expected_frame_id = nframes[stream_id] + i
-                    assert frame.metadata().frame_id == expected_frame_id, (
-                        "frame id's didn't match "
-                        + f"({frame.metadata().frame_id}!={expected_frame_id})"
-                        + f" [stream {stream_id} nframes {nframes}]"
-                    )
-                    frame = None
-                packet = None
-                nframes[stream_id] += n
-                logging.debug(f"NFRAMES {nframes}")
-
-        stream_id = (stream_id + 1) % 2
-    logging.info("Stopping")
-    runtime.stop()
-    assert nframes[0] == p.video[0].max_frame_count
-    assert nframes[1] == p.video[1].max_frame_count
-
-
 def test_change_filename(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -321,8 +264,171 @@ def test_write_external_metadata_to_tiff(
             assert meta(i)["frame_id"] == i
 
 
+def test_write_external_metadata_to_zarr(
+    runtime: Runtime, request: pytest.FixtureRequest
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin.*"
+    )
+    p.video[0].camera.settings.shape = (33, 47)
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
+    p.video[0].max_frame_count = 4
+    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    metadata = {"hello": "world"}
+    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
+    runtime.set_configuration(p)
+
+    nframes = 0
+    runtime.start()
+    while nframes < p.video[0].max_frame_count:
+        if packet := runtime.get_available_data(0):
+            nframes += packet.get_frame_count()
+            packet = None
+    runtime.stop()
+
+    data = zarr.open(p.video[0].storage.settings.filename)
+    assert data.shape == (
+        p.video[0].max_frame_count,
+        1,
+        p.video[0].camera.settings.shape[1],
+        p.video[0].camera.settings.shape[0],
+    )
+    assert data.attrs.asdict() == metadata
+
+
+def test_write_compressed_zarr(
+        runtime: Runtime, request: pytest.FixtureRequest
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin.*"
+    )
+    p.video[0].camera.settings.shape = (64, 48)
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "ZarrBlosc1ZstdByteShuffle")
+    p.video[0].max_frame_count = 70
+    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    metadata = {"foo": "bar"}
+    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
+    runtime.set_configuration(p)
+
+    runtime.start()
+    runtime.stop()
+
+    # load from Zarr
+    data = zarr.open(p.video[0].storage.settings.filename)
+
+    assert data.compressor.cname == "zstd"
+    assert data.compressor.clevel == 1
+    assert data.compressor.shuffle == blosc.SHUFFLE
+
+    assert data.shape == (
+        p.video[0].max_frame_count,
+        1,
+        p.video[0].camera.settings.shape[1],
+        p.video[0].camera.settings.shape[0],
+    )
+    assert data.attrs.asdict() == metadata
+
+    # load from Dask
+    data = da.from_zarr(p.video[0].storage.settings.filename)
+    assert data.shape == (
+        p.video[0].max_frame_count,
+        1,
+        p.video[0].camera.settings.shape[1],
+        p.video[0].camera.settings.shape[0],
+    )
+
+
+def test_two_video_streams(runtime: Runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*random.*"
+    )
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+    p.video[0].camera.settings.binning = 1
+    p.video[0].camera.settings.shape = (64, 64)
+    p.video[0].camera.settings.pixel_type = calliphlox.SampleType.U8
+    p.video[0].max_frame_count = 90
+    p.video[0].frame_average_count = 0  # disables
+
+    p.video[1].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin.*"
+    )
+    p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+    p.video[1].camera.settings.binning = 1
+    p.video[1].camera.settings.shape = (64, 64)
+    p.video[1].camera.settings.pixel_type = calliphlox.SampleType.U8
+    p.video[1].max_frame_count = 71
+    p.video[1].frame_average_count = 0  # disables
+
+    p = runtime.set_configuration(p)
+
+    nframes = [0, 0]
+
+    def is_not_done() -> bool:
+        return (nframes[0] < p.video[0].max_frame_count) or (
+            nframes[1] < p.video[1].max_frame_count
+        )
+
+    runtime.start()
+
+    stream_id = 0
+    while is_not_done():
+        if nframes[stream_id] < p.video[stream_id].max_frame_count:
+            if packet := runtime.get_available_data(stream_id):
+                n = packet.get_frame_count()
+                for (i, frame) in enumerate(packet.frames()):
+                    expected_frame_id = nframes[stream_id] + i
+                    assert frame.metadata().frame_id == expected_frame_id, (
+                        "frame id's didn't match "
+                        + f"({frame.metadata().frame_id}!={expected_frame_id})"
+                        + f" [stream {stream_id} nframes {nframes}]"
+                    )
+                    frame = None
+                packet = None
+                nframes[stream_id] += n
+                logging.debug(f"NFRAMES {nframes}")
+
+        stream_id = (stream_id + 1) % 2
+    logging.info("Stopping")
+    runtime.stop()
+    assert nframes[0] == p.video[0].max_frame_count
+    assert nframes[1] == p.video[1].max_frame_count
+
+
+def test_abort(runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin"
+    )
+    p.video[0].camera.settings.shape = (24, 93)
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+    p.video[0].max_frame_count = 2**30
+    runtime.set_configuration(p)
+
+    nframes = 0
+    runtime.start()
+    sleep(0.05)
+    logging.info("Aborting")
+    runtime.abort()
+
+    while packet := runtime.get_available_data(0):
+        nframes += packet.get_frame_count()
+
+    del packet
+
+    logging.debug(f"Frame count expected: {p.video[0].max_frame_count}, actual: {nframes}")
+    assert nframes < p.video[0].max_frame_count
+
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:
 #
-# With pytest, use `--log-cli-level=0` to see the the lowest level logs.
+# With pytest, use `--log-cli-level=0` to see the lowest level logs.

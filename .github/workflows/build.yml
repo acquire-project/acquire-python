@@ -9,7 +9,7 @@ jobs:
     build:
         strategy:
             matrix:
-                platform: [windows-latest, macos-latest]
+                platform: [windows-latest, macos-latest, ubuntu-latest]
 
         runs-on: ${{matrix.platform}}
         steps:
@@ -22,24 +22,7 @@ jobs:
                   command: build
                   args: --release --no-sdist -o dist --universal2
             - name: Upload wheels
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: ${{matrix.platform}} wheels
                   path: dist
-
-    release:
-        name: Release
-        runs-on: ubuntu-latest
-        if: "startsWith(github.ref, 'refs/tags/')"
-        needs: build
-        steps:
-            - uses: actions/download-artifact@v2
-              with:
-                  name: wheels
-            - name: Publish to PyPI
-              uses: messense/maturin-action@v1
-              env:
-                  MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-              with:
-                  command: upload
-                  args: --skip-existing *
