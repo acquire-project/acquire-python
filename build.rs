@@ -5,6 +5,7 @@ fn main() {
         .static_crt(true)
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
+        .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
@@ -30,6 +31,16 @@ fn main() {
             "python/calliphlox/dcam_plugin.dll",
         )
         .expect("Failed to copy dcam_plugin.dll to python folder.");
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // FIXME: hardcoded path to the blosc libs. Ideally these would be plugins and
+        //        we'd be building them separately.  This is a fine hack till then.
+        println!(
+            "cargo:rustc-link-search=native=cpx/src/devices/storage/3rdParty/c-blosc/lib/macOS-x64"
+        );
+        println!("cargo:rustc-link-lib=static=blosc");
     }
 
     println!("cargo:rerun-if-changed=wrapper.h");
