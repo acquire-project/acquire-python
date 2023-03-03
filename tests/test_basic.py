@@ -12,6 +12,9 @@ import numcodecs.blosc as blosc
 import dask.array as da
 from calliphlox.calliphlox import DeviceKind, Runtime, Trigger
 
+from ome_zarr.io import parse_url
+from ome_zarr.reader import Reader
+
 
 @pytest.fixture(scope="module")
 def runtime():
@@ -278,7 +281,9 @@ def test_write_external_metadata_to_zarr(
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    runtime.set_configuration(p)
+    p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
+
+    p = runtime.set_configuration(p)
 
     nframes = 0
     runtime.start()
@@ -288,14 +293,45 @@ def test_write_external_metadata_to_zarr(
             packet = None
     runtime.stop()
 
-    data = zarr.open(p.video[0].storage.settings.filename)
-    assert data.shape == (
+    store = parse_url(p.video[0].storage.settings.filename)
+    reader = Reader(store)
+    nodes = list(reader())
+
+    # ome-ngff supports multiple images, in separate directories but we only
+    # wrote one.
+    multi_scale_image_node = nodes[0]
+
+    # ome-ngff always stores multi-scale images, but we only have a single
+    # scale/level.
+    image_data = multi_scale_image_node.data[0]
+    assert image_data.shape == (
         p.video[0].max_frame_count,
         1,
         p.video[0].camera.settings.shape[1],
         p.video[0].camera.settings.shape[0],
     )
-    assert data.attrs.asdict() == metadata
+
+    multi_scale_image_metadata = multi_scale_image_node.metadata
+
+    axes = multi_scale_image_metadata["axes"]
+    axis_names = tuple(a["name"] for a in axes)
+    assert axis_names == ("t", "c", "y", "x")
+
+    axis_types = tuple(a["type"] for a in axes)
+    assert axis_types == ("time", "channel", "space", "space")
+
+    axis_units = tuple(a.get("unit") for a in axes)
+    assert axis_units == (None, None, "micrometer", "micrometer")
+
+    # We only have one multi-scale level and one transform.
+    transform = multi_scale_image_metadata["coordinateTransformations"][0][0]
+    pixel_scale_um = tuple(transform["scale"][axis_names.index(axis)] for axis in ("x", "y"))
+    assert pixel_scale_um == p.video[0].storage.settings.pixel_scale_um
+
+    # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
+    # to read external metadata instead.
+    group = zarr.open(p.video[0].storage.settings.filename)
+    assert group["0"].attrs.asdict() == metadata
 
 
 def test_write_compressed_zarr(
@@ -318,7 +354,8 @@ def test_write_compressed_zarr(
     runtime.stop()
 
     # load from Zarr
-    data = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.filename)
+    data = group["0"]
 
     assert data.compressor.cname == "zstd"
     assert data.compressor.clevel == 1
@@ -333,7 +370,7 @@ def test_write_compressed_zarr(
     assert data.attrs.asdict() == metadata
 
     # load from Dask
-    data = da.from_zarr(p.video[0].storage.settings.filename)
+    data = da.from_zarr(p.video[0].storage.settings.filename, component="0")
     assert data.shape == (
         p.video[0].max_frame_count,
         1,

@@ -21,7 +21,7 @@ fn main() {
         println!("cargo:rustc-link-lib=static=NIDAQmx");
 
         println!(
-            "cargo:rustc-link-search=native=cpx/src/devices/storage/3rdParty/c-blosc/lib/win64/"
+            "cargo:rustc-link-search=native=cpx/src/devices/storage/zarr/3rdParty/cblosc/lib/win64"
         );
         println!("cargo:rustc-link-lib=static=libblosc");
 
@@ -38,7 +38,7 @@ fn main() {
         // FIXME: hardcoded path to the blosc libs. Ideally these would be plugins and
         //        we'd be building them separately.  This is a fine hack till then.
         println!(
-            "cargo:rustc-link-search=native=cpx/src/devices/storage/3rdParty/c-blosc/lib/macOS-x64"
+            "cargo:rustc-link-search=native=cpx/src/devices/storage/zarr/3rdParty/cblosc/lib/osx"
         );
         println!("cargo:rustc-link-lib=static=blosc");
     }

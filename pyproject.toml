@@ -14,7 +14,7 @@ dependencies = ["numpy>=1.20.0"] #FIXME: (nclack) fails when no internet access?
 dynamic = ["authors", "description", "license", "readme", "version"]
 
 [project.optional-dependencies]
-testing = ["black", "pytest>=7", "mypy", "pytest-cov", "tifffile", "zarr", "dask"]
+testing = ["black", "pytest>=7", "mypy", "pytest-cov", "tifffile", "zarr", "dask", "ome-zarr"]
 
 [project.entry-points."napari.manifest"]
 cpx-python = "calliphlox:napari.yaml"

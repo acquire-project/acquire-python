@@ -22,6 +22,9 @@ pub struct StorageProperties {
     #[pyo3(get, set)]
     #[serde(default)]
     pub(crate) first_frame_id: u32,
+
+    #[pyo3(get, set)]
+    pub(crate) pixel_scale_um: (f64, f64),
 }
 
 impl_plain_old_dict!(StorageProperties);
@@ -52,6 +55,7 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             filename,
             first_frame_id: value.first_frame_id,
             external_metadata_json,
+            pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
         })
     }
 }
@@ -85,6 +89,11 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             (null(), 0)
         };
 
+        let pixel_scale_um = capi::PixelScale {
+            x: value.pixel_scale_um.0,
+            y: value.pixel_scale_um.1,
+        };
+
         // This copies the string into a buffer owned by the return value.
         unsafe {
             capi::storage_properties_init(
@@ -94,6 +103,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                 bytes_of_filename as _,
                 metadata,
                 bytes_of_metadata as _,
+                &pixel_scale_um,
             )
             .ok()?;
         }
@@ -107,6 +117,7 @@ impl Default for capi::StorageProperties {
             filename: Default::default(),
             first_frame_id: Default::default(),
             external_metadata_json: Default::default(),
+            pixel_scale_um: Default::default(),
         }
     }
 }
@@ -121,12 +132,18 @@ impl Default for capi::String {
     }
 }
 
+impl Default for capi::PixelScale {
+    fn default() -> Self {
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
+    }
+}
+
 impl Display for capi::String {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = unsafe { CStr::from_ptr(self.str_) }.to_string_lossy();
         write!(f, "{}", s)
     }
 }
-
-//     }
-// }
