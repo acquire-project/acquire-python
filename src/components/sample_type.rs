@@ -12,6 +12,9 @@ pub enum SampleType {
     I8,
     I16,
     F32,
+    U10,
+    U12,
+    U14,
 }
 
 impl Default for SampleType {
@@ -25,5 +28,8 @@ cvt!(SampleType => capi::SampleType,
     U16 => SampleType_SampleType_u16,
     I8 => SampleType_SampleType_i8,
     I16 => SampleType_SampleType_i16,
-    F32 => SampleType_SampleType_f32
+    F32 => SampleType_SampleType_f32,
+    U10 => SampleType_SampleType_u10,
+    U12 => SampleType_SampleType_u12,
+    U14 => SampleType_SampleType_u14
 );

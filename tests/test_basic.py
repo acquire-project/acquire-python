@@ -1,17 +1,17 @@
 import json
 import logging
+import math
 import time
 from time import sleep
 from typing import Any, Dict, List
 
 import calliphlox
+import dask.array as da
+import numcodecs.blosc as blosc
 import pytest
 import tifffile
 import zarr
-import numcodecs.blosc as blosc
-import dask.array as da
-from calliphlox.calliphlox import DeviceKind, Runtime, Trigger
-
+from calliphlox.calliphlox import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 
@@ -75,6 +75,10 @@ def test_select_one_of(
     h = runtime.device_manager().select_one_of(DeviceKind.Camera, input)
     result = None if h is None else h.name
     assert result == expected
+
+
+def test_select_empty_string(runtime: Runtime):
+    assert runtime.device_manager().select(DeviceKind.Storage, "")
 
 
 def test_zero_conf_start(runtime: Runtime):
@@ -149,7 +153,7 @@ def test_set_storage(runtime: Runtime):
 
 
 def test_setup(runtime: Runtime):
-    p = calliphlox.setup(runtime, "simulated: radial sin", "Trash")
+    p = calliphlox.setup(runtime, "simulated.*empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.settings.filename == "out.tif"
@@ -293,7 +297,9 @@ def test_write_external_metadata_to_zarr(
             packet = None
     runtime.stop()
 
+    assert p.video[0].storage.settings.filename
     store = parse_url(p.video[0].storage.settings.filename)
+    assert store
     reader = Reader(store)
     nodes = list(reader())
 
@@ -325,7 +331,9 @@ def test_write_external_metadata_to_zarr(
 
     # We only have one multi-scale level and one transform.
     transform = multi_scale_image_metadata["coordinateTransformations"][0][0]
-    pixel_scale_um = tuple(transform["scale"][axis_names.index(axis)] for axis in ("x", "y"))
+    pixel_scale_um = tuple(
+        transform["scale"][axis_names.index(axis)] for axis in ("x", "y")
+    )
     assert pixel_scale_um == p.video[0].storage.settings.pixel_scale_um
 
     # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
@@ -334,18 +342,37 @@ def test_write_external_metadata_to_zarr(
     assert group["0"].attrs.asdict() == metadata
 
 
+@pytest.mark.parametrize(
+    ("storage_kind", "compressor_name", "clevel", "shuffle"),
+    [
+        ("ZarrBlosc1ZstdByteShuffle", "zstd", 1, blosc.SHUFFLE),
+        ("ZarrBlosc1Lz4ByteShuffle", "lz4", 1, blosc.SHUFFLE),
+    ],
+)
 def test_write_compressed_zarr(
-        runtime: Runtime, request: pytest.FixtureRequest
+    runtime: Runtime,
+    request: pytest.FixtureRequest,
+    storage_kind: str,
+    compressor_name: str,
+    clevel: int,
+    shuffle: int,
 ):
+    filename = f"{request.node.name}.zarr"
+    filename = filename.replace("[", "_").replace("]", "_")
+
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
         DeviceKind.Camera, "simulated.*sin.*"
     )
     p.video[0].camera.settings.shape = (64, 48)
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "ZarrBlosc1ZstdByteShuffle")
+    p.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage, "ZarrBlosc1ZstdByteShuffle"
+    )
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, storage_kind)
     p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.filename = filename
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     runtime.set_configuration(p)
@@ -357,9 +384,9 @@ def test_write_compressed_zarr(
     group = zarr.open(p.video[0].storage.settings.filename)
     data = group["0"]
 
-    assert data.compressor.cname == "zstd"
-    assert data.compressor.clevel == 1
-    assert data.compressor.shuffle == blosc.SHUFFLE
+    assert data.compressor.cname == compressor_name
+    assert data.compressor.clevel == clevel
+    assert data.compressor.shuffle == shuffle
 
     assert data.shape == (
         p.video[0].max_frame_count,
@@ -379,6 +406,60 @@ def test_write_compressed_zarr(
     )
 
 
+@pytest.mark.parametrize(
+    ("frame_x", "frame_y", "frames_per_chunk", "compressed"),
+    [(64, 48, 25, False), (96, 72, 66, False), (1920, 1080, 32, True)],
+)
+def test_write_raw_zarr_with_variable_chunking(
+    runtime: Runtime,
+    request: pytest.FixtureRequest,
+    frame_x: int,
+    frame_y: int,
+    frames_per_chunk: int,
+    compressed: bool,
+):
+    max_frames = 100
+
+    dm = runtime.device_manager()
+
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    p.video[0].camera.settings.shape = (frame_x, frame_y)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage,
+        "ZarrBlosc1ZstdByteShuffle" if compressed else "Zarr",
+    )
+    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].max_frame_count = max_frames
+    p.video[0].storage.settings.bytes_per_chunk = (
+        frame_x * frame_y * frames_per_chunk
+    )
+    runtime.set_configuration(p)
+
+    n_chunks_expected = int(math.ceil(max_frames / frames_per_chunk))
+
+    runtime.start()
+    runtime.stop()
+
+    group = zarr.open(p.video[0].storage.settings.filename)
+    data = group["0"]
+
+    assert data.shape == (
+        p.video[0].max_frame_count,
+        1,
+        p.video[0].camera.settings.shape[1],
+        p.video[0].camera.settings.shape[0],
+    )
+    assert data.nchunks == n_chunks_expected
+
+
+@pytest.mark.skip(
+    reason="Runs into memory limitations on github ci."
+    + " See https://github.com/calliphlox/cpx/issues/147"
+)
 def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -394,7 +475,7 @@ def test_two_video_streams(runtime: Runtime):
     p.video[0].frame_average_count = 0  # disables
 
     p.video[1].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+        DeviceKind.Camera, "simulated.*empty.*"
     )
     p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[1].camera.settings.binning = 1
@@ -408,8 +489,9 @@ def test_two_video_streams(runtime: Runtime):
     nframes = [0, 0]
 
     def is_not_done() -> bool:
-        return (nframes[0] < p.video[0].max_frame_count) or (
-            nframes[1] < p.video[1].max_frame_count
+        return runtime.get_state() == DeviceState.Running and (
+            (nframes[0] < p.video[0].max_frame_count)
+            or (nframes[1] < p.video[1].max_frame_count)
         )
 
     runtime.start()
@@ -426,8 +508,8 @@ def test_two_video_streams(runtime: Runtime):
                         + f"({frame.metadata().frame_id}!={expected_frame_id})"
                         + f" [stream {stream_id} nframes {nframes}]"
                     )
-                    frame = None
-                packet = None
+                    del frame
+                del packet
                 nframes[stream_id] += n
                 logging.debug(f"NFRAMES {nframes}")
 
@@ -438,7 +520,7 @@ def test_two_video_streams(runtime: Runtime):
     assert nframes[1] == p.video[1].max_frame_count
 
 
-def test_abort(runtime):
+def test_abort(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
@@ -460,7 +542,9 @@ def test_abort(runtime):
 
     del packet
 
-    logging.debug(f"Frame count expected: {p.video[0].max_frame_count}, actual: {nframes}")
+    logging.debug(
+        f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
+    )
     assert nframes < p.video[0].max_frame_count
 
 

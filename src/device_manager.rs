@@ -1,8 +1,4 @@
-use std::{
-    ffi::CString,
-    ptr::{null, NonNull},
-    sync::Arc,
-};
+use std::{ffi::CString, ptr::NonNull, sync::Arc};
 
 use crate::{
     capi,
@@ -46,25 +42,24 @@ impl DeviceManager {
     }
 
     fn select(&self, kind: DeviceKind, name: Option<&str>) -> PyResult<Option<DeviceIdentifier>> {
-        let (name, bytes, _owned_name) = if let Some(name) = name {
-            let name_ = CString::new(name)?;
-            (name_.as_ptr(), name_.as_bytes().len(), Some(name_))
-        } else {
-            (null(), 0, None)
+        let mut ident: capi::DeviceIdentifier = unsafe { std::mem::zeroed() };
+
+        let status = match name {
+            Some(name) if name.len() > 0 => unsafe {
+                let name_ = CString::new(name)?;
+                capi::device_manager_select(
+                    self.inner.as_ptr(),
+                    kind.into(),
+                    name_.as_ptr(),
+                    name_.as_bytes().len() as _,
+                    &mut ident,
+                )
+            },
+            _ => unsafe {
+                capi::device_manager_select_first(self.inner.as_ptr(), kind.into(), &mut ident)
+            },
         };
-        let (status, ident) = unsafe {
-            let mut ident: capi::DeviceIdentifier = std::mem::zeroed();
-            let status = capi::device_manager_select(
-                self.inner.as_ptr(),
-                kind.into(),
-                name,
-                bytes as _,
-                &mut ident,
-            )
-            .is_ok();
-            (status, ident)
-        };
-        if status {
+        if status.is_ok() {
             Ok(Some(ident.try_into()?))
         } else {
             Ok(None)
