@@ -116,6 +116,7 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
                 }
                 Ok(())
             })?;
+            dst_triggers.line_count = src_trigger_count as u8;
             Ok(capi::CameraProperties {
                 exposure_time_us: src.exposure_time_us,
                 line_interval_us: src.line_interval_us,
