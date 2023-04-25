@@ -458,7 +458,7 @@ def test_write_raw_zarr_with_variable_chunking(
 
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
-    + " See https://github.com/acquire/cpx/issues/147"
+    + " See https://github.com/acquire-project/cpx/issues/147"
 )
 def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()

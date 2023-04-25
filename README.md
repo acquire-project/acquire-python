@@ -1,5 +1,5 @@
-[![Build](https://github.com/acquire/acquire-python/actions/workflows/build.yml/badge.svg)](https://github.com/acquire/acquire-python/actions/workflows/build.yml)
-[![Test](https://github.com/acquire/acquire-python/actions/workflows/test_pr.yml/badge.svg)](https://github.com/acquire/acquire-python/actions/workflows/test_pr.yml)
+[![Build](https://github.com/acquire-project/acquire-python/actions/workflows/build.yml/badge.svg)](https://github.com/acquire-project/acquire-python/actions/workflows/build.yml)
+[![Test](https://github.com/acquire-project/acquire-python/actions/workflows/test_pr.yml/badge.svg)](https://github.com/acquire-project/acquire-python/actions/workflows/test_pr.yml)
 
 # acquire-python
 
