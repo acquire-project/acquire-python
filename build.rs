@@ -8,18 +8,23 @@ fn main() {
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .build();
 
+    copy_acquire_driver(&dst, "acquire-driver-common");
+    build_acquire_driver(&dst, "acquire-driver-egrabber");
+    build_acquire_driver(&dst, "acquire-driver-hdcam");
+    build_acquire_driver(&dst, "acquire-driver-zarr");
+
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
     println!("cargo:rustc-link-lib=static=acquire-device-properties");
     println!("cargo:rustc-link-lib=static=acquire-device-hal");
     println!("cargo:rustc-link-lib=static=acquire-core-platform");
     println!("cargo:rustc-link-lib=static=acquire-core-logger");
-    println!("cargo:rustc-link-lib=static=stdc++");
-
-    copy_acquire_driver(&dst, "acquire-driver-common");
+    println!("cargo:rustc-link-lib=static=stdc++"); 
 
     println!("cargo:rerun-if-changed=wrapper.h");
     // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
+    //       This involves better include isolation so only acquire.h needs to
+    //       be watched.
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}/include", dst.display()))
@@ -31,6 +36,18 @@ fn main() {
     bindings
         .write_to_file(out.join("bindings.rs"))
         .expect("Failed to write bindings.");
+}
+
+fn build_acquire_driver(dst: &std::path::PathBuf, name: &str) {
+    cmake::Config::new(name)
+        .target(name)
+        .profile("RelWithDebInfo")
+        .static_crt(true)
+        .define("NO_UNIT_TESTS", "TRUE")
+        .define("NO_EXAMPLES", "TRUE")
+        .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
+        .build();
+    copy_acquire_driver(dst, name);
 }
 
 fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {

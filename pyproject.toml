@@ -32,6 +32,9 @@ acquire-python = "acquire:napari.yaml"
 acquire-python = [
     "napari.yaml",
     "libacquire-driver-common.so",
+    "libacquire-driver-egrabber.so",
+    "libacquire-driver-hdcam.so",
+    "libacquire-driver-zarr.so",
     "__init__.pyi",
     "acquire.pyi",
 ]
