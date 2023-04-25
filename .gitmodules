@@ -11,3 +11,6 @@
 [submodule "acquire-driver-egrabber"]
 	path = acquire-driver-egrabber
 	url = ../acquire-driver-egrabber
+[submodule "acquire-driver-common"]
+	path = acquire-driver-common
+	url = ../acquire-driver-common

@@ -8,7 +8,7 @@ fn main() {
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .build();
 
-    copy_acquire_driver(&dst, "acquire-driver-common");
+    build_acquire_driver(&dst, "acquire-driver-common");
     build_acquire_driver(&dst, "acquire-driver-egrabber");
     build_acquire_driver(&dst, "acquire-driver-hdcam");
     build_acquire_driver(&dst, "acquire-driver-zarr");
@@ -19,7 +19,7 @@ fn main() {
     println!("cargo:rustc-link-lib=static=acquire-device-hal");
     println!("cargo:rustc-link-lib=static=acquire-core-platform");
     println!("cargo:rustc-link-lib=static=acquire-core-logger");
-    println!("cargo:rustc-link-lib=static=stdc++"); 
+    println!("cargo:rustc-link-lib=static=stdc++");
 
     println!("cargo:rerun-if-changed=wrapper.h");
     // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
