@@ -1,10 +1,10 @@
 import time
 from typing import Any, List, Optional, Tuple, Union
 
-from . import calliphlox
-from .calliphlox import *
+from . import acquire
+from .acquire import *
 
-__doc__ = calliphlox.__doc__
+__doc__ = acquire.__doc__
 
 import logging
 
@@ -123,7 +123,7 @@ def gui(
         global g_runtime
         if g_runtime is None:
             logging.info("INITING RUNTIME")
-            g_runtime = calliphlox.Runtime()
+            g_runtime = acquire.Runtime()
         else:
             logging.info("REUSING RUNTIME")
         return g_runtime

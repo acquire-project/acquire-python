@@ -44,7 +44,7 @@ unsafe extern "C" fn reporter(
 }
 
 pub(crate) struct RawRuntime {
-    inner: NonNull<capi::CpxRuntime>,
+    inner: NonNull<capi::AcquireRuntime>,
 }
 
 unsafe impl Send for RawRuntime {}
@@ -53,23 +53,23 @@ unsafe impl Sync for RawRuntime {}
 impl RawRuntime {
     fn new() -> Result<Self> {
         Ok(Self {
-            inner: NonNull::new(unsafe { capi::cpx_init(Some(reporter)) })
+            inner: NonNull::new(unsafe { capi::acquire_init(Some(reporter)) })
                 .ok_or(anyhow!("Failed to initialize core runtime."))?,
         })
     }
 
     fn start(&self) -> Result<()> {
-        unsafe { capi::cpx_start(self.inner.as_ptr()) }.ok()?;
+        unsafe { capi::acquire_start(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
 
     fn stop(&self) -> Result<()> {
-        unsafe { capi::cpx_stop(self.inner.as_ptr()) }.ok()?;
+        unsafe { capi::acquire_stop(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
 
     fn abort(&self) -> Result<()> {
-        unsafe { capi::cpx_abort(self.inner.as_ptr()) }.ok()?;
+        unsafe { capi::acquire_abort(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
 }
@@ -78,15 +78,15 @@ impl Drop for RawRuntime {
     fn drop(&mut self) {
         debug!("SHUTDOWN Runtime");
         unsafe {
-            capi::cpx_shutdown(self.inner.as_mut())
+            capi::acquire_shutdown(self.inner.as_mut())
                 .ok()
                 .expect("Core runtime shutdown failed.");
         }
     }
 }
 
-impl AsRef<NonNull<capi::CpxRuntime>> for RawRuntime {
-    fn as_ref(&self) -> &NonNull<capi::CpxRuntime> {
+impl AsRef<NonNull<capi::AcquireRuntime>> for RawRuntime {
+    fn as_ref(&self) -> &NonNull<capi::AcquireRuntime> {
         &self.inner
     }
 }
@@ -97,8 +97,8 @@ pub struct Runtime {
     inner: Arc<RawRuntime>,
 }
 
-impl AsRef<NonNull<capi::CpxRuntime>> for Runtime {
-    fn as_ref(&self) -> &NonNull<capi::CpxRuntime> {
+impl AsRef<NonNull<capi::AcquireRuntime>> for Runtime {
+    fn as_ref(&self) -> &NonNull<capi::AcquireRuntime> {
         &self.inner.inner
     }
 }
@@ -106,7 +106,6 @@ impl AsRef<NonNull<capi::CpxRuntime>> for Runtime {
 #[pymethods]
 impl Runtime {
     #[new]
-    #[args()]
     fn new() -> PyResult<Self> {
         Ok(Self {
             inner: Arc::new(RawRuntime::new()?),
@@ -128,38 +127,41 @@ impl Runtime {
     fn device_manager(&self) -> PyResult<device_manager::DeviceManager> {
         Ok(device_manager::DeviceManager {
             _runtime: self.inner.clone(),
-            inner: NonNull::new(unsafe { capi::cpx_device_manager(self.as_ref().as_ptr()) as _ })
-                .ok_or(anyhow!("Failed to get device manager"))?,
+            inner: NonNull::new(unsafe {
+                capi::acquire_device_manager(self.as_ref().as_ptr()) as _
+            })
+            .ok_or(anyhow!("Failed to get device manager"))?,
         })
     }
 
     fn set_configuration(&self, properties: &Properties, py: Python<'_>) -> PyResult<Properties> {
-        let mut props: capi::CpxProperties = properties.try_into()?;
+        let mut props: capi::AcquireProperties = properties.try_into()?;
         Python::allow_threads(py, || {
-            unsafe { capi::cpx_configure(self.as_ref().as_ptr(), &mut props) }.ok()
+            unsafe { capi::acquire_configure(self.as_ref().as_ptr(), &mut props) }.ok()
         })?;
         Ok((&props).try_into()?)
     }
 
     fn get_configuration(&self, py: Python<'_>) -> PyResult<Properties> {
-        let mut props: capi::CpxProperties = Default::default();
+        let mut props: capi::AcquireProperties = Default::default();
         Python::allow_threads(py, || {
-            unsafe { capi::cpx_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()
+            unsafe { capi::acquire_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()
         })?;
         Ok((&props).try_into()?)
     }
 
     fn get_state(&self, py: Python<'_>) -> PyResult<DeviceState> {
-        Ok(Python::allow_threads(py, || 
-            unsafe { capi::cpx_get_state(self.as_ref().as_ptr()) }
-        ).try_into()?)
+        Ok(Python::allow_threads(py, || unsafe {
+            capi::acquire_get_state(self.as_ref().as_ptr())
+        })
+        .try_into()?)
     }
 
     fn get_available_data(&self, istream: u32) -> PyResult<Option<AvailableData>> {
         let mut beg = null_mut();
         let mut end = null_mut();
         unsafe {
-            capi::cpx_map_read(self.as_ref().as_ptr(), istream, &mut beg, &mut end).ok()?;
+            capi::acquire_map_read(self.as_ref().as_ptr(), istream, &mut beg, &mut end).ok()?;
         }
         let nbytes = unsafe { byte_offset_from(beg, end) };
         if nbytes > 0 {
@@ -252,7 +254,7 @@ impl Drop for RawAvailableData {
             consumed_bytes
         );
         unsafe {
-            capi::cpx_unmap_read(
+            capi::acquire_unmap_read(
                 self.runtime.inner.as_ptr(),
                 self.istream,
                 consumed_bytes as _,

@@ -1,5 +1,5 @@
 [package]
-name = "cpx-python"
+name = "acquire-python"
 authors = ["Nathan Clack <nclack@chanzuckerberg.com>"]
 version = "0.1.0"
 edition = "2021"
@@ -8,24 +8,24 @@ edition = "2021"
 python-source = "python"
 
 [lib]
-name = "calliphlox"
+name = "acquire"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.17", features = [
+pyo3 = { version = "0.18", features = [
     "extension-module",
     "anyhow",
     "abi3-py38",
     "serde",
 ] }
-pyo3-log = "0.7"
-numpy = "0.17"
+pyo3-log = "0.8"
+numpy = "0.18"
 log = "0.4"
 anyhow = "1.0"
 parking_lot = "0.12"
 serde = { version = "1.0", features = ["derive"] }
-pythonize = "0.17"
+pythonize = "0.18"
 
 [build-dependencies]
-bindgen = "0.60"
+bindgen = "0.64"
 cmake = "0.1"

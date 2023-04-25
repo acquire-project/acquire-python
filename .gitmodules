@@ -1,3 +1,4 @@
-[submodule "cpx"]
-	path = cpx
-	url = ../cpx.git
+[submodule "acquire-video-runtime"]
+	path = acquire-video-runtime
+	url = ../acquire-video-runtime.git
+	branch = main

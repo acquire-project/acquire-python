@@ -1,25 +1,25 @@
 import logging
 import pprint
 
-import calliphlox
+import acquire
 import pytest
-from calliphlox import DeviceKind, SampleType
-from calliphlox.calliphlox import TriggerEdge
+from acquire import DeviceKind, SampleType
+from acquire.acquire import TriggerEdge
 
 
 @pytest.fixture(scope="module")
 def runtime():
-    runtime = calliphlox.Runtime()
+    runtime = acquire.Runtime()
     yield runtime
 
 
-def test_vieworks_camera_is_preset(runtime: calliphlox.Runtime):
+def test_vieworks_camera_is_preset(runtime: acquire.Runtime):
     dm = runtime.device_manager()
     assert dm.select(DeviceKind.Camera, "VIEWORKS.*")
 
 
 def test_vieworks_stream(
-    runtime: calliphlox.Runtime, request: pytest.FixtureRequest
+    runtime: acquire.Runtime, request: pytest.FixtureRequest
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -52,7 +52,7 @@ def test_vieworks_stream(
     runtime.stop()
 
 
-def test_vieworks_configure_triggering(runtime: calliphlox.Runtime):
+def test_vieworks_configure_triggering(runtime: acquire.Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 

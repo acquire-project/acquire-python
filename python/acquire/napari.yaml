@@ -1,0 +1,11 @@
+name: acquire-python
+display_name: Acquire
+contributions:
+  commands:
+    - id: acquire-python.gui
+      title: Demo video streaming with Acquire
+      python_name: acquire:gui
+  widgets:
+    - command: acquire-python.gui
+      display_name: Stream
+      autogenerate: true

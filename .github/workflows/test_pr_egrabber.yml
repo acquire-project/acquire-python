@@ -51,4 +51,4 @@ jobs:
 
             - name: Test
               run: |
-                  python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=calliphlox --maxfail=5 --log-cli-level=0
+                  python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0

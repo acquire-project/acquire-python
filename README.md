@@ -1,9 +1,9 @@
-[![Build](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml/badge.svg)](https://github.com/calliphlox/cpx-python/actions/workflows/build.yml)
-[![Test](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml/badge.svg)](https://github.com/calliphlox/cpx-python/actions/workflows/test_pr.yml)
+[![Build](https://github.com/acquire/acquire-python/actions/workflows/build.yml/badge.svg)](https://github.com/acquire/acquire-python/actions/workflows/build.yml)
+[![Test](https://github.com/acquire/acquire-python/actions/workflows/test_pr.yml/badge.svg)](https://github.com/acquire/acquire-python/actions/workflows/test_pr.yml)
 
-# cpx-python
+# acquire-python
 
-Python interface for calliphlox.
+Python interface for Acquire.
 
 ## Build environment
 
@@ -21,23 +21,25 @@ Requires
   install llvm` or, on osx, via [brew](https://brew.sh/) `brew install llvm`)
 
 ```
-conda create --name calliphlox python=3.10
-conda activate calliphlox
+conda create --name acquire python=3.11
+conda activate acquire
 ```
 
 ## Build
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init
+cd acquire-video-runtime
+git submodule update --init
 pip install build
 python -m build
 ```
 
-**Important** When updating the 'cpx' (the c api), to need to manually trigger
+**Important** When updating the 'acquire-video-runtime' (the c api), to need to manually trigger
 a rebuild by touching `wrapper.h`.
 
 ```bash
-git submodule update # updates cpx
+git submodule update # updates acquire-video-runtime
 touch wrapper.h # will trigger a rebuild
 python -m build
 ```
@@ -52,8 +54,8 @@ pytest
 Example use in a python console:
 
 ```pycon
->>> import calliphlox
->>> calliphlox.Trigger(enable=True,line=0,event="AcquisitionStart",kind="Input",edge="Rising")
+>>> import acquire
+>>> acquire.Trigger(enable=True,line=0,event="AcquisitionStart",kind="Input",edge="Rising")
 Trigger(enable='True',line='0',event='AcquisitionStart',kind='Input',edge='Rising')
 ```
 
@@ -86,6 +88,6 @@ will end up invoking maturin.
 
 It depends on what you changed:
 
-- **cpx** (c/c++ code): `touch wrapper.h; maturin develop`
+- **acquire-video-runtime** (c/c++ code): `touch wrapper.h; maturin develop`
 - **rust code**: `maturin develop`
 - **python code**: nothing

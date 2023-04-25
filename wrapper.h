@@ -1,3 +1,2 @@
-#include <cpx.h>
-#include <device/device.manager.h>
- 
+#include "acquire.h"
+#include "device/hal/device.manager.h"

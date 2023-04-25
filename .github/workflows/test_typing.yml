@@ -25,7 +25,7 @@ jobs:
           pip install -e '.[testing]'
           
       - name: Run mypy on typed modules
-        run: mypy -p calliphlox
+        run: mypy -p acquire
 
       - name: Run stubtest on typed modules
-        run: stubtest calliphlox
+        run: stubtest acquire

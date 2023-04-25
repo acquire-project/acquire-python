@@ -58,7 +58,7 @@ macro_rules! impl_plain_old_dict {
         #[pymethods]
         impl $T {
             #[new]
-            #[args(kwargs = "**")]
+            #[pyo3(signature = (**kwargs))]
             fn __new__(kwargs: Option<&pyo3::types::PyDict>) -> anyhow::Result<Self> {
                 if let Some(kwargs) = kwargs {
                     Ok(pythonize::depythonize(kwargs)?)

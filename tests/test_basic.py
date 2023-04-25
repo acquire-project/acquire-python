@@ -5,20 +5,20 @@ import time
 from time import sleep
 from typing import Any, Dict, List
 
-import calliphlox
+import acquire
 import dask.array as da
 import numcodecs.blosc as blosc
 import pytest
 import tifffile
 import zarr
-from calliphlox.calliphlox import DeviceKind, DeviceState, Runtime, Trigger
+from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 
 
 @pytest.fixture(scope="module")
 def runtime():
-    runtime = calliphlox.Runtime()
+    runtime = acquire.Runtime()
     yield runtime
 
 
@@ -41,10 +41,10 @@ def test_set_camera_identifier(runtime: Runtime):
     p = runtime.get_configuration()
     assert (
         p.video[0].camera.identifier is not None
-        and p.video[0].camera.identifier.kind == calliphlox.DeviceKind.NONE
+        and p.video[0].camera.identifier.kind == acquire.DeviceKind.NONE
     )
     p.video[0].camera.identifier = dm.select(
-        calliphlox.DeviceKind.Camera, "simulated: radial sin"
+        acquire.DeviceKind.Camera, "simulated: radial sin"
     )
     assert p.video[0].camera.identifier is not None
 
@@ -87,7 +87,7 @@ def test_zero_conf_start(runtime: Runtime):
 
 
 def test_repeat_acq(runtime: Runtime):
-    p = calliphlox.setup(runtime, "simulated: radial sin", "Trash")
+    p = acquire.setup(runtime, "simulated: radial sin", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.settings.filename == "out.tif"
@@ -115,7 +115,7 @@ def test_repeat_acq(runtime: Runtime):
 def test_repeat_with_no_stop(runtime: Runtime):
     """Stop is required between starts. This tests that an exception is
     raised."""
-    p = calliphlox.setup(runtime, "simulated: radial sin", "Trash")
+    p = acquire.setup(runtime, "simulated: radial sin", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     p.video[0].camera.settings.shape = (192, 108)
@@ -142,9 +142,9 @@ def test_set_storage(runtime: Runtime):
     p.video[0].storage.identifier = None
     p = runtime.set_configuration(p)
     assert p.video[0].storage.identifier is not None
-    assert p.video[0].storage.identifier.kind == calliphlox.DeviceKind.NONE
+    assert p.video[0].storage.identifier.kind == acquire.DeviceKind.NONE
     p.video[0].storage.identifier = dm.select(
-        calliphlox.DeviceKind.Storage, "Tiff"
+        acquire.DeviceKind.Storage, "Tiff"
     )
     assert p.video[0].storage.identifier is not None
 
@@ -153,7 +153,7 @@ def test_set_storage(runtime: Runtime):
 
 
 def test_setup(runtime: Runtime):
-    p = calliphlox.setup(runtime, "simulated.*empty", "Trash")
+    p = acquire.setup(runtime, "simulated.*empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.settings.filename == "out.tif"
@@ -458,7 +458,7 @@ def test_write_raw_zarr_with_variable_chunking(
 
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
-    + " See https://github.com/calliphlox/cpx/issues/147"
+    + " See https://github.com/acquire/cpx/issues/147"
 )
 def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()
@@ -470,7 +470,7 @@ def test_two_video_streams(runtime: Runtime):
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (64, 64)
-    p.video[0].camera.settings.pixel_type = calliphlox.SampleType.U8
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
     p.video[0].max_frame_count = 90
     p.video[0].frame_average_count = 0  # disables
 
@@ -480,7 +480,7 @@ def test_two_video_streams(runtime: Runtime):
     p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[1].camera.settings.binning = 1
     p.video[1].camera.settings.shape = (64, 64)
-    p.video[1].camera.settings.pixel_type = calliphlox.SampleType.U8
+    p.video[1].camera.settings.pixel_type = acquire.SampleType.U8
     p.video[1].max_frame_count = 71
     p.video[1].frame_average_count = 0  # disables
 
@@ -501,7 +501,7 @@ def test_two_video_streams(runtime: Runtime):
         if nframes[stream_id] < p.video[stream_id].max_frame_count:
             if packet := runtime.get_available_data(stream_id):
                 n = packet.get_frame_count()
-                for (i, frame) in enumerate(packet.frames()):
+                for i, frame in enumerate(packet.frames()):
                     expected_frame_id = nframes[stream_id] + i
                     assert frame.metadata().frame_id == expected_frame_id, (
                         "frame id's didn't match "

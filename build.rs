@@ -1,6 +1,6 @@
 fn main() {
-    let dst = cmake::Config::new("cpx")
-        .target("cpx")
+    let dst = cmake::Config::new("acquire-video-runtime")
+        .target("acquire-video-runtime")
         .profile("RelWithDebInfo")
         .static_crt(true)
         .define("NO_UNIT_TESTS", "TRUE")
@@ -9,39 +9,14 @@ fn main() {
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=cpx");
+    println!("cargo:rustc-link-lib=static=acquire-video-runtime");
+    println!("cargo:rustc-link-lib=static=acquire-device-properties");
+    println!("cargo:rustc-link-lib=static=acquire-device-hal");
+    println!("cargo:rustc-link-lib=static=acquire-core-platform");
+    println!("cargo:rustc-link-lib=static=acquire-core-logger");
+    println!("cargo:rustc-link-lib=static=stdc++");
 
-    #[cfg(target_os = "windows")]
-    {
-        // FIXME: hardcoded path to daqmx and blosc libs. Ideally these would be plugins and
-        //        we'd be building them separately.  This is a fine hack till then.
-        println!(
-            "cargo:rustc-link-search=native=cpx/src/devices/signals/3rdParty/nidaqmx/lib64/msvc/"
-        );
-        println!("cargo:rustc-link-lib=static=NIDAQmx");
-
-        println!(
-            "cargo:rustc-link-search=native=cpx/src/devices/storage/zarr/3rdParty/cblosc/lib/win64"
-        );
-        println!("cargo:rustc-link-lib=static=libblosc");
-
-        // Copy dcam lib
-        std::fs::copy(
-            format!("{}/lib/dcam_plugin.dll", dst.display()),
-            "python/calliphlox/dcam_plugin.dll",
-        )
-        .expect("Failed to copy dcam_plugin.dll to python folder.");
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        // FIXME: hardcoded path to the blosc libs. Ideally these would be plugins and
-        //        we'd be building them separately.  This is a fine hack till then.
-        println!(
-            "cargo:rustc-link-search=native=cpx/src/devices/storage/zarr/3rdParty/cblosc/lib/osx"
-        );
-        println!("cargo:rustc-link-lib=static=blosc");
-    }
+    copy_acquire_driver(&dst, "acquire-driver-common");
 
     println!("cargo:rerun-if-changed=wrapper.h");
     // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
@@ -56,4 +31,24 @@ fn main() {
     bindings
         .write_to_file(out.join("bindings.rs"))
         .expect("Failed to write bindings.");
+}
+
+fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
+    let (prefix, postfix) = if cfg!(target_os = "windows") {
+        ("", ".dll")
+    } else if cfg!(target_os = "macos") {
+        ("lib", ".so")
+    } else if cfg!(target_os = "linux") {
+        ("lib", ".so")
+    } else {
+        panic!("Unknown target os")
+    };
+
+    let lib = format!("{prefix}{name}{postfix}");
+
+    std::fs::copy(
+        format!("{}/lib/{lib}", dst.display()),
+        format!("python/acquire/{lib}"),
+    )
+    .expect(&format!("Failed to copy {lib} to python folder."));
 }

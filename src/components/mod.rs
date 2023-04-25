@@ -1,12 +1,9 @@
-mod channel;
 mod direction;
 pub(crate) mod macros;
 mod sample_type;
 mod signal_io_kind;
 mod signal_type;
-mod timing;
 mod trigger_edge;
-mod trigger_event;
 
 use anyhow::Result;
 use pyo3::prelude::*;
@@ -14,14 +11,11 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
 // Exports
-pub use channel::Channel;
 pub use direction::Direction;
 pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
 pub use signal_type::SignalType;
-pub use timing::Timing;
 pub use trigger_edge::TriggerEdge;
-pub use trigger_event::TriggerEvent;
 
 use crate::{capi, components::macros::impl_plain_old_dict};
 
@@ -35,10 +29,6 @@ pub struct Trigger {
     #[pyo3(get, set)]
     #[serde(default)]
     line: u8,
-
-    #[pyo3(get, set)]
-    #[serde(default)]
-    event: TriggerEvent,
 
     #[pyo3(get, set)]
     #[serde(default)]
@@ -64,7 +54,6 @@ impl TryFrom<capi::Trigger> for Trigger {
         Ok(Trigger {
             enable: value.enable > 0,
             line: value.line,
-            event: value.event.try_into()?,
             kind: value.kind.try_into()?,
             edge: value.edge.try_into()?,
         })
@@ -76,7 +65,6 @@ impl From<&Trigger> for capi::Trigger {
         Self {
             enable: value.enable as _,
             line: value.line,
-            event: value.event.into(),
             kind: value.kind.into(),
             edge: value.edge.into(),
         }
@@ -88,7 +76,6 @@ impl Default for capi::Trigger {
         Self {
             enable: Default::default(),
             line: Default::default(),
-            event: Default::default(),
             kind: Default::default(),
             edge: Default::default(),
         }

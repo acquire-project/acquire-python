@@ -1,17 +1,17 @@
 import logging
 
-import calliphlox
+import acquire
 import pytest
-from calliphlox import DeviceKind, SampleType, TriggerEvent
+from acquire import DeviceKind, SampleType, TriggerEvent
 
 
 @pytest.fixture(scope="module")
 def runtime():
-    runtime = calliphlox.Runtime()
+    runtime = acquire.Runtime()
     yield runtime
 
 
-def test_ext_triggering(runtime: calliphlox.Runtime):
+def test_ext_triggering(runtime: acquire.Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 

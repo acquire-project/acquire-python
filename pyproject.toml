@@ -3,14 +3,14 @@ requires = ["maturin>=0.14"]
 build-backend = "maturin"
 
 [project]
-name = "cpx-python"
+name = "acquire-python"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["numpy>=1.20.0"] #FIXME: (nclack) fails when no internet access?
+dependencies = ["numpy>=1.22"] #FIXME: (nclack) fails when no internet access?
 dynamic = ["authors", "description", "license", "readme", "version"]
 
 [project.optional-dependencies]
@@ -26,18 +26,18 @@ testing = [
 ]
 
 [project.entry-points."napari.manifest"]
-cpx-python = "calliphlox:napari.yaml"
+acquire-python = "acquire:napari.yaml"
 
 [tool.setuptools.package_data]
-cpx-python = [
+acquire-python = [
     "napari.yaml",
-    "dcam_plugin.dll",
+    "libacquire-driver-common.so",
     "__init__.pyi",
-    "calliphlox.pyi",
+    "acquire.pyi",
 ]
 
 [tool.black]
-target-version = ['py38', 'py39', 'py310']
+target-version = ['py39', 'py310', 'py311']
 line-length = 79
 
 [tool.isort]

@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 import napari  # type: ignore
 
-from .calliphlox import *
+from .acquire import *
 
 FORMAT: str
 
