@@ -1,4 +1,4 @@
-use crate::{capi, components::macros::impl_plain_old_dict, Status};
+use crate::{capi, components::macros::impl_plain_old_dict};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -94,7 +94,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // This copies the string into a buffer owned by the return value.
-        unsafe {
+        if !unsafe {
             capi::storage_properties_init(
                 &mut out,
                 value.first_frame_id,
@@ -107,10 +107,12 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                     y: value.pixel_scale_um.1,
                 },
                 value.bytes_per_chunk,
-            )
-            .ok()?;
+            ) == 1
+        } {
+            Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else {
+            Ok(out)
         }
-        Ok(out)
     }
 }
 

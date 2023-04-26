@@ -32,9 +32,9 @@ impl Status for capi::DeviceStatusCode {
     }
 }
 
-impl Status for i32 {
+impl Status for bool {
     fn is_ok(&self) -> bool {
-        *self == 1
+        *self
     }
 }
 
