@@ -3,6 +3,7 @@ fn main() {
         .target("acquire-video-runtime")
         .profile("RelWithDebInfo")
         .static_crt(true)
+        .define("NOTEST", "TRUE")
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
@@ -19,7 +20,7 @@ fn main() {
     println!("cargo:rustc-link-lib=static=acquire-device-hal");
     println!("cargo:rustc-link-lib=static=acquire-core-platform");
     println!("cargo:rustc-link-lib=static=acquire-core-logger");
-    println!("cargo:rustc-link-lib=static=stdc++");
+    // println!("cargo:rustc-link-lib=static=stdc++");
 
     println!("cargo:rerun-if-changed=wrapper.h");
     // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
@@ -43,6 +44,7 @@ fn build_acquire_driver(dst: &std::path::PathBuf, name: &str) {
         .target(name)
         .profile("RelWithDebInfo")
         .static_crt(true)
+        .define("NOTEST", "TRUE")
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")

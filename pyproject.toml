@@ -35,6 +35,10 @@ acquire-python = [
     "libacquire-driver-egrabber.so",
     "libacquire-driver-hdcam.so",
     "libacquire-driver-zarr.so",
+    "acquire-driver-common.dll",
+    "acquire-driver-egrabber.dll",
+    "acquire-driver-hdcam.dll",
+    "acquire-driver-zarr.dll",
     "__init__.pyi",
     "acquire.pyi",
 ]
