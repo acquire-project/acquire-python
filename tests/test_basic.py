@@ -144,7 +144,7 @@ def test_set_storage(runtime: Runtime):
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.identifier.kind == acquire.DeviceKind.NONE
     p.video[0].storage.identifier = dm.select(
-        acquire.DeviceKind.Storage, "Tiff"
+        acquire.DeviceKind.Storage, "tiff"
     )
     assert p.video[0].storage.identifier is not None
 
@@ -207,7 +207,7 @@ def test_change_filename(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*")
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "tiff")
     p.video[0].max_frame_count = 1
 
     names = [
@@ -240,7 +240,7 @@ def test_write_external_metadata_to_tiff(
         DeviceKind.Camera, "simulated.*sin"
     )
     p.video[0].camera.settings.shape = (33, 47)
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "tiff")
     p.video[0].max_frame_count = 3
     p.video[0].storage.settings.filename = f"{request.node.name}.tif"
     metadata = {"hello": "world"}
