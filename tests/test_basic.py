@@ -3,7 +3,7 @@ import logging
 import math
 import time
 from time import sleep
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import acquire
 import dask.array as da
@@ -343,16 +343,15 @@ def test_write_external_metadata_to_zarr(
 
 
 @pytest.mark.parametrize(
-    ("storage_kind", "compressor_name", "clevel", "shuffle"),
+    ("compressor_name", "clevel", "shuffle"),
     [
-        ("ZarrBlosc1ZstdByteShuffle", "zstd", 1, blosc.SHUFFLE),
-        ("ZarrBlosc1Lz4ByteShuffle", "lz4", 1, blosc.SHUFFLE),
+        ("zstd", 1, blosc.SHUFFLE),
+        ("lz4", 1, blosc.SHUFFLE),
     ],
 )
 def test_write_compressed_zarr(
     runtime: Runtime,
     request: pytest.FixtureRequest,
-    storage_kind: str,
     compressor_name: str,
     clevel: int,
     shuffle: int,
@@ -363,18 +362,18 @@ def test_write_compressed_zarr(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+        DeviceKind.Camera, "simulated.*empty.*"
     )
     p.video[0].camera.settings.shape = (64, 48)
-    p.video[0].storage.identifier = dm.select(
-        DeviceKind.Storage, "ZarrBlosc1ZstdByteShuffle"
-    )
     p.video[0].camera.settings.exposure_time_us = 1e4
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, storage_kind)
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
     p.video[0].max_frame_count = 70
     p.video[0].storage.settings.filename = filename
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
+    p.video[0].storage.settings.compression_codec = compressor_name
+    p.video[0].storage.settings.clevel = clevel
+    p.video[0].storage.settings.shuffle = shuffle
     runtime.set_configuration(p)
 
     runtime.start()
@@ -407,39 +406,46 @@ def test_write_compressed_zarr(
 
 
 @pytest.mark.parametrize(
-    ("frame_x", "frame_y", "frames_per_chunk", "compressed"),
-    [(64, 48, 25, False), (96, 72, 66, False), (1920, 1080, 32, True)],
+    ("number_of_frames", "expected_number_of_chunks", "compression"),
+    [
+        (64, 4, None),
+        (64, 4, {"codec": "zstd", "clevel": 1, "shuffle": 1}),
+        (65, 8, None),  # rollover
+        (65, 8, {"codec": "blosclz", "clevel": 2, "shuffle": 2})  # rollover
+    ]
 )
-def test_write_raw_zarr_with_variable_chunking(
-    runtime: Runtime,
+def test_write_zarr_with_chunking(
+    runtime: acquire.Runtime,
     request: pytest.FixtureRequest,
-    frame_x: int,
-    frame_y: int,
-    frames_per_chunk: int,
-    compressed: bool,
+    number_of_frames: int,
+    expected_number_of_chunks: int,
+    compression: Optional[dict]
 ):
-    max_frames = 100
-
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
         DeviceKind.Camera, "simulated.*empty.*"
     )
-    p.video[0].camera.settings.shape = (frame_x, frame_y)
+    p.video[0].camera.settings.shape = (1920, 1080)
     p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].storage.identifier = dm.select(
         DeviceKind.Storage,
-        "ZarrBlosc1ZstdByteShuffle" if compressed else "Zarr",
+        "Zarr",
     )
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
-    p.video[0].max_frame_count = max_frames
-    p.video[0].storage.settings.bytes_per_chunk = (
-        frame_x * frame_y * frames_per_chunk
-    )
-    runtime.set_configuration(p)
+    p.video[0].max_frame_count = number_of_frames
 
-    n_chunks_expected = int(math.ceil(max_frames / frames_per_chunk))
+    p.video[0].storage.settings.bytes_per_chunk = 32 * 2**20
+    p.video[0].storage.settings.tile_width = 1920 // 2
+    p.video[0].storage.settings.tile_height = 1080 // 2
+
+    if compression is not None:
+        p.video[0].storage.settings.compression_codec = compression["codec"]
+        p.video[0].storage.settings.clevel = compression["clevel"]
+        p.video[0].storage.settings.shuffle = compression["shuffle"]
+
+    runtime.set_configuration(p)
 
     runtime.start()
     runtime.stop()
@@ -447,13 +453,15 @@ def test_write_raw_zarr_with_variable_chunking(
     group = zarr.open(p.video[0].storage.settings.filename)
     data = group["0"]
 
+    assert data.chunks == (64, 1, 1080 // 2, 1920 // 2)
+
     assert data.shape == (
-        p.video[0].max_frame_count,
+        number_of_frames,
         1,
         p.video[0].camera.settings.shape[1],
         p.video[0].camera.settings.shape[0],
     )
-    assert data.nchunks == n_chunks_expected
+    assert data.nchunks == expected_number_of_chunks
 
 
 @pytest.mark.skip(
@@ -546,7 +554,6 @@ def test_abort(runtime: Runtime):
         f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
     )
     assert nframes < p.video[0].max_frame_count
-
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
