@@ -29,7 +29,8 @@ jobs:
 
             - name: Enable long paths
               run: |
-                  New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+                  New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force;
+                  git config --global core.longpaths true
               shell: pwsh
 
             - uses: actions/checkout@v3
