@@ -15,8 +15,7 @@ jobs:
         steps:
             - uses: actions/checkout@v3
               with:
-                  token: ${{ secrets.PAT }}
-                  submodules: recursive
+                  submodules: true
             - uses: messense/maturin-action@v1
               with:
                   command: build
