@@ -27,6 +27,11 @@ jobs:
               with:
                   access_token: ${{ github.token }}
 
+            - name: Enable long paths
+              run: |
+                  New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+              shell: pwsh
+
             - uses: actions/checkout@v3
               with:
                   submodules: recursive
