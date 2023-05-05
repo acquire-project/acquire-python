@@ -4,7 +4,7 @@ import pprint
 import acquire
 import pytest
 from acquire import DeviceKind, SampleType
-from acquire.acquire import Trigger, TriggerEdge
+from acquire.acquire import SignalIOKind, Trigger, TriggerEdge
 
 
 @pytest.fixture(scope="module")
@@ -71,8 +71,9 @@ def test_vieworks_configure_triggering(runtime: acquire.Runtime):
     # There's really own two things to set. On the VP-151MX, there's only
     # one kind of event that can be triggered - the frame exposure start.
     p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-        enable=True, line=0, edge=TriggerEdge.Rising
+        enable=True, line=0, edge="Rising"
     )
+    assert p.video[0].camera.settings.input_triggers.frame_start.enable
 
     p = runtime.set_configuration(p)
     assert p.video[0].camera.settings.input_triggers.frame_start.enable
@@ -84,7 +85,7 @@ def test_vieworks_configure_triggering(runtime: acquire.Runtime):
     # There's really own two things to set. On the VP-151MX, there's only
     # one kind of event that can be triggered - the frame exposure start.
     p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-        enable=True, line=1, edge=TriggerEdge.Rising
+        enable=True, line=1, edge="Rising"
     )
 
     p = runtime.set_configuration(p)
