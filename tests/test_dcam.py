@@ -2,7 +2,7 @@ import logging
 
 import acquire
 import pytest
-from acquire import DeviceKind, SampleType, TriggerEvent
+from acquire import DeviceKind, SampleType
 
 
 @pytest.fixture(scope="module")
@@ -34,13 +34,8 @@ def test_ext_triggering(runtime: acquire.Runtime):
     # Set the camera here so we can query it's triggering capabilities.
     # This comes in the form of the returned properties.
     p = runtime.set_configuration(p)
-
-    p.video[0].camera.settings.triggers[1].enable = True
-    p.video[0].camera.settings.triggers[1].event = TriggerEvent.FrameStart
+    p.video[0].camera.settings.input_triggers.frame_start.enable = True
     # Call set_configuration() again to apply the trigger properties
     p = runtime.set_configuration(p)
-
-    assert p.video[0].camera.settings.triggers[1].enable is True
-    assert (
-        p.video[0].camera.settings.triggers[1].event == TriggerEvent.FrameStart
-    )
+    # Check that it was accepted
+    assert p.video[0].camera.settings.input_triggers.frame_start.enable is True

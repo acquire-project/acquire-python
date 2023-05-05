@@ -4,7 +4,7 @@ import pprint
 import acquire
 import pytest
 from acquire import DeviceKind, SampleType
-from acquire.acquire import TriggerEdge
+from acquire.acquire import Trigger, TriggerEdge
 
 
 @pytest.fixture(scope="module")
@@ -62,40 +62,38 @@ def test_vieworks_configure_triggering(runtime: acquire.Runtime):
 
     p = runtime.set_configuration(p)
 
-    # There are two defined lines: Line0, and Software
-    assert len(p.video[0].camera.settings.triggers) == 2
-
     # When the camera is first selected, triggers should be disabled
-    assert not p.video[0].camera.settings.triggers[0].enable
-    assert not p.video[0].camera.settings.triggers[1].enable
+    assert not p.video[0].camera.settings.input_triggers.frame_start.enable
 
     #
     # Enable Line0:
     #
     # There's really own two things to set. On the VP-151MX, there's only
     # one kind of event that can be triggered - the frame exposure start.
-    p.video[0].camera.settings.triggers[0].enable = True
-    p.video[0].camera.settings.triggers[0].edge = TriggerEdge.Rising
+    p.video[0].camera.settings.input_triggers.frame_start = Trigger(
+        enable=True, line=0, edge=TriggerEdge.Rising
+    )
 
     p = runtime.set_configuration(p)
-    assert p.video[0].camera.settings.triggers[0].enable
-    assert not p.video[0].camera.settings.triggers[1].enable
+    assert p.video[0].camera.settings.input_triggers.frame_start.enable
+    assert p.video[0].camera.settings.input_triggers.frame_start.line == 0
 
     #
     # Enable Software triggering:
     #
     # There's really own two things to set. On the VP-151MX, there's only
     # one kind of event that can be triggered - the frame exposure start.
-    p.video[0].camera.settings.triggers[1].enable = True
-    p.video[0].camera.settings.triggers[1].edge = TriggerEdge.Rising
+    p.video[0].camera.settings.input_triggers.frame_start = Trigger(
+        enable=True, line=1, edge=TriggerEdge.Rising
+    )
 
     p = runtime.set_configuration(p)
-    assert not p.video[0].camera.settings.triggers[0].enable
-    assert p.video[0].camera.settings.triggers[1].enable
+
+    assert p.video[0].camera.settings.input_triggers.frame_start.enable
+    assert p.video[0].camera.settings.input_triggers.frame_start.line == 1
 
     #
     # Disable triggering:
     #
-    p.video[0].camera.settings.triggers[0].enable = False
-    p.video[0].camera.settings.triggers[1].enable = False
+    p.video[0].camera.settings.input_triggers.frame_start.enable = False
     p = runtime.set_configuration(p)
