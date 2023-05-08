@@ -12,6 +12,8 @@ jobs:
                 platform: [windows-latest, macos-latest, ubuntu-latest]
 
         runs-on: ${{matrix.platform}}
+        env:
+          GH_TOKEN: ${{ github.token }}
         steps:
             - name: Enable long paths
               run: |
