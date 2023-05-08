@@ -1,0 +1,4 @@
+include python/acquire/*.so
+include python/acquire/*.dll
+include python/acquire/*.pyi
+include python/acquire/napari.yaml

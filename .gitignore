@@ -82,3 +82,6 @@ docs/_build/
 
 # mypy stubgen
 out/
+
+# dotenv
+.env
