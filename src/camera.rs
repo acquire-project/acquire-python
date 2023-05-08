@@ -1,5 +1,3 @@
-use std::process::Output;
-
 use crate::{
     capi,
     components::{macros::impl_plain_old_dict, Direction, SampleType, Trigger},
