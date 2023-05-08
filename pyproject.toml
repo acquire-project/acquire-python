@@ -28,21 +28,6 @@ testing = [
 [project.entry-points."napari.manifest"]
 acquire-python = "acquire:napari.yaml"
 
-[tool.setuptools.package_data]
-acquire-python = [
-    "napari.yaml",
-    "libacquire-driver-common.so",
-    "libacquire-driver-egrabber.so",
-    "libacquire-driver-hdcam.so",
-    "libacquire-driver-zarr.so",
-    "acquire-driver-common.dll",
-    "acquire-driver-egrabber.dll",
-    "acquire-driver-hdcam.dll",
-    "acquire-driver-zarr.dll",
-    "__init__.pyi",
-    "acquire.pyi",
-]
-
 [tool.maturin]
 python-source = "python"
 python-packages = ["acquire"]
