@@ -2,6 +2,7 @@ use dotenv::dotenv;
 use serde::Deserialize;
 use std::env;
 use std::io::{prelude::*, Cursor};
+use std::path::PathBuf;
 
 #[derive(Deserialize, Clone)]
 struct WorkFlowRun {
@@ -48,9 +49,9 @@ fn main() {
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
     fetch_acquire_driver(&out, "acquire-driver-common", "d2560d0bd828cc75dd60e8a272fdf74905bc85f0");
-    fetch_acquire_driver(&out, "acquire-driver-zarr", "d42c05930860947c987f297e1ca7c5561b5eae56");
-    fetch_acquire_driver(&out, "acquire-driver-egrabber", "3ce238dca245de1a7578a73583fbeb7b753978ea");
-    fetch_acquire_driver(&out, "acquire-driver-hdcam", "3a0c279b1328c5aa602386b08d5b438383fb1567");
+    fetch_acquire_driver(&out, "acquire-driver-zarr", "9ab4d3e84d2af2f043051d63a26adfef6d02a40b");
+    fetch_acquire_driver(&out, "acquire-driver-egrabber", "a0509e7fbcd8e2877e2c022a07e45f0cf148e392");
+    fetch_acquire_driver(&out, "acquire-driver-hdcam", "2c66eb446cbfe3af06abab1f6f24f63d3e238755");
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
@@ -91,62 +92,19 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, sha: &str) {
         panic!("Unknown target os")
     };
 
-    // list out build artifacts for this driver
-    let uri = format!("https://api.github.com/repos/acquire-project/{name}/actions/artifacts");
-
-    let token = env::var("GH_TOKEN").unwrap();
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("acquire-project/builder")
-        .build()
-        .unwrap();
-
-    let request = client
-        .get(uri)
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("Authorization", format!("Bearer {token}"));
-
-    let response = match request.send() {
-        Ok(r) => r,
-        Err(err) => panic!("HTTP request for {} failed, got {}", name, err),
-    };
-
-    let artifacts = response.json::<ArtifactsResponse>().unwrap().artifacts;
-
-    let artifact = artifacts
-        .iter()
-        .filter(|a| a.workflow_run.head_sha == sha)
-        .find(|a| a.name == build)
-        .expect(
-            format!(
-                "Could not find an artifact with sha {} and name '{}' for driver {}",
-                sha, build, name
-            )
-                .as_str(),
-        )
+    let token = env::var("GH_TOKEN")
+        .expect("Could not find environment variable GH_TOKEN.")
         .to_owned();
 
-    let artifact_name = artifact.name;
-    let request = client
-        .get(artifact.archive_download_url)
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("Authorization", format!("Bearer {token}"));
+    let artifact = fetch_driver_artifact_metadata(name, build, sha, token.as_str());
+    let extracted_archive = fetch_and_extract_artifact_archive(&dst, &artifact, token.as_str());
 
-    let archive = match request.send() {
-        Ok(r) => r.bytes().unwrap(),
-        Err(err) => panic!("HTTP request for {} failed, got {}", artifact_name, err),
-    };
-
-    let target_dir = std::path::PathBuf::from(dst.join(&artifact_name));
-    zip_extract::extract(Cursor::new(archive), &target_dir, true).unwrap();
-
-    let dir_iterator = std::fs::read_dir(&target_dir).unwrap();
+    let dir_iterator = std::fs::read_dir(&extracted_archive).unwrap();
     let dir_entry = dir_iterator
         .last()
         .unwrap()
-        .expect(format!("No entries in {}", &target_dir.as_path().to_str().unwrap()).as_str());
-    let inner_path = target_dir.join(dir_entry.file_name());
+        .expect(format!("No entries in {}", &extracted_archive.as_path().to_str().unwrap()).as_str());
+    let inner_path = extracted_archive.join(dir_entry.file_name());
 
     let mut inner_file = std::fs::File::open(&inner_path).unwrap();
 
@@ -174,5 +132,65 @@ fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
         format!("{}/lib/{lib}", dst.display()),
         format!("python/acquire/{lib}"),
     )
-    .expect(&format!("Failed to copy {}/lib/{lib} to python folder.", dst.display()));
+        .expect(&format!("Failed to copy {}/lib/{lib} to python folder.", dst.display()));
 }
+
+fn fetch_driver_artifact_metadata(name: &str, build: &str, sha: &str, token: &str) -> Artifact {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("acquire-project/builder")
+        .build()
+        .unwrap();
+
+    // list out build artifacts for this driver
+    let uri = format!("https://api.github.com/repos/acquire-project/{name}/actions/artifacts");
+
+    let request = client
+        .get(uri)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("Authorization", format!("Bearer {token}"));
+
+    let response = match request.send() {
+        Ok(r) => r,
+        Err(err) => panic!("HTTP request for {} failed, got {}", name, err),
+    };
+
+    let artifacts = response.json::<ArtifactsResponse>().unwrap().artifacts;
+
+    artifacts.iter()
+        .filter(|a| a.workflow_run.head_sha == sha)
+        .find(|a| a.name == build)
+        .expect(
+            format!(
+                "Could not find an artifact with sha {} and name '{}' for driver {}",
+                sha, build, name
+            )
+                .as_str(),
+        )
+        .to_owned()
+}
+
+fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artifact, token: &str) -> PathBuf {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("acquire-project/builder")
+        .build()
+        .unwrap();
+
+    let request = client
+        .get(&artifact.archive_download_url)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("Authorization", format!("Bearer {token}"));
+
+    let archive = match request.send() {
+        Ok(r) => r.bytes().unwrap(),
+        Err(err) => panic!("HTTP request for {} failed, got {}", &artifact.name, err),
+    };
+
+    let target_dir = std::path::PathBuf::from(dst.join(&artifact.name));
+    zip_extract::extract(Cursor::new(archive), &target_dir, true).unwrap();
+
+    target_dir
+}
+
+
