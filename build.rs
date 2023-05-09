@@ -2,8 +2,8 @@ use dotenv::dotenv;
 use serde::Deserialize;
 use std::env;
 use std::io::{prelude::*, Cursor};
-use std::path::PathBuf;
 
+#[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct WorkFlowRun {
     id: i128,
@@ -13,6 +13,7 @@ struct WorkFlowRun {
     head_sha: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct Artifact {
     id: i128,
@@ -28,6 +29,7 @@ struct Artifact {
     workflow_run: WorkFlowRun,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct ArtifactsResponse {
     total_count: u32,
@@ -97,20 +99,8 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, sha: &str) {
         .to_owned();
 
     let artifact = fetch_driver_artifact_metadata(name, build, sha, token.as_str());
-    let extracted_archive = fetch_and_extract_artifact_archive(&dst, &artifact, token.as_str());
-
-    let dir_iterator = std::fs::read_dir(&extracted_archive).unwrap();
-    let dir_entry = dir_iterator
-        .last()
-        .unwrap()
-        .expect(format!("No entries in {}", &extracted_archive.as_path().to_str().unwrap()).as_str());
-    let inner_path = extracted_archive.join(dir_entry.file_name());
-
-    let mut inner_file = std::fs::File::open(&inner_path).unwrap();
-
-    let mut b = vec![];
-    inner_file.read_to_end(&mut b).unwrap();
-    dbg!(zip_extract::extract(Cursor::new(b), &dst, true).unwrap());
+    let extracted_archive_path = fetch_and_extract_artifact_archive(&dst, &artifact, token.as_str());
+    extract_inner_archive(dst, &extracted_archive_path);
 
     copy_acquire_driver(&dst, name);
 }
@@ -170,7 +160,7 @@ fn fetch_driver_artifact_metadata(name: &str, build: &str, sha: &str, token: &st
         .to_owned()
 }
 
-fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artifact, token: &str) -> PathBuf {
+fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artifact, token: &str) -> std::path::PathBuf {
     let client = reqwest::blocking::Client::builder()
         .user_agent("acquire-project/builder")
         .build()
@@ -193,4 +183,17 @@ fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artif
     target_dir
 }
 
+fn extract_inner_archive(dst: &std::path::PathBuf, extracted_archive_path: &std::path::PathBuf) {
+    let dir_iterator = std::fs::read_dir(extracted_archive_path).unwrap();
+    let dir_entry = dir_iterator
+        .last()
+        .unwrap()
+        .expect(format!("No entries in {}", extracted_archive_path.as_path().to_str().unwrap()).as_str());
 
+    let inner_path = extracted_archive_path.join(dir_entry.file_name());
+    let mut inner_file = std::fs::File::open(&inner_path).unwrap();
+
+    let mut bytes = vec![];
+    inner_file.read_to_end(&mut bytes).unwrap();
+    zip_extract::extract(Cursor::new(bytes), &dst, true).unwrap();
+}
