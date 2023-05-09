@@ -33,8 +33,9 @@ def test_ext_triggering(runtime: acquire.Runtime):
 
     # Set the camera here so we can query it's triggering capabilities.
     # This comes in the form of the returned properties.
-    p = runtime.set_configuration(p)
-    p.video[0].camera.settings.input_triggers.frame_start.enable = True
+    p.video[0].camera.settings.input_triggers.frame_start = acquire.Trigger(
+        enable=True, line=0, edge="Rising"
+    )
     # Call set_configuration() again to apply the trigger properties
     p = runtime.set_configuration(p)
     # Check that it was accepted
