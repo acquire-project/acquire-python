@@ -56,7 +56,7 @@ fn main() {
     fetch_acquire_driver(
         &out,
         "acquire-driver-common",
-        "d2560d0bd828cc75dd60e8a272fdf74905bc85f0",
+        "f0b1a585b40ba320445acc6142c3196fe0260702",
     );
     fetch_acquire_driver(
         &out,
@@ -66,12 +66,12 @@ fn main() {
     fetch_acquire_driver(
         &out,
         "acquire-driver-egrabber",
-        "a0509e7fbcd8e2877e2c022a07e45f0cf148e392",
+        "5d420b4f26479ce4c4fa329342fd0fe77642842e",
     );
     fetch_acquire_driver(
         &out,
         "acquire-driver-hdcam",
-        "2c66eb446cbfe3af06abab1f6f24f63d3e238755",
+        "d94ee9bc023d6f7943e2340d74de974d1e2c5726",
     );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
