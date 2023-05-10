@@ -8,10 +8,11 @@ on:
 jobs:
   typing:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.PAT }}
           submodules: recursive
 
       - name: Set up Python 3.10

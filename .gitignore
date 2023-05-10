@@ -5,6 +5,7 @@ Testing
 *.zarr
 *.tif
 *.json
+Cargo.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -82,3 +83,6 @@ docs/_build/
 
 # mypy stubgen
 out/
+
+# dotenv
+.env

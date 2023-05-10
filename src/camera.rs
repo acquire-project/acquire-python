@@ -128,16 +128,22 @@ pub struct CameraProperties {
     shape: (u32, u32),
 
     #[pyo3(get, set)]
-    input_triggers: InputTriggers,
+    input_triggers: Py<InputTriggers>,
 
     #[pyo3(get, set)]
-    output_triggers: OutputTriggers,
+    output_triggers: Py<OutputTriggers>,
 }
 
 impl_plain_old_dict!(CameraProperties);
 
 impl Default for CameraProperties {
     fn default() -> Self {
+        let (input_triggers, output_triggers) = Python::with_gil(|py| {
+            (
+                Py::new(py, InputTriggers::default()).unwrap(),
+                Py::new(py, OutputTriggers::default()).unwrap(),
+            )
+        });
         Self {
             exposure_time_us: Default::default(),
             line_interval_us: Default::default(),
@@ -146,8 +152,8 @@ impl Default for CameraProperties {
             pixel_type: Default::default(),
             offset: Default::default(),
             shape: (1920, 1080),
-            input_triggers: Default::default(),
-            output_triggers: Default::default(),
+            input_triggers,
+            output_triggers,
         }
     }
 }
@@ -156,6 +162,11 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::CameraProperties) -> Result<Self, Self::Error> {
+        let (input_triggers, output_triggers) = Python::with_gil(|py| -> PyResult<_> {
+            let tr_in: InputTriggers = value.input_triggers.try_into()?;
+            let tr_out: OutputTriggers = value.output_triggers.try_into()?;
+            Ok((Py::new(py, tr_in)?, Py::new(py, tr_out)?))
+        })?;
         Ok(CameraProperties {
             exposure_time_us: value.exposure_time_us,
             line_interval_us: value.line_interval_us,
@@ -164,8 +175,8 @@ impl TryFrom<capi::CameraProperties> for CameraProperties {
             pixel_type: value.pixel_type.try_into()?,
             offset: (value.offset.x, value.offset.y),
             shape: (value.shape.x, value.shape.y),
-            input_triggers: value.input_triggers.try_into()?,
-            output_triggers: value.output_triggers.try_into()?,
+            input_triggers,
+            output_triggers,
         })
     }
 }
@@ -182,6 +193,11 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
             x: src.shape.0,
             y: src.shape.1,
         };
+        let (input_triggers, output_triggers) = Python::with_gil(|py| -> PyResult<_> {
+            let input_triggers: InputTriggers = src.input_triggers.extract(py)?;
+            let output_triggers: OutputTriggers = src.output_triggers.extract(py)?;
+            Ok((input_triggers, output_triggers))
+        })?;
         Ok(capi::CameraProperties {
             exposure_time_us: src.exposure_time_us,
             line_interval_us: src.line_interval_us,
@@ -190,8 +206,8 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
             pixel_type: src.pixel_type.into(),
             offset,
             shape,
-            input_triggers: src.input_triggers.as_ref().try_into()?,
-            output_triggers: src.output_triggers.as_ref().try_into()?,
+            input_triggers: (&input_triggers).try_into()?,
+            output_triggers: (&output_triggers).try_into()?,
         })
     }
 }
