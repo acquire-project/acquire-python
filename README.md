@@ -36,9 +36,8 @@ GH_TOKEN=[your token here]
 ## Build
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 cd acquire-video-runtime
-git submodule update --init
 pip install build
 python -m build
 ```

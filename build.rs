@@ -53,10 +53,26 @@ fn main() {
         .build());
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    fetch_acquire_driver(&out, "acquire-driver-common", "d2560d0bd828cc75dd60e8a272fdf74905bc85f0");
-    fetch_acquire_driver(&out, "acquire-driver-zarr", "9ab4d3e84d2af2f043051d63a26adfef6d02a40b");
-    fetch_acquire_driver(&out, "acquire-driver-egrabber", "a0509e7fbcd8e2877e2c022a07e45f0cf148e392");
-    fetch_acquire_driver(&out, "acquire-driver-hdcam", "2c66eb446cbfe3af06abab1f6f24f63d3e238755");
+    fetch_acquire_driver(
+        &out,
+        "acquire-driver-common",
+        "d2560d0bd828cc75dd60e8a272fdf74905bc85f0",
+    );
+    fetch_acquire_driver(
+        &out,
+        "acquire-driver-zarr",
+        "202c87b87f1f69df3f01ee0c0b47023a9982dfb5",
+    );
+    fetch_acquire_driver(
+        &out,
+        "acquire-driver-egrabber",
+        "a0509e7fbcd8e2877e2c022a07e45f0cf148e392",
+    );
+    fetch_acquire_driver(
+        &out,
+        "acquire-driver-hdcam",
+        "2c66eb446cbfe3af06abab1f6f24f63d3e238755",
+    );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
@@ -102,7 +118,8 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, sha: &str) {
         .to_owned();
 
     let artifact = fetch_driver_artifact_metadata(name, build, sha, token.as_str());
-    let extracted_archive_path = fetch_and_extract_artifact_archive(&dst, &artifact, token.as_str());
+    let extracted_archive_path =
+        fetch_and_extract_artifact_archive(&dst, &artifact, token.as_str());
     extract_inner_archive(dst, &extracted_archive_path);
 
     copy_acquire_driver(&dst, name);
@@ -125,7 +142,10 @@ fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
         format!("{}/lib/{lib}", dst.display()),
         format!("python/acquire/{lib}"),
     )
-        .expect(&format!("Failed to copy {}/lib/{lib} to python folder.", dst.display()));
+    .expect(&format!(
+        "Failed to copy {}/lib/{lib} to python folder.",
+        dst.display()
+    ));
 }
 
 fn fetch_driver_artifact_metadata(name: &str, build: &str, sha: &str, token: &str) -> Artifact {
@@ -150,7 +170,8 @@ fn fetch_driver_artifact_metadata(name: &str, build: &str, sha: &str, token: &st
 
     let artifacts = response.json::<ArtifactsResponse>().unwrap().artifacts;
 
-    artifacts.iter()
+    artifacts
+        .iter()
         .filter(|a| a.workflow_run.head_sha == sha)
         .find(|a| a.name == build)
         .expect(
@@ -158,12 +179,16 @@ fn fetch_driver_artifact_metadata(name: &str, build: &str, sha: &str, token: &st
                 "Could not find an artifact with sha {} and name '{}' for driver {}",
                 sha, build, name
             )
-                .as_str(),
+            .as_str(),
         )
         .to_owned()
 }
 
-fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artifact, token: &str) -> std::path::PathBuf {
+fn fetch_and_extract_artifact_archive(
+    dst: &std::path::PathBuf,
+    artifact: &Artifact,
+    token: &str,
+) -> std::path::PathBuf {
     let client = reqwest::blocking::Client::builder()
         .user_agent("acquire-project/builder")
         .build()
@@ -188,10 +213,13 @@ fn fetch_and_extract_artifact_archive(dst: &std::path::PathBuf, artifact: &Artif
 
 fn extract_inner_archive(dst: &std::path::PathBuf, extracted_archive_path: &std::path::PathBuf) {
     let dir_iterator = std::fs::read_dir(extracted_archive_path).unwrap();
-    let dir_entry = dir_iterator
-        .last()
-        .unwrap()
-        .expect(format!("No entries in {}", extracted_archive_path.as_path().to_str().unwrap()).as_str());
+    let dir_entry = dir_iterator.last().unwrap().expect(
+        format!(
+            "No entries in {}",
+            extracted_archive_path.as_path().to_str().unwrap()
+        )
+        .as_str(),
+    );
 
     let inner_path = extracted_archive_path.join(dir_entry.file_name());
     let mut inner_file = std::fs::File::open(&inner_path).unwrap();
