@@ -2,15 +2,3 @@
 	path = acquire-video-runtime
 	url = ../acquire-video-runtime.git
 	branch = main
-[submodule "acquire-driver-zarr"]
-	path = acquire-driver-zarr
-	url = ../acquire-driver-zarr.git
-[submodule "acquire-driver-hdcam"]
-	path = acquire-driver-hdcam
-	url = ../acquire-driver-hdcam
-[submodule "acquire-driver-egrabber"]
-	path = acquire-driver-egrabber
-	url = ../acquire-driver-egrabber
-[submodule "acquire-driver-common"]
-	path = acquire-driver-common
-	url = ../acquire-driver-common

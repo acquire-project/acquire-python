@@ -25,12 +25,19 @@ conda create --name acquire python=3.11
 conda activate acquire
 ```
 
+The build script also looks for a GitHub personal access token in the environment variable `GH_TOKEN`.
+You can set this on the command line, or in a .env file in the root directory of this repository.
+Your .env file might look like, for example:
+
+```dotenv
+GH_TOKEN=[your token here]
+```
+
 ## Build
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 cd acquire-video-runtime
-git submodule update --init
 pip install build
 python -m build
 ```

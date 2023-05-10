@@ -43,6 +43,11 @@ acquire-python = [
     "acquire.pyi",
 ]
 
+[tool.maturin]
+python-source = "python"
+python-packages = ["acquire"]
+include = ["**/*/*.so", "**/*/*.dll"]
+
 [tool.black]
 target-version = ['py39', 'py310', 'py311']
 line-length = 79
