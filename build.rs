@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::env;
 use std::io::{prelude::*, Cursor};
 
+/// Component of the `Artifact` JSON object returned from the GitHub API.
 #[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct WorkFlowRun {
@@ -13,6 +14,7 @@ struct WorkFlowRun {
     head_sha: String,
 }
 
+/// Metadata for a build artifact from given commit to a given repository, returned from GitHub API.
 #[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct Artifact {
@@ -29,6 +31,7 @@ struct Artifact {
     workflow_run: WorkFlowRun,
 }
 
+/// List of build artifacts for a given repository, returned from GitHub API.
 #[allow(dead_code)]
 #[derive(Deserialize, Clone)]
 struct ArtifactsResponse {

@@ -5,6 +5,7 @@ Testing
 *.zarr
 *.tif
 *.json
+Cargo.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
