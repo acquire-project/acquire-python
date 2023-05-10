@@ -53,10 +53,10 @@ fn main() {
         .build());
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    fetch_acquire_driver(&out, "acquire-driver-common", "d2560d0bd828cc75dd60e8a272fdf74905bc85f0");
-    fetch_acquire_driver(&out, "acquire-driver-zarr", "9ab4d3e84d2af2f043051d63a26adfef6d02a40b");
-    fetch_acquire_driver(&out, "acquire-driver-egrabber", "a0509e7fbcd8e2877e2c022a07e45f0cf148e392");
-    fetch_acquire_driver(&out, "acquire-driver-hdcam", "2c66eb446cbfe3af06abab1f6f24f63d3e238755");
+    fetch_acquire_driver(&out, "acquire-driver-common", "5ec4481b81a95be26560ab713e6f5592374bfdfc");
+    fetch_acquire_driver(&out, "acquire-driver-zarr", "0ebd55c666f29381c7b47613e443945b245c82d8");
+    fetch_acquire_driver(&out, "acquire-driver-egrabber", "413be1bbc185ec9659f549f8efdb8655a2f056aa");
+    fetch_acquire_driver(&out, "acquire-driver-hdcam", "fd1abc31cebc58a85fc6de6c244149b0b87f8a22");
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
