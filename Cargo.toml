@@ -1,5 +1,5 @@
 [package]
-name = "acquire-python"
+name = "acquire-imaging"
 authors = ["Nathan Clack <nclack@chanzuckerberg.com>"]
 version = "0.1.0"
 edition = "2021"
