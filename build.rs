@@ -38,8 +38,6 @@ struct ArtifactsResponse {
 }
 
 fn main() {
-    dotenv().ok();
-
     let dst = dbg!(cmake::Config::new("acquire-video-runtime")
         .target("acquire-video-runtime")
         .profile("RelWithDebInfo")
