@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import sys
 import time
 from time import sleep
 from typing import Any, Dict, List
@@ -271,6 +272,7 @@ def test_write_external_metadata_to_tiff(
             assert meta(i)["frame_id"] == i
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 def test_write_external_metadata_to_zarr(
     runtime: Runtime, request: pytest.FixtureRequest
 ):
@@ -342,6 +344,7 @@ def test_write_external_metadata_to_zarr(
     assert group["0"].attrs.asdict() == metadata
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 @pytest.mark.parametrize(
     ("storage_kind", "compressor_name", "clevel", "shuffle"),
     [
@@ -406,6 +409,7 @@ def test_write_compressed_zarr(
     )
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 @pytest.mark.parametrize(
     ("frame_x", "frame_y", "frames_per_chunk", "compressed"),
     [(64, 48, 25, False), (96, 72, 66, False), (1920, 1080, 32, True)],
