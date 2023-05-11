@@ -3,14 +3,14 @@ requires = ["maturin>=0.14"]
 build-backend = "maturin"
 
 [project]
-name = "acquire-python"
+name = "acquire-imaging"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["numpy>=1.22"] #FIXME: (nclack) fails when no internet access?
+dependencies = ["numpy>=1.22"]
 dynamic = ["authors", "description", "license", "readme", "version"]
 
 [project.optional-dependencies]

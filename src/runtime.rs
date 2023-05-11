@@ -157,17 +157,17 @@ impl Runtime {
         .try_into()?)
     }
 
-    fn get_available_data(&self, istream: u32) -> PyResult<Option<AvailableData>> {
+    fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {
         let mut beg = null_mut();
         let mut end = null_mut();
         unsafe {
-            capi::acquire_map_read(self.as_ref().as_ptr(), istream, &mut beg, &mut end).ok()?;
+            capi::acquire_map_read(self.as_ref().as_ptr(), stream_id, &mut beg, &mut end).ok()?;
         }
         let nbytes = unsafe { byte_offset_from(beg, end) };
         if nbytes > 0 {
             log::trace!(
                 "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
-                istream,
+                stream_id,
                 beg,
                 end,
                 nbytes
@@ -179,7 +179,7 @@ impl Runtime {
                     runtime: self.inner.clone(),
                     beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
                     end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                    istream,
+                    stream_id,
                     consumed_bytes: None,
                 }),
             })
@@ -198,7 +198,7 @@ struct RawAvailableData {
     end: NonNull<capi::VideoFrame>,
 
     /// The video stream owning the region
-    istream: u32,
+    stream_id: u32,
 
     /// When none, the entire region will be unmapped. Otherwise just the first
     /// `consumed_bytes`.
@@ -228,7 +228,7 @@ impl RawAvailableData {
                 let frame: &capi::VideoFrame = &*cur;
                 log::trace!(
                     "[stream {}] Advancing count for frame {} w size {}",
-                    self.istream,
+                    self.stream_id,
                     frame.frame_id,
                     frame.bytes_of_frame
                 );
@@ -248,7 +248,7 @@ impl Drop for RawAvailableData {
             .unwrap_or(unsafe { byte_offset_from(self.beg.as_ptr(), self.end.as_ptr()) } as usize);
         log::debug!(
             "[stream {}] DROP read region: {:p}-{:p}:{}",
-            self.istream,
+            self.stream_id,
             self.beg.as_ptr(),
             self.end.as_ptr(),
             consumed_bytes
@@ -256,7 +256,7 @@ impl Drop for RawAvailableData {
         unsafe {
             capi::acquire_unmap_read(
                 self.runtime.inner.as_ptr(),
-                self.istream,
+                self.stream_id,
                 consumed_bytes as _,
             )
             .ok()
