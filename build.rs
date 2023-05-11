@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use serde::Deserialize;
 use std::io::Cursor;
 
