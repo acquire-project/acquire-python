@@ -44,7 +44,7 @@ def test_set_camera_identifier(runtime: Runtime):
         and p.video[0].camera.identifier.kind == acquire.DeviceKind.NONE
     )
     p.video[0].camera.identifier = dm.select(
-        acquire.DeviceKind.Camera, "simulated: radial sin"
+        acquire.DeviceKind.Camera, "simulated: empty"
     )
     assert p.video[0].camera.identifier is not None
 
@@ -56,14 +56,14 @@ def test_set_camera_identifier(runtime: Runtime):
         (
             [
                 "does not exist 1",
-                "simulated: radial sin",
+                "simulated: empty",
                 "simulated: uniform random",
             ],
-            "simulated: radial sin",
+            "simulated: empty",
         ),
-        (["simulated: radial sin"], "simulated: radial sin"),
-        (["simulated.*sin"], "simulated: radial sin"),
-        ([".*radial.*"], "simulated: radial sin"),
+        (["simulated: empty"], "simulated: empty"),
+        (["simulated.*empty"], "simulated: empty"),
+        ([".*empty.*"], "simulated: empty"),
         ([], None),
     ],
 )
@@ -87,7 +87,7 @@ def test_zero_conf_start(runtime: Runtime):
 
 
 def test_repeat_acq(runtime: Runtime):
-    p = acquire.setup(runtime, "simulated: radial sin", "Trash")
+    p = acquire.setup(runtime, "simulated: empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.settings.filename == "out.tif"
@@ -115,7 +115,7 @@ def test_repeat_acq(runtime: Runtime):
 def test_repeat_with_no_stop(runtime: Runtime):
     """Stop is required between starts. This tests that an exception is
     raised."""
-    p = acquire.setup(runtime, "simulated: radial sin", "Trash")
+    p = acquire.setup(runtime, "simulated: empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     p.video[0].camera.settings.shape = (192, 108)
@@ -237,7 +237,7 @@ def test_write_external_metadata_to_tiff(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin"
+        DeviceKind.Camera, "simulated.*empty"
     )
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
@@ -277,7 +277,7 @@ def test_write_external_metadata_to_zarr(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+        DeviceKind.Camera, "simulated.*empty.*"
     )
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
@@ -363,7 +363,7 @@ def test_write_compressed_zarr(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+        DeviceKind.Camera, "simulated.*empty.*"
     )
     p.video[0].camera.settings.shape = (64, 48)
     p.video[0].storage.identifier = dm.select(
@@ -524,7 +524,7 @@ def test_abort(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin"
+        DeviceKind.Camera, "simulated.*empty"
     )
     p.video[0].camera.settings.shape = (24, 93)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
