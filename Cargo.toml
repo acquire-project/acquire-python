@@ -26,7 +26,6 @@ pythonize = "0.18"
 [build-dependencies]
 bindgen = "0.65"
 cmake = "0.1"
-dotenv = "0.15"
 http = "0.2"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
