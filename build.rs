@@ -76,7 +76,9 @@ fn main() {
     println!("cargo:rustc-link-lib=static=acquire-device-hal");
     println!("cargo:rustc-link-lib=static=acquire-core-platform");
     println!("cargo:rustc-link-lib=static=acquire-core-logger");
-    // println!("cargo:rustc-link-lib=static=stdc++");
+    if cfg!(target_os = "linux") {
+        println!("cargo:rustc-link-lib=static=stdc++");
+    }
 
     println!("cargo:rerun-if-changed=wrapper.h");
     // TODO: expand rerun-if-changed so we don't have to touch wrapper so much
