@@ -22,7 +22,7 @@ Currently the library supports:
 ## Installation
 
 ```bash
-pip install acquire-imaging
+python -m pip install acquire-imaging
 ```
 
 ## Usage
