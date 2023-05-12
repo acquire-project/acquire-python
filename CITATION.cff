@@ -14,9 +14,9 @@ authors:
     family-names: Liddell
     email: aliddell@chanzuckerberg.com
     affiliation: Chan-Zuckerberg Initiative Foundation
-  - given-names: Andy
+  - given-names: Andrew
     family-names: Sweet
-    email: asweet@chanzuckerberg.com
+    email: andrewdsweet@gmail.com
     affiliation: Chan-Zuckerberg Initiative Foundation
 repository-code: 'https://github.com/acquire-project/acquire-python'
 repository-artifact: 'https://pypi.org/project/acquire-imaging/'
