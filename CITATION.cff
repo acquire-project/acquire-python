@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: acquire-imaging
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Nathan
+    family-names: Clack
+    email: nclack@chanzuckerberg.com
+    affiliation: Chan-Zuckerberg Initiative Foundation
+    orcid: 'https://orcid.org/0000-0001-6236-9282'
+  - given-names: Alan
+    family-names: Liddell
+    email: aliddell@chanzuckerberg.com
+    affiliation: Chan-Zuckerberg Initiative Foundation
+  - given-names: Andrew
+    family-names: Sweet
+    email: andrewdsweet@gmail.com
+    affiliation: Chan-Zuckerberg Initiative Foundation
+repository-code: 'https://github.com/acquire-project/acquire-python'
+repository-artifact: 'https://pypi.org/project/acquire-imaging/'
+abstract: >-
+  acquire-python is a library focusing on multi-camera video
+  streaming for microscopy.
+license: Apache-2.0
