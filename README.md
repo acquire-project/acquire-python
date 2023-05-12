@@ -9,7 +9,7 @@ on performant microscopy.
 > **Note** This is an early stage project. If you find it interesting please
 > reach out!
 
-Currently the library supports:
+Support for:
 
 - Up to two independent video streams
 - Camera support:
