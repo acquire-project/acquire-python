@@ -30,7 +30,7 @@ fn main() {
     fetch_acquire_driver(
         &out,
         "acquire-driver-hdcam",
-        "0.1.1",
+        "0.1.2",
     );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
