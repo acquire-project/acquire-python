@@ -2,11 +2,14 @@ name: Create nightly release
 
 on:
   schedule:
-    - cron: "0 5 * * *"  # runs at 5 AM UTC
+    - cron: "30 5 * * *"  # runs at 5:30 AM UTC
 
   pull_request:
     branches:
       - main
+    pull_request: # TODO (aliddell: remove me)
+      branches:
+        - main
 
 jobs:
   nightly-build:
@@ -30,18 +33,35 @@ jobs:
         with:
           submodules: recursive
 
-      - name: CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
+      - name: Checkout runtime nightly
         run: |
-          cmake --build ${{github.workspace}}/build --config Release
-          cpack --config ${{github.workspace}}/build/CPackConfig.cmake -C Release -G ZIP
+          git fetch
+          git checkout nightly
+          git submodule update --recursive
+        working-directory: ${{github.workspace}}/acquire-video-runtime
 
-      - uses: actions/upload-artifact@v3
+      - name: Set config to pull nightly drivers
+        run: |
+          cat >drivers.json <<EOF
+          {
+            "acquire-driver-common": "nightly",
+            "acquire-driver-zarr": "nightly",
+            "acquire-driver-egrabber": "nightly",
+            "acquire-driver-hdcam": "nightly"
+          }
+          EOF
+        shell: bash
+
+      - uses: messense/maturin-action@v1
         with:
-          name: ${{matrix.platform}} binaries
-          path: ${{github.workspace}}/*.zip
+          command: build
+          args: --release -o dist --universal2
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.platform}} wheels
+          path: dist
 
   nightly-release:
     needs: nightly-build
