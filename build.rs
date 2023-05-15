@@ -1,6 +1,7 @@
 use std::fs;
 use serde::Deserialize;
 
+/// Struct representation of the manifest file drivers.json
 #[derive(Deserialize)]
 struct DriverManifest {
     #[serde(alias = "acquire-driver-common")]
