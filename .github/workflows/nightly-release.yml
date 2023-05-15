@@ -1,0 +1,68 @@
+name: Create nightly release
+
+on:
+  schedule:
+    - cron: "0 5 * * *"  # runs at 5 AM UTC
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  nightly-build:
+    name: "Nightly Build"
+    strategy:
+      matrix:
+        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+
+    runs-on: ${{ matrix.platform }}
+
+    permissions:
+      actions: write
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cmake --build ${{github.workspace}}/build --config Release
+          cpack --config ${{github.workspace}}/build/CPackConfig.cmake -C Release -G ZIP
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.platform}} binaries
+          path: ${{github.workspace}}/*.zip
+
+  nightly-release:
+    needs: nightly-build
+    name: "Nightly Release"
+    runs-on: "ubuntu-latest"
+
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: ${{ github.workspace }}/artifacts
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ github.token }}
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "Nightly Release"
+          files: |
+            ${{steps.download.outputs.download-path}}/*/*.zip
