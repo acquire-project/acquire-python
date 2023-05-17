@@ -3,15 +3,12 @@ use serde::Deserialize;
 
 /// Struct representation of the manifest file drivers.json
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 struct DriverManifest {
-    #[serde(alias = "acquire-driver-common")]
-    common: String,
-    #[serde(alias = "acquire-driver-zarr")]
-    zarr: String,
-    #[serde(alias = "acquire-driver-egrabber")]
-    egrabber: String,
-    #[serde(alias = "acquire-driver-hdcam")]
-    hdcam: String,
+    acquire_driver_common: String,
+    acquire_driver_zarr: String,
+    acquire_driver_egrabber: String,
+    acquire_driver_hdcam: String,
 }
 
 fn main() {
@@ -34,22 +31,22 @@ fn main() {
     fetch_acquire_driver(
         &out,
         "acquire-driver-common",
-        tags.common.as_str(),
+        tags.acquire_driver_common.as_str(),
     );
     fetch_acquire_driver(
         &out,
         "acquire-driver-zarr",
-        tags.zarr.as_str(),
+        tags.acquire_driver_zarr.as_str(),
     );
     fetch_acquire_driver(
         &out,
         "acquire-driver-egrabber",
-        tags.egrabber.as_str(),
+        tags.acquire_driver_egrabber.as_str(),
     );
     fetch_acquire_driver(
         &out,
         "acquire-driver-hdcam",
-        tags.hdcam.as_str(),
+        tags.acquire_driver_hdcam.as_str(),
     );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());

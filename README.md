@@ -106,6 +106,27 @@ touch wrapper.h # will trigger a rebuild
 python -m build
 ```
 
+This package depends on a submodule ([acquire-video-runtime](https://github.com/acquire-project/acquire-video-runtime))
+and binaries from the following Acquire drivers:
+- [acquire-driver-common](https://github.com/acquire-project/acquire-driver-common)
+- [acquire-driver-hdcam](https://github.com/acquire-project/acquire-driver-hdcam)
+- [acquire-driver-egrabber](https://github.com/acquire-project/acquire-driver-egrabber)
+- [acquire-driver-zarr](https://github.com/acquire-project/acquire-driver-zarr)
+
+The build script will automatically try to fetch the binaries from GitHub releases.
+In order to configure which release of each driver to use, you can set the value in `drivers.json`:
+
+```json
+{
+  "acquire-driver-common": "0.1.0",
+  "acquire-driver-hdcam": "0.1.0",
+  "acquire-driver-egrabber": "0.1.0",
+  "acquire-driver-zarr": "0.1.0"
+}
+```
+
+These values can be set to a specific version, or to `nightly` for nightly builds.
+
 ## Develop
 
 ```bash
