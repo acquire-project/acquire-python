@@ -67,7 +67,7 @@ jobs:
         id: download
         with:
           path: ${{ github.workspace }}/artifacts
-          
+
       - name: Collect wheels
         run: |
           mkdir -p dist
@@ -79,6 +79,8 @@ jobs:
           prerelease: false
           files: |
             dist/*.whl
-      
+
       - name: Publish wheels
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
