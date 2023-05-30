@@ -47,7 +47,7 @@ jobs:
         shell: bash
 
       - name: Build (macOS)
-        if: matrix.os == 'macos-latest'
+        if: matrix.platform == 'macos-latest'
         uses: messense/maturin-action@v1
         with:
           command: build
@@ -55,7 +55,7 @@ jobs:
           args: --release -o dist
 
       - name: Build
-        if: matrix.os != 'macos-latest'
+        if: matrix.platform != 'macos-latest'
         uses: messense/maturin-action@v1
         with:
           command: build
