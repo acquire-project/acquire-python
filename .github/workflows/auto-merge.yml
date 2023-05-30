@@ -1,14 +1,32 @@
 name: "Automerge Dependabot PRs"
 
-on:
-  pull_request:
+on: pull_request
+
+permissions:
+  pull-requests: write
+  contents: write
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v3
-      - uses: ahmadnassri/action-dependabot-auto-merge@v2
+      - name: "Get Dependabot metadata"
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.1.1
         with:
           github-token: ${{ github.token }}
+
+      - name: "Approve the PR"
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # Don't auto-merge major version updates
+      - name: "Enable auto-merge for Dependabot PRs"
+        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ github.token }}
