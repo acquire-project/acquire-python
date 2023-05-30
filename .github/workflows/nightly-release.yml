@@ -46,10 +46,20 @@ jobs:
           EOF
         shell: bash
 
-      - uses: messense/maturin-action@v1
+      - name: Build (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: messense/maturin-action@v1
         with:
           command: build
-          args: --release -o dist --universal2
+          target: universal2-apple-darwin
+          args: --release -o dist
+
+      - name: Build
+        if: matrix.os != 'macos-latest'
+        uses: messense/maturin-action@v1
+        with:
+          command: build
+          args: --release -o dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3

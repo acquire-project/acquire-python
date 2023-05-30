@@ -16,14 +16,17 @@ jobs:
             - uses: actions/checkout@v3
               with:
                   submodules: recursive
-            - if: matrix.os == 'macos-latest'
+
+            - name: Build (macOS)
+              if: matrix.os == 'macos-latest'
               uses: messense/maturin-action@v1
               with:
                 command: build
                 target: universal2-apple-darwin
                 args: --release -o dist
 
-            - if: matrix.os != 'macos-latest'
+            - name: Build
+              if: matrix.os != 'macos-latest'
               uses: messense/maturin-action@v1
               with:
                 command: build
