@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    name: "Build"
+    strategy:
+      matrix:
+        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+
+    runs-on: ${{ matrix.platform }}
+
+    permissions:
+      actions: write
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+          submodules: recursive
+
+      - uses: messense/maturin-action@v1
+        with:
+          command: build
+          args: --release -o dist --universal2
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.platform}} wheels
+          path: dist
+
+  release:
+    needs: build
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    
+    environment:
+      name: pypi
+      url: https://pypi.org/p/acquire-imaging
+
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: ${{ github.workspace }}/artifacts
+          
+      - name: Collect wheels
+        run: |
+          mkdir -p dist
+          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ github.token }}
+          prerelease: false
+          files: |
+            dist/*.whl
+      
+      - name: Publish wheels
+        uses: pypa/gh-action-pypi-publish@release/v1
+        
