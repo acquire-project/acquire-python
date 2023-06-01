@@ -26,10 +26,10 @@ testing = [
 ]
 
 [project.entry-points."napari.manifest"]
-acquire-python = "acquire:napari.yaml"
+acquire-imaging = "acquire:napari.yaml"
 
 [tool.setuptools.package_data]
-acquire-python = [
+acquire-imaging = [
     "napari.yaml",
     "libacquire-driver-common.so",
     "libacquire-driver-egrabber.so",

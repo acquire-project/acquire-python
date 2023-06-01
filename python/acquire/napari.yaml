@@ -1,11 +1,11 @@
-name: acquire-python
+name: acquire-imaging
 display_name: Acquire
 contributions:
   commands:
-    - id: acquire-python.gui
+    - id: acquire-imaging.gui
       title: Demo video streaming with Acquire
       python_name: acquire:gui
   widgets:
-    - command: acquire-python.gui
+    - command: acquire-imaging.gui
       display_name: Stream
       autogenerate: true
