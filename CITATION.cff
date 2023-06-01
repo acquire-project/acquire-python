@@ -21,6 +21,6 @@ authors:
 repository-code: 'https://github.com/acquire-project/acquire-python'
 repository-artifact: 'https://pypi.org/project/acquire-imaging/'
 abstract: >-
-  acquire-python is a library focusing on multi-camera video
+  acquire-imaging is a library focusing on multi-camera video
   streaming for microscopy.
 license: Apache-2.0
