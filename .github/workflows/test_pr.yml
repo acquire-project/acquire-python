@@ -1,48 +1,181 @@
-name: Test Platforms
+name: Test
 
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+  pull_request_target:
+    branches:
+      - main
 
 jobs:
-    test:
-        name: ${{ matrix.platform }} ${{ matrix.python }}
-        runs-on: ${{ matrix.platform }}
-        timeout-minutes: 20
-        strategy:
-            fail-fast: false
-            matrix:
-                platform: ["windows-latest", "ubuntu-latest", "macos-latest"]
-                python: ["3.8", "3.9", "3.10"]
+  test-platforms:
+    name: ${{ matrix.platform }} ${{ matrix.python }}
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+        python: [ "3.8", "3.9", "3.10" ]
 
-        permissions:
-            actions: write
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e '.[testing]'
+
+      - name: Test
+        run: |
+          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+
+  test-dcam:
+    runs-on: [ self-hosted,dcam ]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [ "3.8", "3.9", "3.10" ]
+
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Get CMake 3.24
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.24.3
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e .[testing]
+
+      - name: Test
+        run: |
+          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+
+  test-egrabber:
+    runs-on: [ self-hosted,egrabber ]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [ "3.8", "3.9", "3.10" ]
+
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Get CMake 3.24
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.24.3
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e .[testing]
+
+      - name: Test
+        run: |
+          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+
+  test-typing:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e '.[testing]'
+
+      - name: Run mypy on typed modules
+        run: mypy -p acquire
+
+      - name: Run stubtest on typed modules
+        run: stubtest acquire
+
+  auto-merge:
+    name: "Auto-merge Dependabot PRs"
+    needs: [ test, test-dcam, test-egrabber, test-typing ]
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: "Get Dependabot metadata"
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.1.1
+        with:
+          github-token: ${{ github.token }}
+
+      - name: "Approve the PR"
+        run: gh pr review --approve "$PR_URL"
         env:
-          GH_TOKEN: ${{ github.token }}
-        steps:
-            - name: Cancel Previous Runs
-              uses: styfle/cancel-workflow-action@0.11.0
-              with:
-                  access_token: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.PAT }}
 
-            - uses: actions/checkout@v3
-              with:
-                  submodules: recursive
-
-            - name: Set up Python ${{ matrix.python }}
-              uses: actions/setup-python@v4
-              with:
-                  python-version: ${{ matrix.python }}
-
-            - name: Install
-              run: |
-                  pip install --upgrade pip
-                  pip install -e '.[testing]'
-
-            - name: Test
-              run: |
-                  python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+      # Don't auto-merge major version updates
+      - name: "Auto-merge the PR"
+        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.PAT }}
