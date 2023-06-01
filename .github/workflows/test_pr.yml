@@ -156,7 +156,7 @@ jobs:
 
   auto-merge:
     name: "Auto-merge Dependabot PRs"
-    needs: [ test, test-dcam, test-egrabber, test-typing ]
+    needs: [ test-platforms, test-dcam, test-egrabber, test-typing ]
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
