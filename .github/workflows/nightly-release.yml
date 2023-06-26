@@ -1,0 +1,92 @@
+name: Create nightly release
+
+on:
+  schedule:
+    - cron: "30 5 * * *"  # runs at 5:30 AM UTC
+
+jobs:
+  nightly-build:
+    name: "Nightly Build"
+    strategy:
+      matrix:
+        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+
+    runs-on: ${{ matrix.platform }}
+
+    permissions:
+      actions: write
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+          submodules: recursive
+
+      - name: Checkout runtime nightly
+        run: |
+          git fetch --tags
+          git checkout nightly
+          git submodule update --recursive
+        working-directory: ${{github.workspace}}/acquire-video-runtime
+
+      - name: Set config to pull nightly drivers
+        run: |
+          cat >drivers.json <<EOF
+          {
+            "acquire-driver-common": "nightly",
+            "acquire-driver-zarr": "nightly",
+            "acquire-driver-egrabber": "nightly",
+            "acquire-driver-hdcam": "nightly"
+          }
+          EOF
+        shell: bash
+
+      - name: Build (macOS)
+        if: matrix.platform == 'macos-latest'
+        uses: messense/maturin-action@v1
+        with:
+          command: build
+          target: universal2-apple-darwin
+          args: --release -o dist
+
+      - name: Build
+        if: matrix.platform != 'macos-latest'
+        uses: messense/maturin-action@v1
+        with:
+          command: build
+          args: --release -o dist
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.platform}} wheels
+          path: dist
+
+  nightly-release:
+    needs: nightly-build
+    name: "Nightly Release"
+    runs-on: "ubuntu-latest"
+
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: ${{ github.workspace }}/artifacts
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ github.token }}
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "Nightly Release"
+          files: |
+            ${{steps.download.outputs.download-path}}/*/*.whl
