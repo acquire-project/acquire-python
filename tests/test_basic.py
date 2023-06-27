@@ -41,8 +41,8 @@ def test_set_camera_identifier(runtime: Runtime):
 
     p = runtime.get_configuration()
     assert (
-        p.video[0].camera.identifier is not None
-        and p.video[0].camera.identifier.kind == acquire.DeviceKind.NONE
+            p.video[0].camera.identifier is not None
+            and p.video[0].camera.identifier.kind == acquire.DeviceKind.NONE
     )
     p.video[0].camera.identifier = dm.select(
         acquire.DeviceKind.Camera, "simulated: radial sin"
@@ -55,12 +55,12 @@ def test_set_camera_identifier(runtime: Runtime):
     [
         (["does not exist 1", "does not exist 2", "does not exist 3"], None),
         (
-            [
-                "does not exist 1",
+                [
+                    "does not exist 1",
+                    "simulated: radial sin",
+                    "simulated: uniform random",
+                ],
                 "simulated: radial sin",
-                "simulated: uniform random",
-            ],
-            "simulated: radial sin",
         ),
         (["simulated: radial sin"], "simulated: radial sin"),
         (["simulated.*sin"], "simulated: radial sin"),
@@ -69,9 +69,9 @@ def test_set_camera_identifier(runtime: Runtime):
     ],
 )
 def test_select_one_of(
-    runtime: Runtime,
-    input: List[str],
-    expected: str,
+        runtime: Runtime,
+        input: List[str],
+        expected: str,
 ):
     h = runtime.device_manager().select_one_of(DeviceKind.Camera, input)
     result = None if h is None else h.name
@@ -233,7 +233,7 @@ def test_change_filename(runtime: Runtime):
 
 
 def test_write_external_metadata_to_tiff(
-    runtime: Runtime, request: pytest.FixtureRequest
+        runtime: Runtime, request: pytest.FixtureRequest
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -272,9 +272,8 @@ def test_write_external_metadata_to_tiff(
             assert meta(i)["frame_id"] == i
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 def test_write_external_metadata_to_zarr(
-    runtime: Runtime, request: pytest.FixtureRequest
+        runtime: Runtime, request: pytest.FixtureRequest
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -288,6 +287,10 @@ def test_write_external_metadata_to_zarr(
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
+    p.video[0].storage.settings.chunking.tile.width = 33
+    p.video[0].storage.settings.chunking.tile.height = 47
+    p.video[0].storage.settings.chunking.tile.planes = 1
+    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2 ** 20
 
     p = runtime.set_configuration(p)
 
@@ -344,20 +347,17 @@ def test_write_external_metadata_to_zarr(
     assert group["0"].attrs.asdict() == metadata
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 @pytest.mark.parametrize(
-    ("compressor_name", "clevel", "shuffle"),
+    ("compressor_name",),
     [
-        ("zstd", 1, blosc.SHUFFLE),
-        ("lz4", 1, blosc.SHUFFLE),
+        ("zstd",),
+        ("lz4",),
     ],
 )
 def test_write_compressed_zarr(
-    runtime: Runtime,
-    request: pytest.FixtureRequest,
-    compressor_name: str,
-    clevel: int,
-    shuffle: int,
+        runtime: Runtime,
+        request: pytest.FixtureRequest,
+        compressor_name
 ):
     filename = f"{request.node.name}.zarr"
     filename = filename.replace("[", "_").replace("]", "_")
@@ -369,14 +369,12 @@ def test_write_compressed_zarr(
     )
     p.video[0].camera.settings.shape = (64, 48)
     p.video[0].camera.settings.exposure_time_us = 1e4
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage,
+                                              f"ZarrBlosc1{compressor_name.capitalize()}ByteShuffle")
     p.video[0].max_frame_count = 70
     p.video[0].storage.settings.filename = filename
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    p.video[0].storage.settings.compression_codec = compressor_name
-    p.video[0].storage.settings.clevel = clevel
-    p.video[0].storage.settings.shuffle = shuffle
     runtime.set_configuration(p)
 
     runtime.start()
@@ -387,8 +385,8 @@ def test_write_compressed_zarr(
     data = group["0"]
 
     assert data.compressor.cname == compressor_name
-    assert data.compressor.clevel == clevel
-    assert data.compressor.shuffle == shuffle
+    assert data.compressor.clevel == 1
+    assert data.compressor.shuffle == blosc.SHUFFLE
 
     assert data.shape == (
         p.video[0].max_frame_count,
@@ -408,7 +406,6 @@ def test_write_compressed_zarr(
     )
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="illegal instruction")
 @pytest.mark.parametrize(
     ("number_of_frames", "expected_number_of_chunks", "compression"),
     [
@@ -419,11 +416,11 @@ def test_write_compressed_zarr(
     ]
 )
 def test_write_zarr_with_chunking(
-    runtime: acquire.Runtime,
-    request: pytest.FixtureRequest,
-    number_of_frames: int,
-    expected_number_of_chunks: int,
-    compression: Optional[dict]
+        runtime: acquire.Runtime,
+        request: pytest.FixtureRequest,
+        number_of_frames: int,
+        expected_number_of_chunks: int,
+        compression: Optional[dict]
 ):
     dm = runtime.device_manager()
 
@@ -440,14 +437,10 @@ def test_write_zarr_with_chunking(
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
     p.video[0].max_frame_count = number_of_frames
 
-    p.video[0].storage.settings.bytes_per_chunk = 32 * 2**20
-    p.video[0].storage.settings.tile_width = 1920 // 2
-    p.video[0].storage.settings.tile_height = 1080 // 2
-
-    if compression is not None:
-        p.video[0].storage.settings.compression_codec = compression["codec"]
-        p.video[0].storage.settings.clevel = compression["clevel"]
-        p.video[0].storage.settings.shuffle = compression["shuffle"]
+    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2 ** 20
+    p.video[0].storage.settings.chunking.tile.width = 1920 // 2
+    p.video[0].storage.settings.chunking.tile.height = 1080 // 2
+    p.video[0].storage.settings.chunking.tile.planes = 1
 
     runtime.set_configuration(p)
 
@@ -470,7 +463,7 @@ def test_write_zarr_with_chunking(
 
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
-    + " See https://github.com/acquire-project/cpx/issues/147"
+           + " See https://github.com/acquire-project/cpx/issues/147"
 )
 def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()
@@ -502,8 +495,8 @@ def test_two_video_streams(runtime: Runtime):
 
     def is_not_done() -> bool:
         return runtime.get_state() == DeviceState.Running and (
-            (nframes[0] < p.video[0].max_frame_count)
-            or (nframes[1] < p.video[1].max_frame_count)
+                (nframes[0] < p.video[0].max_frame_count)
+                or (nframes[1] < p.video[1].max_frame_count)
         )
 
     runtime.start()
@@ -516,9 +509,9 @@ def test_two_video_streams(runtime: Runtime):
                 for i, frame in enumerate(packet.frames()):
                     expected_frame_id = nframes[stream_id] + i
                     assert frame.metadata().frame_id == expected_frame_id, (
-                        "frame id's didn't match "
-                        + f"({frame.metadata().frame_id}!={expected_frame_id})"
-                        + f" [stream {stream_id} nframes {nframes}]"
+                            "frame id's didn't match "
+                            + f"({frame.metadata().frame_id}!={expected_frame_id})"
+                            + f" [stream {stream_id} nframes {nframes}]"
                     )
                     del frame
                 del packet
@@ -540,7 +533,7 @@ def test_abort(runtime: Runtime):
     )
     p.video[0].camera.settings.shape = (24, 93)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    p.video[0].max_frame_count = 2**30
+    p.video[0].max_frame_count = 2 ** 30
     runtime.set_configuration(p)
 
     nframes = 0
