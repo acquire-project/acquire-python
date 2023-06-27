@@ -38,11 +38,11 @@ fn main() {
         "acquire-driver-zarr",
         tags.acquire_driver_zarr.as_str(),
     );
-    fetch_acquire_driver(
-        &out,
-        "acquire-driver-egrabber",
-        tags.acquire_driver_egrabber.as_str(),
-    );
+    // fetch_acquire_driver(
+    //     &out,
+    //     "acquire-driver-egrabber",
+    //     tags.acquire_driver_egrabber.as_str(),
+    // );
     fetch_acquire_driver(
         &out,
         "acquire-driver-hdcam",
@@ -95,7 +95,7 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
     } else {
         format!("v{tag}")
     };
-    let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{tag}-{build}.zip");
+    let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{vstring}-{build}.zip");
     let request = client
         .get(uri)
         .header("Accept", "application/vnd.github+json")
