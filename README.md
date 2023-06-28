@@ -138,7 +138,7 @@ This project uses [`pre-commit`](https://pre-commit.com/) to run required
 checks as git hooks.
 
 ```bash
-pip install precommit
+pip install pre-commit
 pre-commit install
 ```
 
