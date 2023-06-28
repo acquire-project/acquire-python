@@ -4,7 +4,7 @@ import pprint
 import acquire
 import pytest
 from acquire import DeviceKind, SampleType
-from acquire.acquire import SignalIOKind, Trigger, TriggerEdge
+from acquire.acquire import Trigger
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +30,9 @@ def test_vieworks_stream(
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
     assert p.video[0].storage.identifier
     p.video[0].storage.settings.filename = request.node.name + ".zarr"
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 1 << 30  # 1 GB chunks
+    p.video[0].storage.settings.chunking.max_bytes_per_chunk = (
+        1 << 30
+    )  # 1 GB chunks
 
     # Set the camera here so we can query it's triggering capabilities.
     # This comes in the form of the returned properties.
