@@ -75,42 +75,42 @@ fn main() {
 }
 
 fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
-    let build = if cfg!(target_os = "windows") {
-        "win64"
-    } else if cfg!(target_os = "macos") {
-        "Darwin"
-    } else if cfg!(target_os = "linux") {
-        "Linux"
-    } else {
-        panic!("Unknown target os")
-    };
-
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("acquire-project/builder")
-        .build()
-        .unwrap();
-
-    let vstring = if tag == "nightly" {
-        tag.to_owned()
-    } else {
-        format!("v{tag}")
-    };
-    let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{vstring}-{build}.zip");
-    let request = client
-        .get(uri)
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28");
-
-    let archive = match request.send() {
-        Ok(r) => r.bytes(),
-        Err(err) => panic!("HTTP request for {} failed, got {}", &name, err),
-    }.expect(&*format!("Failed to get response body for {} as bytes.", name));
-
-    zip_extract::extract(
-        std::io::Cursor::new(archive), &dst, true,
-    ).expect(&*format!("Failed to extract {name}-{tag}-{build}.zip from response."));
-
-    copy_acquire_driver(&dst, name);
+    // let build = if cfg!(target_os = "windows") {
+    //     "win64"
+    // } else if cfg!(target_os = "macos") {
+    //     "Darwin"
+    // } else if cfg!(target_os = "linux") {
+    //     "Linux"
+    // } else {
+    //     panic!("Unknown target os")
+    // };
+    //
+    // let client = reqwest::blocking::Client::builder()
+    //     .user_agent("acquire-project/builder")
+    //     .build()
+    //     .unwrap();
+    //
+    // let vstring = if tag == "nightly" {
+    //     tag.to_owned()
+    // } else {
+    //     format!("v{tag}")
+    // };
+    // let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{vstring}-{build}.zip");
+    // let request = client
+    //     .get(uri)
+    //     .header("Accept", "application/vnd.github+json")
+    //     .header("X-GitHub-Api-Version", "2022-11-28");
+    //
+    // let archive = match request.send() {
+    //     Ok(r) => r.bytes(),
+    //     Err(err) => panic!("HTTP request for {} failed, got {}", &name, err),
+    // }.expect(&*format!("Failed to get response body for {} as bytes.", name));
+    //
+    // zip_extract::extract(
+    //     std::io::Cursor::new(archive), &dst, true,
+    // ).expect(&*format!("Failed to extract {name}-{tag}-{build}.zip from response."));
+    //
+    // copy_acquire_driver(&dst, name);
 }
 
 fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {

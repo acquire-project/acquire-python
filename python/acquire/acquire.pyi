@@ -177,7 +177,6 @@ class SampleType:
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
 
-
 @final
 class SignalIOKind:
     Input: ClassVar[SignalIOKind] = SignalIOKind.Input
@@ -219,6 +218,11 @@ class TileShape:
 class ChunkingProperties:
     max_bytes_per_chunk: int
     tile: TileShape
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class MultiscaleProperties:
+    max_layer: int
     def dict(self) -> Dict[str, Any]: ...
 
 @final

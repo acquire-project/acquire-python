@@ -13,6 +13,8 @@ import zarr
 from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
+from skimage.transform import downscale_local_mean
+import numpy as np
 
 
 @pytest.fixture(scope="module")
@@ -457,6 +459,67 @@ def test_write_zarr_with_chunking(
         p.video[0].camera.settings.shape[0],
     )
     assert data.nchunks == expected_number_of_chunks
+
+
+@pytest.mark.parametrize(
+    ("identifier", "compressed"),
+    [
+        ("Zarr", False),
+        ("ZarrBlosc1ZstdByteShuffle", False),
+    ],
+)
+def test_write_zarr_multiscale(
+    runtime: acquire.Runtime,
+    request: pytest.FixtureRequest,
+    identifier: str,
+    compressed: bool,
+):
+    dm = runtime.device_manager()
+
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    p.video[0].camera.settings.shape = (1920, 1080)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage,
+        "Zarr",
+    )
+    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].max_frame_count = 73
+
+    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
+    p.video[0].storage.settings.chunking.tile.width = (
+        p.video[0].camera.settings.shape[0] // 3
+    )
+    p.video[0].storage.settings.chunking.tile.height = (
+        p.video[0].camera.settings.shape[1] // 3
+    )
+    p.video[0].storage.settings.chunking.tile.planes = 1
+
+    p.video[0].storage.settings.multiscale.max_layer = -1
+
+    runtime.set_configuration(p)
+
+    runtime.start()
+    runtime.stop()
+
+    path = p.video[0].storage.settings.filename
+    reader = Reader(parse_url(path))
+    zgroup = list(reader())[0]
+    # loads each layer as a dask array from the Zarr dataset
+    data = [
+        da.from_zarr(path, component=str(i)) for i in range(len(zgroup.data))
+    ]
+
+    image = data[0][0, 0, :, :].compute()  # convert dask array to numpy array
+
+    for d in data:
+        assert (
+            np.linalg.norm(image - d[0, 0, :, :].compute()) == 0
+        )  # validate against the same method from scikit-image
+        image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
 
 
 @pytest.mark.skip(

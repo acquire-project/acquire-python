@@ -51,6 +51,16 @@ impl Default for ChunkingProperties {
 }
 
 #[pyclass]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MultiscaleProperties {
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) max_layer: i16,
+}
+
+impl_plain_old_dict!(MultiscaleProperties);
+
+#[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageProperties {
     #[pyo3(get, set)]
@@ -71,6 +81,9 @@ pub struct StorageProperties {
 
     #[pyo3(get, set)]
     pub(crate) chunking: Py<ChunkingProperties>,
+
+    #[pyo3(get, set)]
+    pub(crate) multiscale: Py<MultiscaleProperties>,
 }
 
 impl_plain_old_dict!(StorageProperties);
@@ -80,12 +93,16 @@ impl Default for StorageProperties {
         let chunking = Python::with_gil(|py| {
             Py::new(py, ChunkingProperties::default()).unwrap()
         });
+        let multiscale = Python::with_gil(|py| {
+            Py::new(py, MultiscaleProperties::default()).unwrap()
+        });
         Self {
             filename: Default::default(),
             external_metadata_json: Default::default(),
             first_frame_id: Default::default(),
             pixel_scale_um: Default::default(),
             chunking,
+            multiscale,
         }
     }
 }
@@ -125,12 +142,19 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             }).unwrap()
         });
 
+        let multiscale = Python::with_gil(|py| {
+            Py::new(py, MultiscaleProperties {
+                max_layer: value.multiscale.max_layer,
+            }).unwrap()
+        });
+
         Ok(Self {
             filename,
             first_frame_id: value.first_frame_id,
             external_metadata_json,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
             chunking,
+            multiscale,
         })
     }
 }
@@ -213,6 +237,7 @@ impl Default for capi::StorageProperties {
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
             chunking: Default::default(),
+            multiscale: Default::default(),
         }
     }
 }
@@ -252,6 +277,22 @@ impl Default for capi::StorageProperties_storage_properties_chunking_s {
             max_bytes_per_chunk: Default::default(),
             tile: Default::default(),
         }
+    }
+}
+
+impl Default for capi::StorageProperties_storage_properties_multiscale_s {
+    fn default() -> Self {
+        Self {
+            max_layer: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&ChunkingProperties> for capi::StorageProperties_storage_properties_chunking_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &ChunkingProperties) -> Result<Self, Self::Error> {
+        todo!()
     }
 }
 
