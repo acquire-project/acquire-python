@@ -28,6 +28,10 @@ fn main() {
         .expect("Failed to parse drivers.json");
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
+    /// FIXME (aliddell): Once the drivers are built and released, uncomment this part.
+    /// In the meantime, you can build the dlls and copy them into python/acquire yourself.
+    /*
     fetch_acquire_driver(
         &out,
         "acquire-driver-common",
@@ -48,6 +52,7 @@ fn main() {
         "acquire-driver-hdcam",
         tags.acquire_driver_hdcam.as_str(),
     );
+     */
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
@@ -95,7 +100,7 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
     } else {
         format!("v{tag}")
     };
-    let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{tag}-{build}.zip");
+    let uri = format!("https://github.com/acquire-project/{name}/releases/download/{vstring}/{name}-{vstring}-{build}.zip");
     let request = client
         .get(uri)
         .header("Accept", "application/vnd.github+json")
