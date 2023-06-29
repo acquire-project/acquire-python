@@ -6,6 +6,7 @@ use std::{
     fmt::{Debug, Display},
     ptr::{null, null_mut},
 };
+use std::arch::x86_64::_pdep_u32;
 
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -198,6 +199,11 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             Ok(tile_shape)
         })?;
 
+        let multiscale_props = Python::with_gil(|py| -> PyResult<_> {
+            let multiscale_props: MultiscaleProperties = value.multiscale.extract(py)?;
+            Ok(multiscale_props)
+        })?;
+
         // This copies the string into a buffer owned by the return value.
         if !unsafe {
             capi::storage_properties_init(
@@ -220,6 +226,12 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                                                         tile_shape.height,
                                                         tile_shape.planes,
                                                         chunking_props.max_bytes_per_chunk,
+            ) == 1
+        } {
+            Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else if !unsafe {
+            capi::storage_properties_set_multiscale_props(&mut out,
+                                                          multiscale_props.max_layer,
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))

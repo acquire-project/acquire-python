@@ -232,6 +232,7 @@ class StorageProperties:
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     chunking: ChunkingProperties
+    multiscale: MultiscaleProperties
     def dict(self) -> Dict[str, Any]: ...
 
 @final

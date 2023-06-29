@@ -462,18 +462,20 @@ def test_write_zarr_with_chunking(
 
 
 @pytest.mark.parametrize(
-    ("identifier", "compressed"),
+    ("identifier",),
     [
-        ("Zarr", False),
-        ("ZarrBlosc1ZstdByteShuffle", False),
+        ("Zarr",),
+        ("ZarrBlosc1ZstdByteShuffle",),
     ],
 )
 def test_write_zarr_multiscale(
     runtime: acquire.Runtime,
     request: pytest.FixtureRequest,
     identifier: str,
-    compressed: bool,
 ):
+    filename = f"{request.node.name}.zarr"
+    filename = filename.replace("[", "_").replace("]", "_")
+
     dm = runtime.device_manager()
 
     p = runtime.get_configuration()
@@ -484,9 +486,9 @@ def test_write_zarr_multiscale(
     p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].storage.identifier = dm.select(
         DeviceKind.Storage,
-        "Zarr",
+        identifier,
     )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.filename = filename
     p.video[0].max_frame_count = 73
 
     p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
@@ -505,13 +507,14 @@ def test_write_zarr_multiscale(
     runtime.start()
     runtime.stop()
 
-    path = p.video[0].storage.settings.filename
-    reader = Reader(parse_url(path))
+    reader = Reader(parse_url(filename))
     zgroup = list(reader())[0]
     # loads each layer as a dask array from the Zarr dataset
     data = [
-        da.from_zarr(path, component=str(i)) for i in range(len(zgroup.data))
+        da.from_zarr(filename, component=str(i))
+        for i in range(len(zgroup.data))
     ]
+    assert len(data) == 3
 
     image = data[0][0, 0, :, :].compute()  # convert dask array to numpy array
 
