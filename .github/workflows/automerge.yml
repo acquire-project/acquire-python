@@ -13,7 +13,7 @@ env:
 jobs:
   automerge:
     name: "Automerge"
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    if: ${{ github.actor == 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: "Get Dependabot metadata"
