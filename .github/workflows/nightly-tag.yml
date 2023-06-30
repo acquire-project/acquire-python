@@ -1,0 +1,24 @@
+name: Update nightly tag
+
+on:
+  schedule:
+    - cron: "30 4 * * *"  # runs at 4:30 AM UTC
+
+jobs:
+  nightly-tag:
+    name: Update nightly tag
+    runs-on: ubuntu-latest
+
+    permissions: write-all
+
+    steps:
+      - name: Checkout local repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: Update nightly tag
+        run: git tag -f nightly
+
+      - name: Push tag
+        run: git push origin nightly --force

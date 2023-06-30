@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "nightly"
 
 jobs:
   build:
@@ -27,6 +28,27 @@ jobs:
         with:
           ref: main
           submodules: recursive
+
+      - name: Checkout runtime nightly
+        if: ${{github.ref_name == 'nightly'}}
+        run: |
+          git fetch --tags
+          git checkout nightly
+          git submodule update --recursive
+        working-directory: ${{github.workspace}}/acquire-video-runtime
+
+      - name: Set config to pull nightly drivers
+        if: ${{github.ref_name == 'nightly'}}
+        run: |
+          cat >drivers.json <<EOF
+          {
+            "acquire-driver-common": "nightly",
+            "acquire-driver-zarr": "nightly",
+            "acquire-driver-egrabber": "nightly",
+            "acquire-driver-hdcam": "nightly"
+          }
+          EOF
+        shell: bash
 
       - name: Build (macOS)
         if: matrix.platform == 'macos-latest'
@@ -93,13 +115,27 @@ jobs:
           mv ${{steps.download.outputs.download-path}}/*/*.whl dist
 
       - name: Publish wheels
+        if: ${{ github.ref_name != 'nightly' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
 
-      - uses: marvinpinto/action-automatic-releases@latest
+      - name: Tagged release
+        if: ${{ github.ref_name != 'nightly' }}
+        uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ github.token }}
           prerelease: false
+          files: |
+            dist/*.whl
+
+      - name: Nightly release
+        if: ${{ github.ref_name == 'nightly' }}
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.PAT }}
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "Nightly Release"
           files: |
             dist/*.whl
