@@ -2,7 +2,7 @@ name: Update nightly tag
 
 on:
   schedule:
-    - cron: "30 4 * * *"  # runs at 4:30 AM UTC
+    - cron: "0 5 * * *"  # runs at 5:00 AM UTC
 
 jobs:
   nightly-tag:
