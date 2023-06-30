@@ -1,0 +1,35 @@
+name: Automerge
+
+on:
+  workflow_run:
+    workflows:
+      - "Test"
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  automerge:
+    name: "Automerge"
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Get Dependabot metadata"
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.1.1
+        with:
+          github-token: ${{ github.token }}
+
+      - name: "Approve the PR"
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.PAT }}
+
+      # Don't auto-merge major version updates
+      - name: "Auto-merge the PR"
+        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.PAT }}
