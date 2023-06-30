@@ -3,7 +3,9 @@ name: Automerge
 on:
   workflow_run:
     workflows:
-      - "Test"
+      - Test
+    types:
+      - completed
 
 env:
   BUILD_TYPE: Release
