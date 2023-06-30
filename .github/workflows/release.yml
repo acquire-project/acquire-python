@@ -114,12 +114,6 @@ jobs:
           mkdir -p dist
           mv ${{steps.download.outputs.download-path}}/*/*.whl dist
 
-      - name: Publish wheels
-        if: ${{ github.ref_name != 'nightly' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
-
       - name: Tagged release
         if: ${{ github.ref_name != 'nightly' }}
         uses: marvinpinto/action-automatic-releases@latest
@@ -139,3 +133,9 @@ jobs:
           title: "Nightly Release"
           files: |
             dist/*.whl
+
+      - name: Publish wheels
+        if: ${{ github.ref_name != 'nightly' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
