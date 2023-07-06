@@ -9,6 +9,49 @@ use std::{
 
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TileShape {
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) width: u32,
+
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) height: u32,
+
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) planes: u32,
+}
+
+impl_plain_old_dict!(TileShape);
+
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChunkingProperties {
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) max_bytes_per_chunk: u64,
+
+    #[pyo3(get, set)]
+    pub(crate) tile: Py<TileShape>,
+}
+
+impl_plain_old_dict!(ChunkingProperties);
+
+impl Default for ChunkingProperties {
+    fn default() -> Self {
+        let tile = Python::with_gil(|py| {
+            Py::new(py, TileShape::default()).unwrap()
+        });
+        Self {
+            max_bytes_per_chunk: Default::default(),
+            tile,
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageProperties {
     #[pyo3(get, set)]
     #[serde(default)]
@@ -27,10 +70,25 @@ pub struct StorageProperties {
     pub(crate) pixel_scale_um: (f64, f64),
 
     #[pyo3(get, set)]
-    pub(crate) bytes_per_chunk: u32,
+    pub(crate) chunking: Py<ChunkingProperties>,
 }
 
 impl_plain_old_dict!(StorageProperties);
+
+impl Default for StorageProperties {
+    fn default() -> Self {
+        let chunking = Python::with_gil(|py| {
+            Py::new(py, ChunkingProperties::default()).unwrap()
+        });
+        Self {
+            filename: Default::default(),
+            external_metadata_json: Default::default(),
+            first_frame_id: Default::default(),
+            pixel_scale_um: Default::default(),
+            chunking,
+        }
+    }
+}
 
 impl TryFrom<capi::StorageProperties> for StorageProperties {
     type Error = anyhow::Error;
@@ -54,12 +112,25 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
                     .to_owned(),
             )
         };
+
+        let chunking = Python::with_gil(|py| {
+            let tile = Py::new(py, TileShape {
+                width: value.chunking.tile.width,
+                height: value.chunking.tile.height,
+                planes: value.chunking.tile.planes,
+            }).unwrap();
+            Py::new(py, ChunkingProperties {
+                max_bytes_per_chunk: value.chunking.max_bytes_per_chunk,
+                tile,
+            }).unwrap()
+        });
+
         Ok(Self {
             filename,
             first_frame_id: value.first_frame_id,
             external_metadata_json,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
-            bytes_per_chunk: value.bytes_per_chunk,
+            chunking,
         })
     }
 }
@@ -93,6 +164,16 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             (null(), 0)
         };
 
+        let chunking_props = Python::with_gil(|py| -> PyResult<_> {
+            let chunking_props: ChunkingProperties = value.chunking.extract(py)?;
+            Ok(chunking_props)
+        })?;
+
+        let tile_shape = Python::with_gil(|py| -> PyResult<_> {
+            let tile_shape: TileShape = chunking_props.tile.extract(py)?;
+            Ok(tile_shape)
+        })?;
+
         // This copies the string into a buffer owned by the return value.
         if !unsafe {
             capi::storage_properties_init(
@@ -106,7 +187,15 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                     x: value.pixel_scale_um.0,
                     y: value.pixel_scale_um.1,
                 },
-                value.bytes_per_chunk,
+            ) == 1
+        } {
+            Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else if !unsafe {
+            capi::storage_properties_set_chunking_props(&mut out,
+                                                        tile_shape.width,
+                                                        tile_shape.height,
+                                                        tile_shape.planes,
+                                                        chunking_props.max_bytes_per_chunk,
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
@@ -123,7 +212,7 @@ impl Default for capi::StorageProperties {
             first_frame_id: Default::default(),
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
-            bytes_per_chunk: Default::default(),
+            chunking: Default::default(),
         }
     }
 }
@@ -143,6 +232,57 @@ impl Default for capi::PixelScale {
         Self {
             x: Default::default(),
             y: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s {
+    fn default() -> Self {
+        Self {
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::StorageProperties_storage_properties_chunking_s {
+    fn default() -> Self {
+        Self {
+            max_bytes_per_chunk: Default::default(),
+            tile: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::ImageShape_image_dims_s {
+    fn default() -> Self {
+        Self {
+            channels: Default::default(),
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::ImageShape_image_strides_s {
+    fn default() -> Self {
+        Self {
+            channels: Default::default(),
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
+        }
+    }
+}
+
+impl Default for capi::ImageShape {
+    fn default() -> Self {
+        Self {
+            dims: Default::default(),
+            strides: Default::default(),
+            type_: Default::default(),
         }
     }
 }

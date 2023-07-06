@@ -209,12 +209,25 @@ class Storage:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class TileShape:
+    width: int
+    height: int
+    planes: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class ChunkingProperties:
+    max_bytes_per_chunk: int
+    tile: TileShape
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class StorageProperties:
-    bytes_per_chunk: int
     external_metadata_json: Optional[str]
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
+    chunking: ChunkingProperties
     def dict(self) -> Dict[str, Any]: ...
 
 @final
