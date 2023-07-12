@@ -169,7 +169,7 @@ jobs:
       - dcam
       - egrabber
       - typing
-    if: ${{ github.actor == 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Checkout PR
         uses: actions/checkout@v3
