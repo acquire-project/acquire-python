@@ -136,7 +136,7 @@ jobs:
 
   typing:
     name: mypy typing
-    runs-on: ubuntu-latest
+    runs-on: windows-latest  # FIXME (aliddell): stubtest claims to fail to find shared libs on Linux
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
