@@ -167,18 +167,25 @@ def gui(
                 nframes[1] < p.video[1].max_frame_count
             )
 
+        def next_frame() -> Optional[npt.NDArray[Any]]:
+            """Get the next frame from the current stream."""
+            if nframes[stream_id] < p.video[stream_id].max_frame_count:
+                if packet := runtime.get_available_data(stream_id):
+                    n = packet.get_frame_count()
+                    nframes[stream_id] += n
+                    logging.info(f"[stream {stream_id}] frame count: {nframes}")
+                    f = next(packet.frames())
+                    logging.debug(f"stream {stream_id} frame {f.metadata().frame_id}")
+                    return f.data().squeeze().copy()
+            return None
+
         while is_not_done():  # runtime.get_state()==DeviceState.Running:
             clock = time.time()
 
-            if nframes[stream_id] < p.video[stream_id].max_frame_count:
-                if frame := _next_frame(runtime, stream_id):
-                    im, n = frame
-                    yield (im, stream_id)
-                    nframes[stream_id] += n
-                    logging.info(
-                        f"[stream {stream_id}] frame count: {nframes}"
-                    )
-            stream_id = (stream_id + 1) % 2
+            if (frame := next_frame()) is not None:
+                yield frame, stream_id
+
+            stream_id = (stream_id + 1) % stream_count
 
             elapsed = time.time() - clock
             time.sleep(max(0, 0.03 - elapsed))
@@ -209,16 +216,6 @@ def _get_runtime() -> Runtime:
     else:
         logging.info("REUSING RUNTIME")
     return _g_runtime
-
-
-def _next_frame(runtime: Runtime, stream_id: int) -> Optional[Tuple[npt.NDArray[Any], int]]:
-    """Get the next frame from the given stream with its count."""
-    if packet := runtime.get_available_data(stream_id):
-        n = packet.get_frame_count()
-        f = next(packet.frames())
-        logging.debug(f"stream {stream_id} frame {f.metadata().frame_id}")
-        return f.data().squeeze().copy(), n
-    return None
 
 
 # TODO: (nclack) add context manager around runtime and start/stop
