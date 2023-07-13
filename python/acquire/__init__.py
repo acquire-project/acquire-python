@@ -21,6 +21,21 @@ logging.basicConfig(format=FORMAT)
 logging.getLogger().setLevel(logging.INFO)
 
 
+g_runtime: Optional[Runtime] = None
+"""The global acquire runtime."""
+
+
+def _get_runtime() -> Runtime:
+    """Potentially create and get the global acquire runtime."""
+    global g_runtime
+    if g_runtime is None:
+        logging.info("INITING RUNTIME")
+        g_runtime = acquire.Runtime()
+    else:
+        logging.info("REUSING RUNTIME")
+    return g_runtime
+
+
 def setup(
     runtime: Runtime,
     camera: Union[str, List[str]] = "simulated: radial sin",
@@ -198,21 +213,6 @@ def gui(
 
     viewer.layers.clear()
     do_acquisition()
-
-
-_g_runtime: Optional[Runtime] = None
-"""The global acquire runtime."""
-
-
-def _get_runtime() -> Runtime:
-    """Potentially create and get the global acquire runtime."""
-    global _g_runtime
-    if _g_runtime is None:
-        logging.info("INITING RUNTIME")
-        _g_runtime = acquire.Runtime()
-    else:
-        logging.info("REUSING RUNTIME")
-    return _g_runtime
 
 
 # TODO: (nclack) add context manager around runtime and start/stop
