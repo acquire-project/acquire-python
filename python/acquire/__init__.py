@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     import napari  # type: ignore
 
 
-FORMAT = (
+FORMAT: str = (
     "%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s"
 )
 logging.basicConfig(format=FORMAT)
