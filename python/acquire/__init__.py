@@ -181,12 +181,9 @@ def gui(
 
         while is_not_done():  # runtime.get_state()==DeviceState.Running:
             clock = time.time()
-
             if (frame := next_frame()) is not None:
                 yield frame, stream_id
-
             stream_id = (stream_id + 1) % stream_count
-
             elapsed = time.time() - clock
             time.sleep(max(0, 0.03 - elapsed))
         logging.info("stopping")
