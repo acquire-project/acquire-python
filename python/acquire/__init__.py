@@ -11,7 +11,7 @@ __doc__ = acquire.__doc__
 import logging
 
 if TYPE_CHECKING:
-    import napari
+    import napari  # type: ignore
 
 
 FORMAT = (
@@ -113,19 +113,19 @@ def setup_two_streams(runtime: Runtime, frame_count: int) -> Properties:
 
 def gui(
     viewer: "napari.Viewer",
-    stream_count: Literal[1, 2] = 1,
     frame_count: int = 100,
-):
+    stream_count: Literal[1, 2] = 2,
+) -> None:
     """Napari dock-widget plugin entry-point
 
     This instances a magicgui dock widget that streams video to a layer.
     """
-    from napari.qt.threading import thread_worker
+    from napari.qt.threading import thread_worker  # type: ignore
     from numpy import cumsum, histogram, where
 
     update_times: List[float] = []
 
-    def update_layer(args: Tuple[npt.NDArray[Any], int]):
+    def update_layer(args: Tuple[npt.NDArray[Any], int]) -> None:
         (new_image, stream_id) = args
         layer_key = f"Video {stream_id}"
         try:
