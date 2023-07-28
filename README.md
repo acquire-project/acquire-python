@@ -21,7 +21,24 @@ Support for:
   - Zarr v2
 
 ## Installation
+> **Note** We recommend installing acquire-imaging in a clean python virtual environment 
+> using an environment manager such as conda. You may install [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+> as a minimal installer and environment manager for conda. 
 
+Create a new virtual environment called "acquire" and install Python 3.11 using the following:
+```bash
+conda create --name acquire python=3.11
+conda activate acquire
+```
+
+[Rust](https://www.rust-lang.org/learn/get-started) must be installed as a prerequisite for acquire-imaging installation. 
+> **Note** If you encounter a permission error with MacOS when installing rust, try the following:
+> ```bash
+> curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+> bash -s -- -y --no-modify-path
+> ```
+
+To install acquire-imaging:
 ```bash
 python -m pip install acquire-imaging
 ```
