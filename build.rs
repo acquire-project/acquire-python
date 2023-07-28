@@ -28,6 +28,7 @@ fn main() {
         .expect("Failed to parse drivers.json");
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
     fetch_acquire_driver(
         &out,
         "acquire-driver-common",

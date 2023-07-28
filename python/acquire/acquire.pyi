@@ -177,7 +177,6 @@ class SampleType:
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
 
-
 @final
 class SignalIOKind:
     Input: ClassVar[SignalIOKind] = SignalIOKind.Input
@@ -228,6 +227,7 @@ class StorageProperties:
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     chunking: ChunkingProperties
+    enable_multiscale: bool
     def dict(self) -> Dict[str, Any]: ...
 
 @final

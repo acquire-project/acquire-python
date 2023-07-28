@@ -71,6 +71,9 @@ pub struct StorageProperties {
 
     #[pyo3(get, set)]
     pub(crate) chunking: Py<ChunkingProperties>,
+
+    #[pyo3(get, set)]
+    pub(crate) enable_multiscale: bool,
 }
 
 impl_plain_old_dict!(StorageProperties);
@@ -86,6 +89,7 @@ impl Default for StorageProperties {
             first_frame_id: Default::default(),
             pixel_scale_um: Default::default(),
             chunking,
+            enable_multiscale: Default::default(),
         }
     }
 }
@@ -131,6 +135,7 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             external_metadata_json,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
             chunking,
+            enable_multiscale: (value.enable_multiscale == 1),
         })
     }
 }
@@ -199,6 +204,12 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else if !unsafe {
+            capi::storage_properties_set_enable_multiscale(&mut out,
+                                                           value.enable_multiscale as u8,
+            ) == 1
+        } {
+            Err(anyhow::anyhow!("Failed acquire api status check"))
         } else {
             Ok(out)
         }
@@ -213,6 +224,7 @@ impl Default for capi::StorageProperties {
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
             chunking: Default::default(),
+            enable_multiscale: Default::default(),
         }
     }
 }
@@ -246,12 +258,42 @@ impl Default for capi::StorageProperties_storage_properties_chunking_s_storage_p
     }
 }
 
+impl TryFrom<&TileShape> for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &TileShape) -> Result<Self, Self::Error> {
+        let mut out: capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s = unsafe { std::mem::zeroed() };
+
+        out.height = value.height;
+        out.width = value.width;
+        out.planes = value.planes;
+
+        Ok(out)
+    }
+}
+
 impl Default for capi::StorageProperties_storage_properties_chunking_s {
     fn default() -> Self {
         Self {
             max_bytes_per_chunk: Default::default(),
             tile: Default::default(),
         }
+    }
+}
+
+impl TryFrom<&ChunkingProperties> for capi::StorageProperties_storage_properties_chunking_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &ChunkingProperties) -> Result<Self, Self::Error> {
+        let tile = Python::with_gil(|py| -> PyResult<_> {
+            let tile: TileShape = value.tile.extract(py)?;
+            Ok(tile)
+        })?;
+
+        Ok(capi::StorageProperties_storage_properties_chunking_s {
+            max_bytes_per_chunk: value.max_bytes_per_chunk,
+            tile: (&tile).try_into()?,
+        })
     }
 }
 

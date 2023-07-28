@@ -13,6 +13,8 @@ import zarr
 from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
+from skimage.transform import downscale_local_mean
+import numpy as np
 
 
 @pytest.fixture(scope="module")
@@ -428,6 +430,7 @@ def test_write_zarr_with_chunking(
     )
     p.video[0].camera.settings.shape = (1920, 1080)
     p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
     p.video[0].storage.identifier = dm.select(
         DeviceKind.Storage,
         "Zarr",
@@ -457,6 +460,64 @@ def test_write_zarr_with_chunking(
         p.video[0].camera.settings.shape[0],
     )
     assert data.nchunks == expected_number_of_chunks
+
+
+def test_write_zarr_multiscale(
+    runtime: acquire.Runtime,
+    request: pytest.FixtureRequest,
+):
+    filename = f"{request.node.name}.zarr"
+    filename = filename.replace("[", "_").replace("]", "_")
+
+    dm = runtime.device_manager()
+
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    p.video[0].camera.settings.shape = (1920, 1080)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
+    p.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage,
+        "Zarr",
+    )
+    p.video[0].storage.settings.filename = filename
+    p.video[0].storage.settings.pixel_scale_um = (1, 1)
+    p.video[0].max_frame_count = 100
+
+    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
+    p.video[0].storage.settings.chunking.tile.width = (
+        p.video[0].camera.settings.shape[0] // 3
+    )
+    p.video[0].storage.settings.chunking.tile.height = (
+        p.video[0].camera.settings.shape[1] // 3
+    )
+    p.video[0].storage.settings.chunking.tile.planes = 1
+
+    p.video[0].storage.settings.enable_multiscale = True
+
+    runtime.set_configuration(p)
+
+    runtime.start()
+    runtime.stop()
+
+    reader = Reader(parse_url(filename))
+    zgroup = list(reader())[0]
+    # loads each layer as a dask array from the Zarr dataset
+    data = [
+        da.from_zarr(filename, component=str(i))
+        for i in range(len(zgroup.data))
+    ]
+    assert len(data) == 3
+
+    image = data[0][0, 0, :, :].compute()  # convert dask array to numpy array
+
+    for d in data:
+        assert (
+            np.linalg.norm(image - d[0, 0, :, :].compute()) == 0
+        )  # validate against the same method from scikit-image
+        image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
 
 
 @pytest.mark.skip(
