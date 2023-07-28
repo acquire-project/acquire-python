@@ -461,17 +461,9 @@ def test_write_zarr_with_chunking(
     assert data.nchunks == expected_number_of_chunks
 
 
-@pytest.mark.parametrize(
-    ("identifier",),
-    [
-        ("Zarr",),
-        ("ZarrBlosc1ZstdByteShuffle",),
-    ],
-)
 def test_write_zarr_multiscale(
     runtime: acquire.Runtime,
     request: pytest.FixtureRequest,
-    identifier: str,
 ):
     filename = f"{request.node.name}.zarr"
     filename = filename.replace("[", "_").replace("]", "_")
@@ -484,12 +476,14 @@ def test_write_zarr_multiscale(
     )
     p.video[0].camera.settings.shape = (1920, 1080)
     p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
     p.video[0].storage.identifier = dm.select(
         DeviceKind.Storage,
-        identifier,
+        "Zarr",
     )
     p.video[0].storage.settings.filename = filename
-    p.video[0].max_frame_count = 73
+    p.video[0].storage.settings.pixel_scale_um = (1, 1)
+    p.video[0].max_frame_count = 100
 
     p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
     p.video[0].storage.settings.chunking.tile.width = (
@@ -500,7 +494,7 @@ def test_write_zarr_multiscale(
     )
     p.video[0].storage.settings.chunking.tile.planes = 1
 
-    p.video[0].storage.settings.multiscale.max_layer = -1
+    p.video[0].storage.settings.enable_multiscale = True
 
     runtime.set_configuration(p)
 
