@@ -430,6 +430,7 @@ def test_write_zarr_with_chunking(
     )
     p.video[0].camera.settings.shape = (1920, 1080)
     p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
     p.video[0].storage.identifier = dm.select(
         DeviceKind.Storage,
         "Zarr",
