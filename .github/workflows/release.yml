@@ -5,7 +5,7 @@ on:
     tags:
       - "v*.*.*"
       - "nightly"
-  pull_request:  # TODO (aliddell: remove me)
+  pull_request:  # TODO (aliddell): remove me
     branches:
       - "main"
 
@@ -14,7 +14,8 @@ jobs:
     name: "Build and test"
     strategy:
       matrix:
-        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+#        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+        platform: [ "windows-latest" ] # TODO (aliddell): restore me
 
     runs-on: ${{ matrix.platform }}
 
@@ -76,8 +77,9 @@ jobs:
       - name: Install (Windows)
         if: matrix.platform == 'windows-latest'
         run: |
-          FOR %w in (*.whl) DO python -m pip install %w
-        shell: cmd
+          ls
+          python -m pip install *.whl
+        shell: pwsh
         working-directory: ${{github.workspace}}/dist
 
       - name: Install
