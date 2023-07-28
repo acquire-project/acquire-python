@@ -221,18 +221,13 @@ class ChunkingProperties:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class MultiscaleProperties:
-    max_layer: int
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
 class StorageProperties:
     external_metadata_json: Optional[str]
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     chunking: ChunkingProperties
-    multiscale: MultiscaleProperties
+    enable_multiscale: bool
     def dict(self) -> Dict[str, Any]: ...
 
 @final
