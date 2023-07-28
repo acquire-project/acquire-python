@@ -29,9 +29,6 @@ fn main() {
 
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
 
-    /// FIXME (aliddell): Once the drivers are built and released, uncomment this part.
-    /// In the meantime, you can build the dlls and copy them into python/acquire yourself.
-    /*
     fetch_acquire_driver(
         &out,
         "acquire-driver-common",
@@ -52,7 +49,6 @@ fn main() {
         "acquire-driver-hdcam",
         tags.acquire_driver_hdcam.as_str(),
     );
-     */
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
