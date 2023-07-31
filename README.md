@@ -25,9 +25,9 @@ Support for:
 > using an environment manager such as conda. You may install [miniconda](https://docs.conda.io/en/latest/miniconda.html)
 > as a minimal installer and environment manager for conda. 
 
-Create a new virtual environment called "acquire" and install Python 3.11 using the following:
+Create a new virtual environment called "acquire" and install Python 3.10 using the following:
 ```bash
-conda create --name acquire python=3.11
+conda create --name acquire python=3.10
 conda activate acquire
 ```
 
