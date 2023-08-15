@@ -71,26 +71,32 @@ jobs:
           command: build
           args: --release -o dist
 
-#      - name: Install (Windows)
-#        if: matrix.platform == 'windows-latest'
-#        run: |
-#          python -m pip install --upgrade pip
-#          python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
-#          python -m pip install *.whl
-#        shell: pwsh
-#        working-directory: ${{github.workspace}}/dist
-#
-#      - name: Install
-#        if: matrix.platform != 'windows-latest'
-#        run: |
-#          python -m pip install --upgrade pip
-#          python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
-#          python -m pip install *.whl
-#        working-directory: ${{github.workspace}}/dist
-#
-#      - name: Test artifact
-#        run: |
-#          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+      - name: Sleep for 5s
+        if: matrix.platform == 'windows-latest'
+        uses: juliangruber/sleep-action@v2.0.0
+        with:
+          time: 5s
+
+      - name: Install (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
+          python -m pip install *.whl
+        shell: pwsh
+        working-directory: ${{github.workspace}}/dist
+
+      - name: Install
+        if: matrix.platform != 'windows-latest'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
+          python -m pip install *.whl
+        working-directory: ${{github.workspace}}/dist
+
+      - name: Test artifact
+        run: |
+          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
