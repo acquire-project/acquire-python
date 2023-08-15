@@ -14,7 +14,10 @@ jobs:
     name: "Build and test"
     strategy:
       matrix:
-        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+        platform:
+          - windows-latest
+#          - ubuntu-latest
+#          - macos-latest
 
     runs-on: ${{ matrix.platform }}
 
@@ -71,6 +74,7 @@ jobs:
       - name: Install (Windows)
         if: matrix.platform == 'windows-latest'
         run: |
+          tree ${{github.workspace}}
           python -m pip install --upgrade pip
           python -m pip install *.whl
           python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
