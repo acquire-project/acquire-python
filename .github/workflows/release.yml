@@ -71,11 +71,11 @@ jobs:
           command: build
           args: --release -o dist
 
-      - name: Sleep for 5s
-        if: matrix.platform == 'windows-latest'
-        uses: juliangruber/sleep-action@v2.0.0
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
         with:
-          time: 5s
+          name: ${{matrix.platform}} wheels
+          path: dist
 
       - name: Install (Windows)
         if: matrix.platform == 'windows-latest'
@@ -97,12 +97,6 @@ jobs:
       - name: Test artifact
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.platform}} wheels
-          path: dist
 
 #  release:
 #    needs: build
