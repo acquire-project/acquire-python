@@ -50,7 +50,10 @@ jobs:
 
   dcam:
     name: Python ${{ matrix.python }} (DCAM)
-    runs-on: [ self-hosted,dcam ]
+    runs-on:
+      - self-hosted
+      - dcam
+      - CP15440-20UP
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -93,7 +96,10 @@ jobs:
 
   egrabber:
     name: Python ${{ matrix.python }} (eGrabber)
-    runs-on: [ self-hosted,egrabber ]
+    runs-on:
+      - self-hosted
+      - egrabber
+      - VC-151MX-M6H00
     timeout-minutes: 20
     strategy:
       fail-fast: false

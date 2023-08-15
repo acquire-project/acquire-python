@@ -69,8 +69,8 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: |
           python -m pip install --upgrade pip
-          FOR %w in (*.whl) DO python -m pip install %w
-        shell: cmd
+          python -m pip install *.whl
+        shell: pwsh
         working-directory: ${{github.workspace}}/dist
 
       - name: Install
