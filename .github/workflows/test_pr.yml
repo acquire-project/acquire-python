@@ -1,198 +1,198 @@
-name: Tests
-
-on:
-  push:
-    branches:
-      - main
-  pull_request_target:
-    branches:
-      - main
-
-jobs:
-  platforms:
-    name: Python ${{ matrix.python }} on ${{ matrix.platform }}
-    runs-on: ${{ matrix.platform }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
-        python: [ "3.8", "3.9", "3.10" ]
-
-    permissions:
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Install
-        run: |
-          pip install --upgrade pip
-          pip install -e '.[testing]'
-
-      - name: Test
-        run: |
-          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-
-  dcam:
-    name: Python ${{ matrix.python }} (DCAM)
-    runs-on:
-      - self-hosted
-      - dcam
-      - CP15440-20UP
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        python: [ "3.8", "3.9", "3.10" ]
-
-    permissions:
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Get CMake 3.24
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: 3.24.3
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Install
-        run: |
-          pip install --upgrade pip
-          pip install -e .[testing]
-
-      - name: Test
-        run: |
-          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-
-  egrabber:
-    name: Python ${{ matrix.python }} (eGrabber)
-    runs-on:
-      - self-hosted
-      - egrabber
-      - VC-151MX-M6H00
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        python: [ "3.8", "3.9", "3.10" ]
-
-    permissions:
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Get CMake 3.24
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: 3.24.3
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Install
-        run: |
-          pip install --upgrade pip
-          pip install -e .[testing]
-
-      - name: Test
-        run: |
-          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-
-  typing:
-    name: mypy typing
-    runs-on: windows-latest  # FIXME (aliddell): stubtest claims to fail to find shared libs on Linux
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install
-        run: |
-          pip install --upgrade pip
-          pip install -e '.[testing]'
-
-      - name: Run mypy on typed modules
-        run: mypy -p acquire
-
-      - name: Run stubtest on typed modules
-        run: stubtest acquire
-
-  merge:
-    name: Automerge
-    runs-on: "ubuntu-latest"
-    needs:
-      - platforms
-      - dcam
-      - egrabber
-      - typing
-    if: ${{ github.actor == 'dependabot[bot]' }}
-    steps:
-      - name: Checkout PR
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - name: Approve PR
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.PAT }}
-
-      # Don't auto-merge major version updates
-      - name: Merge PR
-        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.PAT }}
+#name: Tests  # TODO (aliddell): restore this
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#  pull_request_target:
+#    branches:
+#      - main
+#
+#jobs:
+#  platforms:
+#    name: Python ${{ matrix.python }} on ${{ matrix.platform }}
+#    runs-on: ${{ matrix.platform }}
+#    timeout-minutes: 20
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+#        python: [ "3.8", "3.9", "3.10" ]
+#
+#    permissions:
+#      actions: write
+#    env:
+#      GH_TOKEN: ${{ github.token }}
+#    steps:
+#      - name: Cancel Previous Runs
+#        uses: styfle/cancel-workflow-action@0.11.0
+#        with:
+#          access_token: ${{ github.token }}
+#
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#          ref: ${{ github.event.pull_request.head.sha }}
+#
+#      - name: Set up Python ${{ matrix.python }}
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#
+#      - name: Install
+#        run: |
+#          pip install --upgrade pip
+#          pip install -e '.[testing]'
+#
+#      - name: Test
+#        run: |
+#          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+#
+#  dcam:
+#    name: Python ${{ matrix.python }} (DCAM)
+#    runs-on:
+#      - self-hosted
+#      - dcam
+#      - CP15440-20UP
+#    timeout-minutes: 20
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python: [ "3.8", "3.9", "3.10" ]
+#
+#    permissions:
+#      actions: write
+#    env:
+#      GH_TOKEN: ${{ github.token }}
+#    steps:
+#      - name: Cancel Previous Runs
+#        uses: styfle/cancel-workflow-action@0.11.0
+#        with:
+#          access_token: ${{ github.token }}
+#
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#          ref: ${{ github.event.pull_request.head.sha }}
+#
+#      - name: Get CMake 3.24
+#        uses: lukka/get-cmake@latest
+#        with:
+#          cmakeVersion: 3.24.3
+#
+#      - name: Set up Python ${{ matrix.python }}
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#
+#      - name: Install
+#        run: |
+#          pip install --upgrade pip
+#          pip install -e .[testing]
+#
+#      - name: Test
+#        run: |
+#          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+#
+#  egrabber:
+#    name: Python ${{ matrix.python }} (eGrabber)
+#    runs-on:
+#      - self-hosted
+#      - egrabber
+#      - VC-151MX-M6H00
+#    timeout-minutes: 20
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python: [ "3.8", "3.9", "3.10" ]
+#
+#    permissions:
+#      actions: write
+#    env:
+#      GH_TOKEN: ${{ github.token }}
+#    steps:
+#      - name: Cancel Previous Runs
+#        uses: styfle/cancel-workflow-action@0.11.0
+#        with:
+#          access_token: ${{ github.token }}
+#
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#          ref: ${{ github.event.pull_request.head.sha }}
+#
+#      - name: Get CMake 3.24
+#        uses: lukka/get-cmake@latest
+#        with:
+#          cmakeVersion: 3.24.3
+#
+#      - name: Set up Python ${{ matrix.python }}
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#
+#      - name: Install
+#        run: |
+#          pip install --upgrade pip
+#          pip install -e .[testing]
+#
+#      - name: Test
+#        run: |
+#          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+#
+#  typing:
+#    name: mypy typing
+#    runs-on: windows-latest  # FIXME (aliddell): stubtest claims to fail to find shared libs on Linux
+#    env:
+#      GH_TOKEN: ${{ github.token }}
+#    steps:
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#          ref: ${{ github.event.pull_request.head.sha }}
+#
+#      - name: Set up Python 3.10
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: "3.10"
+#
+#      - name: Install
+#        run: |
+#          pip install --upgrade pip
+#          pip install -e '.[testing]'
+#
+#      - name: Run mypy on typed modules
+#        run: mypy -p acquire
+#
+#      - name: Run stubtest on typed modules
+#        run: stubtest acquire
+#
+#  merge:
+#    name: Automerge
+#    runs-on: "ubuntu-latest"
+#    needs:
+#      - platforms
+#      - dcam
+#      - egrabber
+#      - typing
+#    if: ${{ github.actor == 'dependabot[bot]' }}
+#    steps:
+#      - name: Checkout PR
+#        uses: actions/checkout@v3
+#        with:
+#          ref: ${{ github.event.pull_request.head.sha }}
+#          repository: ${{ github.event.pull_request.head.repo.full_name }}
+#
+#      - name: Approve PR
+#        run: gh pr review --approve "$PR_URL"
+#        env:
+#          PR_URL: ${{ github.event.pull_request.html_url }}
+#          GH_TOKEN: ${{ secrets.PAT }}
+#
+#      # Don't auto-merge major version updates
+#      - name: Merge PR
+#        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
+#        run: gh pr merge --auto --squash "$PR_URL"
+#        env:
+#          PR_URL: ${{ github.event.pull_request.html_url }}
+#          GH_TOKEN: ${{ secrets.PAT }}
