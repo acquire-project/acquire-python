@@ -105,6 +105,7 @@ def test_repeat_acq(runtime: Runtime):
     while True:
         if a := runtime.get_available_data(0):
             logging.info(f"Got {a.get_frame_count()}")
+            a = None
             break
     runtime.stop()
     assert runtime.get_available_data(0) is None
@@ -113,6 +114,7 @@ def test_repeat_acq(runtime: Runtime):
     while True:
         if a := runtime.get_available_data(0):
             logging.info(f"Got {a.get_frame_count()}")
+            a = None
             break
     runtime.stop()
     assert runtime.get_available_data(0) is None
@@ -126,6 +128,7 @@ def test_repeat_with_no_stop(runtime: Runtime):
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     p.video[0].camera.settings.shape = (192, 108)
+    p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].max_frame_count = 11
     p = runtime.set_configuration(p)
     runtime.start()
