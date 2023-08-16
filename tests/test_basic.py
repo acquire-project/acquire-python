@@ -16,8 +16,6 @@ from ome_zarr.reader import Reader
 from skimage.transform import downscale_local_mean
 import numpy as np
 
-logging.getLogger().setLevel(logging.DEBUG)
-
 
 @pytest.fixture(scope="module")
 def runtime():
@@ -89,7 +87,7 @@ def test_zero_conf_start(runtime: Runtime):
         runtime.start()
 
 
-def test_get_available_data(runtime: Runtime):
+def test_available_data_context_manager(runtime: Runtime):
     p = acquire.setup(runtime, "simulated.*empty.*", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
@@ -119,6 +117,10 @@ def test_get_available_data(runtime: Runtime):
     assert runtime.get_available_data(0) is None
 
     assert a.get_frame_count() == 0
+    i = 0
+    for _ in a.frames():
+        i += 1
+    assert i == 0
 
 
 def test_repeat_acq(runtime: Runtime):
