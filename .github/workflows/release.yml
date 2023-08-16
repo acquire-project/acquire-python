@@ -100,11 +100,9 @@ jobs:
         with:
           path: ${{ github.workspace }}/artifacts
 
-      - name: Collect wheels
-        run: |
-          mkdir -p dist
-          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
-          tree
+      - name: Display file structure
+        run: tree /f
+        shell: cmd
 
       - name: Install deps
         run: |
@@ -114,7 +112,7 @@ jobs:
       - name: Install wheel (Windows)
         if: matrix.platform == 'windows-latest'
         run: python -m pip install acquire_imaging*win_amd64.whl
-        working-directory: ${{github.workspace}}/dist
+        working-directory: "${{ github.workspace }}/artifacts/windows-latest wheels"
         shell: pwsh
 
       - name: Install wheel (MacOS)
