@@ -79,6 +79,7 @@ jobs:
 
   test:
     name: Test
+    needs: build
     strategy:
       matrix:
         platform:
