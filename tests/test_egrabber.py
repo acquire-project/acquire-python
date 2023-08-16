@@ -8,9 +8,15 @@ from acquire.acquire import Trigger
 
 
 @pytest.fixture(scope="module")
-def runtime():
+def _runtime():
     runtime = acquire.Runtime()
     yield runtime
+
+
+@pytest.fixture(scope="function")
+def runtime(_runtime: acquire.Runtime):
+    yield _runtime
+    _runtime.set_configuration(acquire.Properties())
 
 
 def test_vieworks_camera_is_preset(runtime: acquire.Runtime):
