@@ -15,6 +15,10 @@ jobs:
           - windows-latest
           - ubuntu-latest
           - macos-latest
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
 
     runs-on: ${{ matrix.platform }}
 
@@ -31,6 +35,11 @@ jobs:
         with:
           ref: main
           submodules: recursive
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
 
       - name: Checkout runtime nightly
         if: ${{github.ref_name == 'nightly'}}
