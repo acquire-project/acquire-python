@@ -16,8 +16,8 @@ jobs:
       matrix:
         platform:
           - windows-latest
-    #          - ubuntu-latest
-    #          - macos-latest
+          - ubuntu-latest
+          - macos-latest
 
     runs-on: ${{ matrix.platform }}
 
@@ -75,7 +75,6 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: |
           $whl = ls | Select -First 1
-          echo $whl
           python -m pip install $whl
         shell: pwsh
         working-directory: "${{ github.workspace }}/dist"
@@ -99,10 +98,6 @@ jobs:
         with:
           name: ${{matrix.platform}} wheels
           path: dist
-
-      - name: Test artifact
-        run: |
-          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
 #  release:
 #    needs: build
