@@ -8,10 +8,17 @@ on:
 
 jobs:
   build:
-    name: "Build and test"
+    name: Build
     strategy:
       matrix:
-        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
+        platform:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
 
     runs-on: ${{ matrix.platform }}
 
@@ -28,6 +35,11 @@ jobs:
         with:
           ref: main
           submodules: recursive
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
 
       - name: Checkout runtime nightly
         if: ${{github.ref_name == 'nightly'}}
@@ -58,27 +70,30 @@ jobs:
           target: universal2-apple-darwin
           args: --release -o dist
 
-      - name: Build
+      - name: Build (Windows, Linux)
         if: matrix.platform != 'macos-latest'
         uses: messense/maturin-action@v1
         with:
           command: build
           args: --release -o dist
 
-      - name: Install (Windows)
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov tifffile zarr dask ome-zarr
+
+      - name: Install Acquire (Windows)
         if: matrix.platform == 'windows-latest'
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install *.whl
+          $whl = ls | Select -First 1
+          python -m pip install $whl
         shell: pwsh
-        working-directory: ${{github.workspace}}/dist
+        working-directory: "${{ github.workspace }}/dist"
 
-      - name: Install
+      - name: Install Acquire (Linux, macOS)
         if: matrix.platform != 'windows-latest'
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install *.whl
-        working-directory: ${{github.workspace}}/dist
+        run: python -m pip install *.whl
+        working-directory: "${{ github.workspace }}/dist"
 
       - name: Test artifact
         run: |
@@ -94,7 +109,7 @@ jobs:
     needs: build
     name: "Release"
     runs-on: "ubuntu-latest"
-    
+
     environment:
       name: pypi
       url: https://pypi.org/p/acquire-imaging
