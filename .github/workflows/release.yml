@@ -84,8 +84,8 @@ jobs:
       matrix:
         platform:
           - windows-latest
-#          - ubuntu-latest
-#          - macos-latest
+    #          - ubuntu-latest
+    #          - macos-latest
 
     runs-on: ${{ matrix.platform }}
 
@@ -104,7 +104,6 @@ jobs:
         run: |
           mkdir -p dist
           mv ${{steps.download.outputs.download-path}}/*/*.whl dist
-        shell: bash
 
       - name: Install deps
         run: |
