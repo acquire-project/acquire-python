@@ -287,6 +287,35 @@ impl AvailableData {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
         Py::new(slf.py(), slf.frames())
     }
+
+    fn __enter__(&self) -> PyResult<AvailableData> {
+        Ok(AvailableData {
+            inner: self.inner.clone(),
+        })
+    }
+
+    fn __exit__(&self, _exc_type: Option<&PyAny>, _exc_value: Option<&PyAny>, _traceback: Option<&PyAny>) -> bool {
+        let consumed_bytes = self.inner.consumed_bytes.unwrap_or(unsafe {
+            byte_offset_from(self.inner.beg.as_ptr(), self.inner.end.as_ptr())
+        } as usize);
+        log::debug!(
+            "[stream {}] DROP read region: {:p}-{:p}:{}",
+            self.inner.stream_id,
+            self.inner.beg.as_ptr(),
+            self.inner.end.as_ptr(),
+            consumed_bytes
+        );
+        unsafe {
+            capi::acquire_unmap_read(
+                self.inner.runtime.inner.as_ptr(),
+                self.inner.stream_id,
+                consumed_bytes as _,
+            )
+            .ok()
+            .expect("Unexpected failure: Was the CoreRuntime NULL?");
+        }
+        true
+    }
 }
 
 #[pyclass]

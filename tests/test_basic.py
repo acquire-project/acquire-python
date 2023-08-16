@@ -16,6 +16,8 @@ from ome_zarr.reader import Reader
 from skimage.transform import downscale_local_mean
 import numpy as np
 
+logging.getLogger().setLevel(logging.DEBUG)
+
 
 @pytest.fixture(scope="module")
 def runtime():
@@ -87,19 +89,52 @@ def test_zero_conf_start(runtime: Runtime):
         runtime.start()
 
 
+def test_get_available_data(runtime: Runtime):
+    p = acquire.setup(runtime, "simulated.*empty.*", "Trash")
+    assert p.video[0].camera.identifier is not None
+    assert p.video[0].storage.identifier is not None
+    assert p.video[0].storage.settings.filename == "out.tif"
+    p.video[0].camera.settings.shape = (192, 108)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].max_frame_count = 10
+    p = runtime.set_configuration(p)
+
+    runtime.start()
+
+    while True:
+        if a := runtime.get_available_data(0):
+            with a:
+                frame_count = a.get_frame_count()
+                assert frame_count > 0
+                logging.info(f"Got {frame_count}")
+
+                i = 0
+                for _ in a.frames():
+                    i += 1
+
+                assert i == frame_count
+            break
+
+    runtime.stop()
+    assert runtime.get_available_data(0) is None
+
+    assert a.get_frame_count() == 0
+
+
 def test_repeat_acq(runtime: Runtime):
     p = acquire.setup(runtime, "simulated: radial sin", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.settings.filename == "out.tif"
     p.video[0].camera.settings.shape = (192, 108)
+    p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].max_frame_count = 10
     p = runtime.set_configuration(p)
     runtime.start()
     while True:
         if a := runtime.get_available_data(0):
-            logging.info(f"Got {a.get_frame_count()}")
-            a = None
+            with a:
+                logging.info(f"Got {a.get_frame_count()}")
             break
     runtime.stop()
     assert runtime.get_available_data(0) is None
@@ -107,8 +142,8 @@ def test_repeat_acq(runtime: Runtime):
     runtime.start()
     while True:
         if a := runtime.get_available_data(0):
-            logging.info(f"Got {a.get_frame_count()}")
-            a = None
+            with a:
+                logging.info(f"Got {a.get_frame_count()}")
             break
     runtime.stop()
     assert runtime.get_available_data(0) is None
