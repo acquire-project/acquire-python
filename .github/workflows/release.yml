@@ -35,47 +35,47 @@ jobs:
           ref: main
           submodules: recursive
 
-      - name: Checkout runtime nightly
-        if: ${{github.ref_name == 'nightly'}}
-        run: |
-          git fetch --tags
-          git checkout nightly
-          git submodule update --recursive
-        working-directory: ${{github.workspace}}/acquire-video-runtime
-
-      - name: Set config to pull nightly drivers
-        if: ${{github.ref_name == 'nightly'}}
-        run: |
-          cat >drivers.json <<EOF
-          {
-            "acquire-driver-common": "nightly",
-            "acquire-driver-zarr": "nightly",
-            "acquire-driver-egrabber": "nightly",
-            "acquire-driver-hdcam": "nightly"
-          }
-          EOF
-        shell: bash
-
-      - name: Build (macOS)
-        if: matrix.platform == 'macos-latest'
-        uses: messense/maturin-action@v1
-        with:
-          command: build
-          target: universal2-apple-darwin
-          args: --release -o dist
-
-      - name: Build
-        if: matrix.platform != 'macos-latest'
-        uses: messense/maturin-action@v1
-        with:
-          command: build
-          args: --release -o dist
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.platform}} wheels
-          path: dist
+#      - name: Checkout runtime nightly
+#        if: ${{github.ref_name == 'nightly'}}
+#        run: |
+#          git fetch --tags
+#          git checkout nightly
+#          git submodule update --recursive
+#        working-directory: ${{github.workspace}}/acquire-video-runtime
+#
+#      - name: Set config to pull nightly drivers
+#        if: ${{github.ref_name == 'nightly'}}
+#        run: |
+#          cat >drivers.json <<EOF
+#          {
+#            "acquire-driver-common": "nightly",
+#            "acquire-driver-zarr": "nightly",
+#            "acquire-driver-egrabber": "nightly",
+#            "acquire-driver-hdcam": "nightly"
+#          }
+#          EOF
+#        shell: bash
+#
+#      - name: Build (macOS)
+#        if: matrix.platform == 'macos-latest'
+#        uses: messense/maturin-action@v1
+#        with:
+#          command: build
+#          target: universal2-apple-darwin
+#          args: --release -o dist
+#
+#      - name: Build
+#        if: matrix.platform != 'macos-latest'
+#        uses: messense/maturin-action@v1
+#        with:
+#          command: build
+#          args: --release -o dist
+#
+#      - name: Upload wheels
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: ${{matrix.platform}} wheels
+#          path: dist
 
   test:
     name: Test
