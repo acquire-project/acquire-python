@@ -225,7 +225,7 @@ impl RawAvailableData {
             let mut cur = self.beg.as_ptr();
             let end = self.end.as_ptr();
             while cur < end {
-                let frame: &capi::VideoFrame = &*cur;
+                let frame: &capi::VideoFrame = &std::ptr::read_unaligned(cur);
                 log::trace!(
                     "[stream {}] Advancing count for frame {} w size {}",
                     self.stream_id,
