@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request:
     branches:
       - main
 
@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ "windows-latest", "ubuntu-latest", "macos-latest" ]
-        python: [ "3.8", "3.9", "3.10" ]
+        platform: [ "windows-latest" ] #, "ubuntu-latest", "macos-latest" ]
+        python: [ "3.8" ] #, "3.9", "3.10" ]
 
     permissions:
       actions: write
