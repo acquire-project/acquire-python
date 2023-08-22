@@ -12,7 +12,7 @@ struct DriverManifest {
 }
 
 fn main() {
-    let dst = dbg!(cmake::Config::new("acquire-video-runtime")
+    let dst = dbg!(cmake::Config::new("acquire-libs")
         .target("acquire-video-runtime")
         .profile("RelWithDebInfo")
         .static_crt(true)
