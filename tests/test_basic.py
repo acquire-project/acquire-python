@@ -99,28 +99,51 @@ def test_available_data_context_manager(runtime: Runtime):
 
     runtime.start()
 
-    while True:
-        if a := runtime.get_available_data(0):
-            with a:
-                frame_count = a.get_frame_count()
-                assert frame_count > 0
-                logging.info(f"Got {frame_count}")
-
-                i = 0
-                for _ in a.frames():
-                    i += 1
-
-                assert i == frame_count
-            break
-
-    runtime.stop()
-    assert runtime.get_available_data(0) is None
-
+    # get_available_data() only maps data if it is called in a context manager
+    a = runtime.get_available_data(0)
     assert a.get_frame_count() == 0
+
+    # a is an empty iterator
     i = 0
-    for _ in a.frames():
+    for _ in a:
         i += 1
     assert i == 0
+
+    with runtime.get_available_data(0) as b:
+        frame_count = b.get_frame_count()
+        assert frame_count > 0
+        logging.info(f"Got {frame_count}")
+
+        i = 0
+        for _ in b.frames():
+            i += 1
+
+        assert i == frame_count
+
+    # no data outside the context manager
+    assert b.get_frame_count() == 0
+
+    # b is an empty iterator
+    i = 0
+    for _ in b:
+        i += 1
+    assert i == 0
+
+    # reentering the context manager fetches more data
+    with b:
+        frame_count = b.get_frame_count()
+        assert frame_count > 0
+        logging.info(f"Got {frame_count}")
+
+        i = 0
+        for _ in b.frames():
+            i += 1
+
+        assert i == frame_count
+
+    runtime.stop()
+
+    assert b.get_frame_count() == 0
 
 
 def test_repeat_acq(runtime: Runtime):
@@ -134,21 +157,17 @@ def test_repeat_acq(runtime: Runtime):
     p = runtime.set_configuration(p)
     runtime.start()
     while True:
-        if a := runtime.get_available_data(0):
-            with a:
-                logging.info(f"Got {a.get_frame_count()}")
+        with runtime.get_available_data(0) as a:
+            logging.info(f"Got {a.get_frame_count()}")
             break
     runtime.stop()
-    assert runtime.get_available_data(0) is None
     # TODO: (nclack) assert 1 acquired frame. stop should block
     runtime.start()
     while True:
-        if a := runtime.get_available_data(0):
-            with a:
-                logging.info(f"Got {a.get_frame_count()}")
-            break
+        with runtime.get_available_data(0) as a:
+            logging.info(f"Got {a.get_frame_count()}")
+        break
     runtime.stop()
-    assert runtime.get_available_data(0) is None
     # TODO: (nclack) assert 1 more acquired frame. stop cancels and waits.
 
 
@@ -165,7 +184,7 @@ def test_repeat_with_no_stop(runtime: Runtime):
     runtime.start()
     # wait for 1 frame
     while True:
-        if a := runtime.get_available_data(0):
+        with runtime.get_available_data(0) as a:
             logging.info(f"Got {a.get_frame_count()}")
             a = None
             break
@@ -215,14 +234,13 @@ def test_setup(runtime: Runtime):
 
     while nframes < p.video[0].max_frame_count and not took_too_long():
         clock = time.time()
-        if a := runtime.get_available_data(0):
+        with runtime.get_available_data(0) as a:
             packet = a.get_frame_count()
             for f in a.frames():
                 logging.info(
                     f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}"
                 )
                 del f  # <-- fails to get the last frames if this is held?
-            del a  # <-- fails to get the last frames if this is held?
             nframes += packet
             logging.info(
                 f"frame count: {nframes} - frames in packet: {packet}"
@@ -265,7 +283,7 @@ def test_change_filename(runtime: Runtime):
         nframes = 0
         runtime.start()
         while nframes < p.video[0].max_frame_count:
-            if packet := runtime.get_available_data(0):
+            with runtime.get_available_data(0) as packet:
                 nframes += packet.get_frame_count()
                 packet = None
         logging.info("Stopping")
@@ -291,7 +309,7 @@ def test_write_external_metadata_to_tiff(
     nframes = 0
     runtime.start()
     while nframes < p.video[0].max_frame_count:
-        if packet := runtime.get_available_data(0):
+        with runtime.get_available_data(0) as packet:
             nframes += packet.get_frame_count()
             packet = None
     runtime.stop()
@@ -337,7 +355,7 @@ def test_write_external_metadata_to_zarr(
     nframes = 0
     runtime.start()
     while nframes < p.video[0].max_frame_count:
-        if packet := runtime.get_available_data(0):
+        with runtime.get_available_data(0) as packet:
             nframes += packet.get_frame_count()
             packet = None
     runtime.stop()
@@ -641,10 +659,13 @@ def test_abort(runtime: Runtime):
     logging.info("Aborting")
     runtime.abort()
 
-    while packet := runtime.get_available_data(0):
-        nframes += packet.get_frame_count()
+    while True:
+        with runtime.get_available_data(0) as packet:
+            if 0 == packet.get_frame_count():
+                break
+            nframes += packet.get_frame_count()
 
-    del packet
+        # del packet
 
     logging.debug(
         f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"

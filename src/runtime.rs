@@ -157,34 +157,11 @@ impl Runtime {
         .try_into()?)
     }
 
-    fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {
-        let mut beg = null_mut();
-        let mut end = null_mut();
-        unsafe {
-            capi::acquire_map_read(self.as_ref().as_ptr(), stream_id, &mut beg, &mut end).ok()?;
-        }
-        let nbytes = unsafe { byte_offset_from(beg, end) };
-        if nbytes > 0 {
-            log::trace!(
-                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
-                stream_id,
-                beg,
-                end,
-                nbytes
-            )
-        };
-        Ok(if nbytes > 0 {
-            Some(AvailableData {
-                inner: Arc::new(RawAvailableData {
-                    runtime: self.inner.clone(),
-                    beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
-                    end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                    stream_id,
-                    consumed_bytes: None,
-                }),
-            })
-        } else {
-            None
+    fn get_available_data(&self, stream_id: u32) -> PyResult<AvailableData> {
+        Ok(AvailableData {
+            runtime: self.inner.clone(),
+            inner: None,
+            stream_id,
         })
     }
 }
@@ -241,46 +218,56 @@ impl RawAvailableData {
     }
 }
 
-impl Drop for RawAvailableData {
-    fn drop(&mut self) {
-        let consumed_bytes = self
-            .consumed_bytes
-            .unwrap_or(unsafe { byte_offset_from(self.beg.as_ptr(), self.end.as_ptr()) } as usize);
-        log::debug!(
-            "[stream {}] DROP read region: {:p}-{:p}:{}",
-            self.stream_id,
-            self.beg.as_ptr(),
-            self.end.as_ptr(),
-            consumed_bytes
-        );
-        unsafe {
-            capi::acquire_unmap_read(
-                self.runtime.inner.as_ptr(),
-                self.stream_id,
-                consumed_bytes as _,
-            )
-            .ok()
-            .expect("Unexpected failure: Was the CoreRuntime NULL?");
-        }
-    }
-}
-
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Arc<RawAvailableData>,
+    runtime: Arc<RawRuntime>,
+    inner: Option<Arc<RawAvailableData>>,
+    stream_id: u32,
 }
 
 #[pymethods]
 impl AvailableData {
     fn get_frame_count(&self) -> usize {
-        self.inner.get_frame_count()
+        if let Some(inner) = &self.inner {
+            inner.get_frame_count()
+        } else {
+            0
+        }
     }
 
     fn frames(&self) -> VideoFrameIterator {
+        let (store, cur, end) = if let Some(inner) = &self.inner {
+            (inner.clone(), Mutex::new(inner.beg), inner.end)
+        } else {
+            let mut v = capi::VideoFrame {
+                frame_id: 0,
+                hardware_frame_id: 0,
+                shape: Default::default(),
+                data: Default::default(),
+                bytes_of_frame: 0,
+                timestamps: capi::VideoFrame_video_frame_timestamps_s {
+                    hardware: 0,
+                    acq_thread: 0,
+                },
+            };
+            let vp: *mut capi::VideoFrame = &mut v;
+
+            let inner = Arc::new(RawAvailableData {
+                runtime: self.runtime.clone(),
+                beg: NonNull::new(vp).unwrap(),
+                end: NonNull::new(vp).unwrap(),
+                stream_id: self.stream_id,
+                consumed_bytes: None,
+            });
+
+            let beg = NonNull::new(vp as _).unwrap();
+            (inner, Mutex::new(beg), beg)
+        };
+
         VideoFrameIterator {
-            store: self.inner.clone(),
-            cur: Mutex::new(self.inner.beg),
-            end: self.inner.end,
+            store,
+            cur,
+            end,
         }
     }
 
@@ -288,22 +275,66 @@ impl AvailableData {
         Py::new(slf.py(), slf.frames())
     }
 
-    fn __enter__(&self) -> PyResult<AvailableData> {
+    fn __enter__(&mut self) -> PyResult<AvailableData> {
+        let mut beg = null_mut();
+        let mut end = null_mut();
+        unsafe {
+            capi::acquire_map_read(self.runtime.inner.as_ptr(), self.stream_id, &mut beg, &mut end).ok()?;
+        }
+        let nbytes = unsafe { byte_offset_from(beg, end) };
+        if nbytes > 0 {
+            log::trace!(
+                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+                self.stream_id,
+                beg,
+                end,
+                nbytes
+            )
+        };
+        self.inner = if nbytes > 0 {
+            Some(Arc::new(RawAvailableData {
+                runtime: self.runtime.clone(),
+                beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                stream_id: self.stream_id,
+                consumed_bytes: None,
+            }))
+        } else {
+            None
+        };
+
         Ok(AvailableData {
+            runtime: self.runtime.clone(),
             inner: self.inner.clone(),
+            stream_id: self.stream_id,
         })
     }
 
     fn __exit__(&mut self, _exc_type: Option<&PyAny>, _exc_value: Option<&PyAny>, _traceback: Option<&PyAny>) -> bool {
-        // Create a new RawAvailableData, drops the old one
-        self.inner = Arc::new(RawAvailableData {
-            runtime: self.inner.runtime.clone(),
-            beg: self.inner.end,
-            end: self.inner.end,
-            stream_id: self.inner.stream_id,
-            consumed_bytes: None,
-        });
+        // Drop the inner RawAvailableData
+        if let Some(inner) = &self.inner {
+            let consumed_bytes = inner
+                .consumed_bytes
+                .unwrap_or(unsafe { byte_offset_from(inner.beg.as_ptr(), inner.end.as_ptr()) } as usize);
+            log::debug!(
+            "[stream {}] DROP read region: {:p}-{:p}:{}",
+            self.stream_id,
+            inner.beg.as_ptr(),
+            inner.end.as_ptr(),
+            consumed_bytes
+        );
+            unsafe {
+                capi::acquire_unmap_read(
+                    self.runtime.inner.as_ptr(),
+                    self.stream_id,
+                    consumed_bytes as _,
+                )
+                .ok()
+                .expect("Unexpected failure: Was the CoreRuntime NULL?");
+            };
+        }
 
+        self.inner = None;
         true
     }
 }
