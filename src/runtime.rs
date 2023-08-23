@@ -168,8 +168,6 @@ impl Runtime {
 
 /// References to a region of raw data being read from a video stream.
 struct RawAvailableData {
-    /// Reference to the context that owns the region
-    runtime: Arc<RawRuntime>,
     /// Pointer to the reserved region
     beg: NonNull<capi::VideoFrame>,
     end: NonNull<capi::VideoFrame>,
@@ -220,6 +218,7 @@ impl RawAvailableData {
 
 #[pyclass]
 pub(crate) struct AvailableData {
+    /// Reference to the context that owns the region
     runtime: Arc<RawRuntime>,
     inner: Option<Arc<RawAvailableData>>,
     stream_id: u32,
@@ -253,7 +252,6 @@ impl AvailableData {
             let vp: *mut capi::VideoFrame = &mut v;
 
             let inner = Arc::new(RawAvailableData {
-                runtime: self.runtime.clone(),
                 beg: NonNull::new(vp).unwrap(),
                 end: NonNull::new(vp).unwrap(),
                 stream_id: self.stream_id,
@@ -293,7 +291,6 @@ impl AvailableData {
         };
         self.inner = if nbytes > 0 {
             Some(Arc::new(RawAvailableData {
-                runtime: self.runtime.clone(),
                 beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
                 end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
                 stream_id: self.stream_id,
