@@ -1,4 +1,7 @@
 [submodule "acquire-video-runtime"]
-	path = acquire-video-runtime
+	path = acquire/acquire-video-runtime
 	url = ../acquire-video-runtime.git
 	branch = main
+[submodule "acquire-core-libs"]
+	path = acquire/acquire-core-libs
+	url = ../acquire-core-libs.git

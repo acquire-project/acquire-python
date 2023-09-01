@@ -1,0 +1,5 @@
+function(aq_require tgt)
+    if(NOT TARGET ${tgt})
+        add_subdirectory(${tgt})
+    endif()
+endfunction()
