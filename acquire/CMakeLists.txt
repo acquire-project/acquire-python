@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-cmake_project(acquire)
+project(acquire)
 
 include(cmake/aq_require.cmake)
 aq_require(acquire-core-libs)
