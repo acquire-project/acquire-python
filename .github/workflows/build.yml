@@ -9,31 +9,6 @@ on:
       - main
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [ x86_64, x86, aarch64, armv7, s390x, ppc64le ]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist
-          sccache: 'true'
-          manylinux: auto
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-
   windows:
     runs-on: windows-latest
     strategy:
@@ -42,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: true
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -67,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: true
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -77,6 +52,33 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist
           sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64, x86, aarch64, armv7, s390x, ppc64le ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install libssl-dev
+        run: sudo apt-get install libssl-dev
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+          sccache: 'true'
+          manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
