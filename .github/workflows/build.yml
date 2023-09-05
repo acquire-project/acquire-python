@@ -4,16 +4,10 @@ on:
   push:
     branches:
       - main
-  pull_request: # TODO (aliddell): remove this
-    branches:
-      - main
 
 jobs:
   windows:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        target: [ x64 ]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -25,7 +19,7 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.target }}
+          target: x64
           args: --release --out dist
           sccache: 'true'
       - name: Upload wheels
