@@ -5,6 +5,9 @@ on:
     tags:
       - "v*.*.*"
       - "nightly"
+  pull_request: # TODO (aliddell): remove
+    branches:
+      - main
 
 jobs:
   windows:
@@ -206,33 +209,33 @@ jobs:
           name: wheels
           path: dist
 
-  release:
-    needs:
-      - windows
-      - macos
-      - linux
-    name: "Release"
-    runs-on: "ubuntu-latest"
-
-    environment:
-      name: pypi
-      url: https://pypi.org/p/acquire-imaging
-
-    permissions: write-all
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/download-artifact@v3
-        id: download
-        with:
-          path: ${{ github.workspace }}/artifacts
-
-      - name: Collect wheels
-        run: |
-          mkdir -p dist
-          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
-
+#  release:
+#    needs:
+#      - windows
+#      - macos
+#      - linux
+#    name: "Release"
+#    runs-on: "ubuntu-latest"
+#
+#    environment:
+#      name: pypi
+#      url: https://pypi.org/p/acquire-imaging
+#
+#    permissions: write-all
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#
+#      - uses: actions/download-artifact@v3
+#        id: download
+#        with:
+#          path: ${{ github.workspace }}/artifacts
+#
+#      - name: Collect wheels
+#        run: |
+#          mkdir -p dist
+#          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
+#
 #      - name: Tagged release
 #        if: ${{ github.ref_name != 'nightly' }}
 #        uses: marvinpinto/action-automatic-releases@latest
