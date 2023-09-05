@@ -8,13 +8,19 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python }}
           architecture: ${{ matrix.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -33,13 +39,17 @@ jobs:
     strategy:
       matrix:
         target: [ x86_64, aarch64 ]
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -54,10 +64,19 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
