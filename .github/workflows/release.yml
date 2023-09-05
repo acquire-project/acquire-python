@@ -5,9 +5,6 @@ on:
     tags:
       - "v*.*.*"
       - "nightly"
-  pull_request: # TODO (aliddell): remove
-    branches:
-      - main
 
 jobs:
   windows:
@@ -209,55 +206,55 @@ jobs:
           name: wheels
           path: dist
 
-#  release:
-#    needs:
-#      - windows
-#      - macos
-#      - linux
-#    name: "Release"
-#    runs-on: "ubuntu-latest"
-#
-#    environment:
-#      name: pypi
-#      url: https://pypi.org/p/acquire-imaging
-#
-#    permissions: write-all
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - uses: actions/download-artifact@v3
-#        id: download
-#        with:
-#          path: ${{ github.workspace }}/artifacts
-#
-#      - name: Collect wheels
-#        run: |
-#          mkdir -p dist
-#          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
-#
-#      - name: Tagged release
-#        if: ${{ github.ref_name != 'nightly' }}
-#        uses: marvinpinto/action-automatic-releases@latest
-#        with:
-#          repo_token: ${{ github.token }}
-#          prerelease: false
-#          files: |
-#            dist/*.whl
-#
-#      - name: Nightly release
-#        if: ${{ github.ref_name == 'nightly' }}
-#        uses: marvinpinto/action-automatic-releases@latest
-#        with:
-#          repo_token: ${{ secrets.PAT }}
-#          automatic_release_tag: "nightly"
-#          prerelease: true
-#          title: "Nightly Release"
-#          files: |
-#            dist/*.whl
-#
-#      - name: Publish wheels
-#        if: ${{ github.ref_name != 'nightly' }}
-#        uses: pypa/gh-action-pypi-publish@release/v1
-#        with:
-#          skip-existing: true
+  release:
+    needs:
+      - windows
+      - macos
+      - linux
+    name: "Release"
+    runs-on: "ubuntu-latest"
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/acquire-imaging
+
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: ${{ github.workspace }}/artifacts
+
+      - name: Collect wheels
+        run: |
+          mkdir -p dist
+          mv ${{steps.download.outputs.download-path}}/*/*.whl dist
+
+      - name: Tagged release
+        if: ${{ github.ref_name != 'nightly' }}
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ github.token }}
+          prerelease: false
+          files: |
+            dist/*.whl
+
+      - name: Nightly release
+        if: ${{ github.ref_name == 'nightly' }}
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.PAT }}
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "Nightly Release"
+          files: |
+            dist/*.whl
+
+      - name: Publish wheels
+        if: ${{ github.ref_name != 'nightly' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
