@@ -76,7 +76,9 @@ jobs:
         with:
           name: wheels
           path: dist
+
   macos:
+    name: Build and test on macOS
     runs-on: macos-latest
     strategy:
       matrix:
@@ -143,7 +145,9 @@ jobs:
         with:
           name: wheels
           path: dist
+
   linux:
+    name: Build and test on Ubuntu
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -211,8 +215,8 @@ jobs:
       - windows
       - macos
       - linux
-    name: "Release"
-    runs-on: "ubuntu-latest"
+    name: Release
+    runs-on: ubuntu-latest
 
     environment:
       name: pypi
