@@ -4,8 +4,6 @@ import napari  # type: ignore
 
 from .acquire import *
 
-FORMAT: str
-
 def setup(
     runtime: Runtime,
     camera: Union[str, List[str]] = ...,
@@ -17,4 +15,6 @@ def setup_two_streams(runtime: Runtime, frame_count: int) -> Properties: ...
 
 g_runtime: Optional[Runtime]
 
-def gui(viewer: "napari.Viewer", frame_count: int = ..., stream_count: int = ...) -> None: ...
+def gui(
+    viewer: "napari.Viewer", frame_count: int = ..., stream_count: int = ...
+) -> None: ...

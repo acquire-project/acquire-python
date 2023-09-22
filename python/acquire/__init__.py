@@ -1,5 +1,14 @@
 import time
-from typing import TYPE_CHECKING, Any, Generator, List, Literal, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy.typing as npt
 
@@ -12,13 +21,6 @@ import logging
 
 if TYPE_CHECKING:
     import napari  # type: ignore
-
-
-FORMAT: str = (
-    "%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s"
-)
-logging.basicConfig(format=FORMAT)
-logging.getLogger().setLevel(logging.INFO)
 
 
 g_runtime: Optional[Runtime] = None
@@ -159,7 +161,9 @@ def gui(
             viewer.add_image(new_image, name=layer_key)
 
     @thread_worker(connect={"yielded": update_layer})
-    def do_acquisition() -> Generator[Tuple[npt.NDArray[Any], int], None, None]:
+    def do_acquisition() -> (
+        Generator[Tuple[npt.NDArray[Any], int], None, None]
+    ):
         logging.basicConfig(level=logging.DEBUG)
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -188,9 +192,13 @@ def gui(
                 if packet := runtime.get_available_data(stream_id):
                     n = packet.get_frame_count()
                     nframes[stream_id] += n
-                    logging.info(f"[stream {stream_id}] frame count: {nframes}")
+                    logging.info(
+                        f"[stream {stream_id}] frame count: {nframes}"
+                    )
                     f = next(packet.frames())
-                    logging.debug(f"stream {stream_id} frame {f.metadata().frame_id}")
+                    logging.debug(
+                        f"stream {stream_id} frame {f.metadata().frame_id}"
+                    )
                     return f.data().squeeze().copy()
             return None
 
