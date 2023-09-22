@@ -12,11 +12,7 @@ struct DriverManifest {
 }
 
 fn main() {
-    let dst = dbg!(cmake::Config::new("acquire")
-        .target("acquire-core-logger")
-        .target("acquire-core-platform")
-        .target("acquire-device-hal")
-        .target("acquire-device-properties")
+    let dst = cmake::Config::new("acquire-libs")
         .target("acquire-video-runtime")
         .profile("RelWithDebInfo")
         .static_crt(true)
@@ -24,7 +20,7 @@ fn main() {
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
-        .build());
+        .build();
 
     let drivers_json = fs::read_to_string("drivers.json")
         .expect("Failed to read from drivers.json.");

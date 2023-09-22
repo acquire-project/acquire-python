@@ -23,8 +23,10 @@ jobs:
           access_token: ${{ github.token }}
       - uses: actions/checkout@v3
         with:
+          ref: main
           submodules: true
-      - uses: actions/setup-python@v4
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
           architecture: ${{ matrix.target }}
