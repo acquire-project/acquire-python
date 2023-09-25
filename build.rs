@@ -27,25 +27,25 @@ fn main() {
     let tags: DriverManifest = serde_json::from_str(drivers_json.as_str())
         .expect("Failed to parse drivers.json");
 
-    let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
 
     fetch_acquire_driver(
-        &out,
+        &drivers_dir,
         "acquire-driver-common",
         tags.acquire_driver_common.as_str(),
     );
     fetch_acquire_driver(
-        &out,
+        &drivers_dir,
         "acquire-driver-zarr",
         tags.acquire_driver_zarr.as_str(),
     );
     fetch_acquire_driver(
-        &out,
+        &drivers_dir,
         "acquire-driver-egrabber",
         tags.acquire_driver_egrabber.as_str(),
     );
     fetch_acquire_driver(
-        &out,
+        &drivers_dir,
         "acquire-driver-hdcam",
         tags.acquire_driver_hdcam.as_str(),
     );
@@ -71,7 +71,7 @@ fn main() {
         .expect("Unable to generate bindings");
 
     bindings
-        .write_to_file(out.join("bindings.rs"))
+        .write_to_file(dst.join("bindings.rs"))
         .expect("Failed to write bindings.");
 }
 
