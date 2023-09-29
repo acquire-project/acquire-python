@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request: # to temp run on PR
     branches:
       - main
 
@@ -154,6 +154,7 @@ jobs:
       - spinnaker
       - BFLY-U3-23S6M-C
       - ORX-10GS-51S5M-C
+      - dcam # to temp force ghanima
     timeout-minutes: 20
     strategy:
       fail-fast: false
