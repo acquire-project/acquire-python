@@ -146,6 +146,55 @@ jobs:
         run: |
           python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
+
+  spinnaker:
+    name: Python ${{ matrix.python }} (Spinnaker)
+    runs-on:
+      - self-hosted
+      - spinnaker
+      - BFLY-U3-23S6M-C
+      - ORX-10GS-51S5M-C
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [ "3.8", "3.9", "3.10" ]
+
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get CMake 3.24
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.24.3
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e .[testing]
+
+      - name: Test
+        run: |
+          python -m pytest -k test_spinnaker --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+
+
   typing:
     name: mypy typing
     runs-on: windows-latest  # FIXME (aliddell): stubtest claims to fail to find shared libs on Linux

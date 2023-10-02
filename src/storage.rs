@@ -40,9 +40,7 @@ impl_plain_old_dict!(ChunkingProperties);
 
 impl Default for ChunkingProperties {
     fn default() -> Self {
-        let tile = Python::with_gil(|py| {
-            Py::new(py, TileShape::default()).unwrap()
-        });
+        let tile = Python::with_gil(|py| Py::new(py, TileShape::default()).unwrap());
         Self {
             max_bytes_per_chunk: Default::default(),
             tile,
@@ -80,9 +78,7 @@ impl_plain_old_dict!(StorageProperties);
 
 impl Default for StorageProperties {
     fn default() -> Self {
-        let chunking = Python::with_gil(|py| {
-            Py::new(py, ChunkingProperties::default()).unwrap()
-        });
+        let chunking = Python::with_gil(|py| Py::new(py, ChunkingProperties::default()).unwrap());
         Self {
             filename: Default::default(),
             external_metadata_json: Default::default(),
@@ -118,15 +114,23 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
         };
 
         let chunking = Python::with_gil(|py| {
-            let tile = Py::new(py, TileShape {
-                width: value.chunking.tile.width,
-                height: value.chunking.tile.height,
-                planes: value.chunking.tile.planes,
-            }).unwrap();
-            Py::new(py, ChunkingProperties {
-                max_bytes_per_chunk: value.chunking.max_bytes_per_chunk,
-                tile,
-            }).unwrap()
+            let tile = Py::new(
+                py,
+                TileShape {
+                    width: value.chunking.tile.width,
+                    height: value.chunking.tile.height,
+                    planes: value.chunking.tile.planes,
+                },
+            )
+            .unwrap();
+            Py::new(
+                py,
+                ChunkingProperties {
+                    max_bytes_per_chunk: value.chunking.max_bytes_per_chunk,
+                    tile,
+                },
+            )
+            .unwrap()
         });
 
         Ok(Self {
@@ -196,18 +200,18 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
         } else if !unsafe {
-            capi::storage_properties_set_chunking_props(&mut out,
-                                                        tile_shape.width,
-                                                        tile_shape.height,
-                                                        tile_shape.planes,
-                                                        chunking_props.max_bytes_per_chunk,
+            capi::storage_properties_set_chunking_props(
+                &mut out,
+                tile_shape.width,
+                tile_shape.height,
+                tile_shape.planes,
+                chunking_props.max_bytes_per_chunk,
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
         } else if !unsafe {
-            capi::storage_properties_set_enable_multiscale(&mut out,
-                                                           value.enable_multiscale as u8,
-            ) == 1
+            capi::storage_properties_set_enable_multiscale(&mut out, value.enable_multiscale as u8)
+                == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
         } else {
@@ -248,7 +252,9 @@ impl Default for capi::PixelScale {
     }
 }
 
-impl Default for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s {
+impl Default
+    for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s
+{
     fn default() -> Self {
         Self {
             width: Default::default(),
@@ -258,7 +264,9 @@ impl Default for capi::StorageProperties_storage_properties_chunking_s_storage_p
     }
 }
 
-impl TryFrom<&TileShape> for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s {
+impl TryFrom<&TileShape>
+    for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s
+{
     type Error = anyhow::Error;
 
     fn try_from(value: &TileShape) -> Result<Self, Self::Error> {

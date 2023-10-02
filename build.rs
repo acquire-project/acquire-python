@@ -1,5 +1,5 @@
-use std::fs;
 use serde::Deserialize;
+use std::fs;
 
 /// Struct representation of the manifest file drivers.json
 #[derive(Deserialize)]
@@ -9,6 +9,7 @@ struct DriverManifest {
     acquire_driver_zarr: String,
     acquire_driver_egrabber: String,
     acquire_driver_hdcam: String,
+    acquire_driver_spinnaker: String,
 }
 
 fn main() {
@@ -22,10 +23,10 @@ fn main() {
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .build();
 
-    let drivers_json = fs::read_to_string("drivers.json")
-        .expect("Failed to read from drivers.json.");
-    let tags: DriverManifest = serde_json::from_str(drivers_json.as_str())
-        .expect("Failed to parse drivers.json");
+    let drivers_json =
+        fs::read_to_string("drivers.json").expect("Failed to read from drivers.json.");
+    let tags: DriverManifest =
+        serde_json::from_str(drivers_json.as_str()).expect("Failed to parse drivers.json");
 
     let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
 
@@ -48,6 +49,11 @@ fn main() {
         &drivers_dir,
         "acquire-driver-hdcam",
         tags.acquire_driver_hdcam.as_str(),
+    );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-spinnaker",
+        tags.acquire_driver_spinnaker.as_str(),
     );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
@@ -105,11 +111,15 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
     let archive = match request.send() {
         Ok(r) => r.bytes(),
         Err(err) => panic!("HTTP request for {} failed, got {}", &name, err),
-    }.expect(&*format!("Failed to get response body for {} as bytes.", name));
+    }
+    .expect(&*format!(
+        "Failed to get response body for {} as bytes.",
+        name
+    ));
 
-    zip_extract::extract(
-        std::io::Cursor::new(archive), &dst, true,
-    ).expect(&*format!("Failed to extract {name}-{tag}-{build}.zip from response."));
+    zip_extract::extract(std::io::Cursor::new(archive), &dst, true).expect(&*format!(
+        "Failed to extract {name}-{tag}-{build}.zip from response."
+    ));
 
     copy_acquire_driver(&dst, name);
 }
@@ -131,8 +141,8 @@ fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
         format!("{}/lib/{lib}", dst.display()),
         format!("python/acquire/{lib}"),
     )
-        .expect(&format!(
-            "Failed to copy {}/lib/{lib} to python folder.",
-            dst.display()
-        ));
+    .expect(&format!(
+        "Failed to copy {}/lib/{lib} to python folder.",
+        dst.display()
+    ));
 }

@@ -19,7 +19,7 @@ def runtime(_runtime: acquire.Runtime):
     _runtime.set_configuration(acquire.Properties())
 
 
-def test_vieworks_camera_is_preset(runtime: acquire.Runtime):
+def test_vieworks_camera_is_present(runtime: acquire.Runtime):
     dm = runtime.device_manager()
     assert dm.select(DeviceKind.Camera, "VIEWORKS.*")
 
