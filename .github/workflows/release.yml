@@ -41,13 +41,21 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Checkout core-libs nightly
+        if: ${{github.ref_name == 'nightly'}}
+        run: |
+          git fetch --tags
+          git checkout nightly
+          git submodule update
+        working-directory: ${{github.workspace}}/acquire-libs/acquire-core-libs
+        
       - name: Checkout runtime nightly
         if: ${{github.ref_name == 'nightly'}}
         run: |
           git fetch --tags
           git checkout nightly
           git submodule update
-        working-directory: ${{github.workspace}}/acquire-video-runtime
+        working-directory: ${{github.workspace}}/acquire-libs/acquire-video-runtime
 
       - name: Set config to pull nightly drivers
         if: ${{github.ref_name == 'nightly'}}
@@ -57,7 +65,8 @@ jobs:
             "acquire-driver-common": "nightly",
             "acquire-driver-zarr": "nightly",
             "acquire-driver-egrabber": "nightly",
-            "acquire-driver-hdcam": "nightly"
+            "acquire-driver-hdcam": "nightly",
+            "acquire-driver-spinnaker": "nightly",
           }
           EOF
         shell: bash
