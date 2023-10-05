@@ -98,7 +98,7 @@ pip install maturin
 maturin build -i python
 ```
 
-**Important** When updating the 'acquire-video-runtime' (the c api), to need to manually trigger
+**Important** When updating the 'acquire-video-runtime' (the c api), you need to manually trigger
 a rebuild by touching `wrapper.h`.
 
 ```bash
@@ -132,7 +132,7 @@ These values can be set to a specific version, or to `nightly` for nightly build
 
 ```bash
 pip install -e ".[testing]"
-pytest -s --tb-short --log-cli-level=0
+pytest -s --tb=short --log-cli-level=0
 ```
 
 This project uses [`pre-commit`](https://pre-commit.com/) to run required
