@@ -35,31 +35,30 @@ The provided [napari][] plugin is a good example of how to stream for visualizat
 
 ### List devices
 
-```python
-import acquire
-print(acquire.Runtime().device_manager().devices())
+```python-repl
+>>> import acquire
+>>> print(acquire.Runtime().device_manager().devices())  # doctest: +SKIP
 ```
 
 ### Finite triggered acquisition
 
-```python
-import acquire
-runtime = acquire.Runtime()
-dm = runtime.device_manager()
-
-props = runtime.get_configuration()
-# select the first Hamamatsu camera
-props.video[0].camera.identifier = dm.select(DeviceKind.Camera, "hamamatsu.*")
-# stream to zarr
-props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "zarr")
-props.video[0].storage.settings.filename = "out.zarr"
-props.video[0].camera.settings.shape = (2304, 2304)
-props.video[0].camera.settings.pixel_type = SampleType.U16
-props.video[0].max_frame_count = 100
-props = runtime.set_configuration(props)
-
-runtime.start()
-runtime.stop()  # wait for acquisition to complete
+```python-repl
+>>> import acquire
+>>> runtime = acquire.Runtime()
+>>> dm = runtime.device_manager()
+>>> props = runtime.get_configuration()
+>>> # select the first Hamamatsu camera
+>>> props.video[0].camera.identifier = dm.select(acquire.DeviceKind.Camera, "hamamatsu.*")
+>>> # stream to zarr
+>>> props.video[0].storage.identifier = dm.select(acquire.DeviceKind.Storage, "zarr")
+>>> props.video[0].storage.settings.filename = "out.zarr"
+>>> props.video[0].camera.settings.shape = (2304, 2304)
+>>> props.video[0].camera.settings.pixel_type = acquire.SampleType.U16
+>>> props.video[0].max_frame_count = 100
+>>> props = runtime.set_configuration(props)
+>>> runtime.start()  # doctest: +SKIP
+>>> # wait for acquisition to complete
+>>> runtime.stop()  # doctest: +SKIP
 ```
 
 # Development
@@ -122,7 +121,8 @@ In order to configure which release of each driver to use, you can set the value
   "acquire-driver-common": "0.1.0",
   "acquire-driver-hdcam": "0.1.0",
   "acquire-driver-egrabber": "0.1.0",
-  "acquire-driver-zarr": "0.1.0"
+  "acquire-driver-zarr": "0.1.0",
+  "acquire-driver-spinnaker": "0.1.0"
 }
 ```
 

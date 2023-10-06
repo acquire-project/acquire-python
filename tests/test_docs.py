@@ -1,20 +1,28 @@
 import doctest
+import pytest
 
 from pathlib import Path
 
 
-def test_readme():
-    readme_path = Path(__file__).parent.parent / "README.md"
+@pytest.fixture(autouse=True)
+def base_dir():
+    return Path(__file__).parent.parent
+
+
+def test_readme(base_dir):
+    readme_path = base_dir / "README.md"
     assert (
         doctest.testfile(str(readme_path), module_relative=False).failed == 0
     )
 
 
-def test_modules():
-    assert doctest.testmod().failed == 0
+def test_modules(base_dir):
+    for module in base_dir.glob("python/**/*.py"):
+        assert doctest.testfile(str(module), module_relative=False).failed == 0
 
 
 if __name__ == "__main__":
-    test_readme()
-    test_modules()
+    base = Path(__file__).parent.parent
+    test_readme(base)
+    test_modules(base)
     print("Done.")
