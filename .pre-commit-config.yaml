@@ -21,3 +21,9 @@ repos:
     hooks:
     - id: import-linter
       stages: [manual]
+-   repo: local
+    hooks:
+    -   id: doctest
+        name: Document tests
+        entry: python tests/test_docs.py
+        language: system
