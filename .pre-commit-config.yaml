@@ -28,4 +28,4 @@ repos:
         entry: python tests/test_docs.py
         language: system
         types: [file]
-        files: \.(md|py)$
+        files: \.(md|py|rs)$

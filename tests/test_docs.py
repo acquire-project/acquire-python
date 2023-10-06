@@ -21,6 +21,11 @@ def test_modules(base_dir):
         assert doctest.testfile(str(module), module_relative=False).failed == 0
 
 
+def test_rust_sources(base_dir):
+    for f in base_dir.glob("src/**/*.rs"):
+        assert doctest.testfile(str(f), module_relative=False).failed == 0
+
+
 if __name__ == "__main__":
     base = Path(__file__).parent.parent
     test_readme(base)
