@@ -30,4 +30,5 @@ if __name__ == "__main__":
     base = Path(__file__).parent.parent
     test_readme(base)
     test_modules(base)
+    test_rust_sources(base)
     print("Done.")
