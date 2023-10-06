@@ -27,3 +27,5 @@ repos:
         name: Document tests
         entry: python tests/test_docs.py
         language: system
+        types: [markdown, text, python]
+        always_run: false
