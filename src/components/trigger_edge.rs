@@ -10,6 +10,9 @@ pub enum TriggerEdge {
     Rising,
     Falling,
     NotApplicable,
+    AnyEdge,
+    LevelHigh,
+    LevelLow,
 }
 
 impl Default for TriggerEdge {
@@ -21,5 +24,8 @@ impl Default for TriggerEdge {
 cvt!( TriggerEdge => capi::TriggerEdge,
     Rising => TriggerEdge_TriggerEdge_Rising,
     Falling => TriggerEdge_TriggerEdge_Falling,
-    NotApplicable => TriggerEdge_TriggerEdge_NotApplicable
+    NotApplicable => TriggerEdge_TriggerEdge_NotApplicable,
+    AnyEdge => TriggerEdge_TriggerEdge_AnyEdge,
+    LevelHigh => TriggerEdge_TriggerEdge_LevelHigh,
+    LevelLow => TriggerEdge_TriggerEdge_LevelLow
 );

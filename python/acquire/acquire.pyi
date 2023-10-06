@@ -244,6 +244,9 @@ class TriggerEdge:
     Falling: ClassVar[TriggerEdge] = TriggerEdge.Falling
     NotApplicable: ClassVar[TriggerEdge] = TriggerEdge.NotApplicable
     Rising: ClassVar[TriggerEdge] = TriggerEdge.Rising
+    AnyEdge: ClassVar[TriggerEdge] = TriggerEdge.AnyEdge
+    LevelLow: ClassVar[TriggerEdge] = TriggerEdge.LevelLow
+    LevelHigh: ClassVar[TriggerEdge] = TriggerEdge.LevelHigh
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
