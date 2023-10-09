@@ -23,5 +23,12 @@ jobs:
           pip install --upgrade pip
           pip install -e '.[testing]'
 
+      - name: Tree
+        run: |
+          tree
+          pwd
+        shell: bash
+        working-directory: ${{ github.workspace }}
+
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
