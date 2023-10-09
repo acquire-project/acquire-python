@@ -62,3 +62,8 @@ addopts = "--tb=short -s"
 # log_format = "%(asctime)s %(levelname)s %(message)s"
 # log_date_format = "%Y-%m-%d %H:%M:%S"
 log_cli = true # when true, messages are printed immediately
+
+[tool.ruff]
+exclude = [
+    "*.pyi"
+]

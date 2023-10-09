@@ -1,43 +1,43 @@
 repos:
--   repo: https://github.com/psf/black
+  - repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
-    - id: black
-      pass_filenames: true
--   repo: https://github.com/PyCQA/flake8
+      - id: black
+        pass_filenames: true
+  - repo: https://github.com/PyCQA/flake8
     rev: 5.0.4
     hooks:
-    - id: flake8
-      additional_dependencies: [flake8-typing-imports]
-      pass_filenames: true
-      exclude: __init__.py
--   repo: https://github.com/asottile/pyupgrade
+      - id: flake8
+        additional_dependencies: [ flake8-typing-imports ]
+        pass_filenames: true
+        exclude: __init__.py
+  - repo: https://github.com/asottile/pyupgrade
     rev: v2.37.3
     hooks:
-    - id: pyupgrade
-      args: ["--py38-plus", "--keep-runtime-typing"]
--   repo: https://github.com/seddonym/import-linter
+      - id: pyupgrade
+        args: [ "--py38-plus", "--keep-runtime-typing" ]
+  - repo: https://github.com/seddonym/import-linter
     rev: v1.2.7
     hooks:
-    - id: import-linter
-      stages: [manual]
--   repo: local
+      - id: import-linter
+        stages: [ manual ]
+  - repo: local
     hooks:
-    -   id: doctest
+      - id: doctest
         name: Document tests
         entry: python tests/test_docs.py
         language: system
-        types: [file]
+        types: [ file ]
         files: \.(md|py|rs)$
-    -   id: ruff
+      - id: ruff
         name: Lint Python files
-        entry: python -m ruff check ./python/acquire/*.py ./tests/*.py
+        entry: python -m ruff check .
         language: system
-        types: [file]
+        types: [ file ]
         files: \.py$
-    - id: cargo-fmt
-      name: Format Rust files
-      entry: cargo fmt --all -- --check
-      language: system
-      types: [file]
-      files: \.rs$
+      - id: cargo-fmt
+        name: Format Rust files
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [ file ]
+        files: \.rs$
