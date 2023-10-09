@@ -31,7 +31,7 @@ repos:
         files: \.(md|py|rs)$
     -   id: ruff
         name: Lint Python files
-        entry: python -m ruff check python/acquire/*.py tests/*.py
+        entry: python -m ruff check ./python/acquire/*.py ./tests/*.py
         language: system
         types: [file]
         files: \.py$
