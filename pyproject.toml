@@ -23,6 +23,7 @@ testing = [
     "zarr",
     "dask",
     "ome-zarr",
+    "ruff",
 ]
 
 [project.entry-points."napari.manifest"]
