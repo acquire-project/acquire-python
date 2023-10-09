@@ -24,7 +24,7 @@ repos:
   - repo: local
     hooks:
       - id: doctest
-        name: Document tests
+        name: Run doctests
         entry: python tests/test_docs.py
         language: system
         types: [ file ]
