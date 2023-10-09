@@ -13,7 +13,12 @@ from typing import (
 import numpy.typing as npt
 
 from . import acquire
-from .acquire import *
+from .acquire import (
+    Runtime,
+    Properties,
+    DeviceKind,
+    SampleType,
+)
 
 __doc__ = acquire.__doc__
 
