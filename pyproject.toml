@@ -67,3 +67,8 @@ log_cli = true # when true, messages are printed immediately
 exclude = [
     "*.pyi"
 ]
+
+ignore = [
+    "F403",
+    "F405",
+]
