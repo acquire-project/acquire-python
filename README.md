@@ -40,7 +40,7 @@ The provided [napari][] plugin is a good example of how to stream for visualizat
 >>> print(acquire.Runtime().device_manager().devices())  # doctest: +SKIP
 ```
 
-### Finite triggered acquisition
+### Finite acquisition
 
 ```python-repl
 >>> import acquire
