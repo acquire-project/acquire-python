@@ -72,15 +72,6 @@ pub struct StorageProperties {
 
     #[pyo3(get, set)]
     pub(crate) enable_multiscale: bool,
-
-    #[pyo3(get)]
-    pub(crate) max_frame_count: u64,
-
-    #[pyo3(get, set)]
-    pub(crate) num_channels: u8,
-
-    #[pyo3(get, set)]
-    pub(crate) num_slices: u8,
 }
 
 impl_plain_old_dict!(StorageProperties);
@@ -95,9 +86,6 @@ impl Default for StorageProperties {
             pixel_scale_um: Default::default(),
             chunking,
             enable_multiscale: Default::default(),
-            max_frame_count: Default::default(),
-            num_channels: Default::default(),
-            num_slices: Default::default(),
         }
     }
 }
@@ -152,9 +140,6 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
             chunking,
             enable_multiscale: (value.enable_multiscale == 1),
-            max_frame_count: value.max_frame_count,
-            num_channels: value.num_channels,
-            num_slices: value.num_slices,
         })
     }
 }
@@ -230,11 +215,6 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
         } else {
-            // TODO: rethink this 
-            out.max_frame_count = value.max_frame_count;
-            out.num_channels = value.num_channels;
-            out.num_slices = value.num_slices;
-
             Ok(out)
         }
     }
@@ -249,9 +229,6 @@ impl Default for capi::StorageProperties {
             pixel_scale_um: Default::default(),
             chunking: Default::default(),
             enable_multiscale: Default::default(),
-            max_frame_count: Default::default(),
-            num_channels: Default::default(),
-            num_slices: Default::default(),
         }
     }
 }

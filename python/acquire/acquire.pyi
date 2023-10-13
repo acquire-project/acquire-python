@@ -229,9 +229,6 @@ class StorageProperties:
     pixel_scale_um: Tuple[float, float]
     chunking: ChunkingProperties
     enable_multiscale: bool
-    max_frame_count: int
-    num_channels: int
-    num_slices: int
     def dict(self) -> Dict[str, Any]: ...
 
 @final
