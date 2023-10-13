@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from datetime import timedelta
 from time import sleep
 from typing import Any, Dict, List, Optional
 
@@ -619,6 +620,61 @@ def test_abort(runtime: Runtime):
         f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
     )
     assert nframes < p.video[0].max_frame_count
+
+
+def wait_for_data(runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None)-> acquire.AvailableData:
+    # None is used as a missing sentinel value, not to indicate no timeout.
+    if timeout is None:
+        timeout = timedelta(seconds=5)
+    sleep_duration = timedelta(microseconds=10000)
+    elapsed = timedelta()
+    while elapsed < timeout:
+        if packet := runtime.get_available_data(stream_id):
+            return packet
+        sleep(sleep_duration.total_seconds())
+        elapsed += sleep_duration
+    raise RuntimeError(f"Timed out waiting for condition after {elapsed.total_seconds()} seconds.")
+
+
+def test_execute_trigger(runtime: Runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*random.*")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+    p.video[0].camera.settings.binning = 1
+    p.video[0].camera.settings.shape = (64, 48)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
+    p.video[0].camera.settings.input_triggers.frame_start.line = 1
+    p.video[0].camera.settings.input_triggers.frame_start.enable = True
+    p.video[0].max_frame_count = 100
+
+    p = runtime.set_configuration(p)
+
+    runtime.start()
+
+    # Snap one frame
+    runtime.execute_trigger(0)
+    packet = wait_for_data(runtime, 0)
+    # TODO: why do i get more than one frame?
+    assert packet.get_frame_count() >= 1
+    frames = tuple(packet.frames())
+    assert frames[0].metadata().frame_id >= 0
+    del frames
+    del packet
+
+    # Snap another frame
+    runtime.execute_trigger(0)
+    packet = wait_for_data(runtime, 0)
+    # TODO: why do i get more than one frame?
+    assert packet.get_frame_count() >= 1
+    frames = tuple(packet.frames())
+    assert frames[0].metadata().frame_id >= 1
+    del frames
+    del packet
+
+    runtime.stop()
 
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)
