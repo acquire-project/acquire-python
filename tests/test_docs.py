@@ -26,9 +26,6 @@ def test_rust_sources(base_dir):
         assert doctest.testfile(str(f), module_relative=False).failed == 0
 
 
-if __name__ == "__main__":
-    base = Path(__file__).parent.parent
-    test_readme(base)
-    test_modules(base)
-    test_rust_sources(base)
-    print("Done.")
+def test_pyi_files(base_dir):
+    for f in base_dir.glob("python/**/*.pyi"):
+        assert doctest.testfile(str(f), module_relative=False).failed == 0

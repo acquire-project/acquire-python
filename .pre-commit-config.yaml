@@ -23,12 +23,6 @@ repos:
         stages: [ manual ]
   - repo: local
     hooks:
-      - id: doctest
-        name: Run doctests
-        entry: python tests/test_docs.py
-        language: system
-        types: [ file ]
-        files: \.(md|py|rs)$
       - id: ruff
         name: Lint Python files
         entry: python -m ruff check .

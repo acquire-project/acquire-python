@@ -53,6 +53,7 @@ jobs:
       - name: Test
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_docs --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
   dcam:
     name: Python ${{ matrix.python }} (DCAM)
@@ -98,7 +99,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0 --doctest-glob="*.pyi" --doctest-glob="*.md"
 
   egrabber:
     name: Python ${{ matrix.python }} (eGrabber)
@@ -144,8 +145,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-
+          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0 --doctest-glob="*.pyi" --doctest-glob="*.md"
 
   spinnaker:
     name: Python ${{ matrix.python }} (Spinnaker)
