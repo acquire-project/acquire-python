@@ -208,16 +208,10 @@ class Storage:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class TileShape:
+class ChunkingShardingDims:
     width: int
     height: int
     planes: int
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
-class ChunkingProperties:
-    max_bytes_per_chunk: int
-    tile: TileShape
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -226,7 +220,8 @@ class StorageProperties:
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
-    chunking: ChunkingProperties
+    chunk_dims_px: ChunkingShardingDims
+    shard_dims_chunks: ChunkingShardingDims
     enable_multiscale: bool
     def dict(self) -> Dict[str, Any]: ...
 

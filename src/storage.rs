@@ -9,44 +9,21 @@ use std::{
 
 #[pyclass]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TileShape {
+pub struct ChunkingShardingDims {
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) width: u32,
+    width: u32,
 
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) height: u32,
+    height: u32,
 
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) planes: u32,
+    planes: u32,
 }
 
-impl_plain_old_dict!(TileShape);
-
-#[pyclass]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChunkingProperties {
-    #[pyo3(get, set)]
-    #[serde(default)]
-    pub(crate) max_bytes_per_chunk: u64,
-
-    #[pyo3(get, set)]
-    pub(crate) tile: Py<TileShape>,
-}
-
-impl_plain_old_dict!(ChunkingProperties);
-
-impl Default for ChunkingProperties {
-    fn default() -> Self {
-        let tile = Python::with_gil(|py| Py::new(py, TileShape::default()).unwrap());
-        Self {
-            max_bytes_per_chunk: Default::default(),
-            tile,
-        }
-    }
-}
+impl_plain_old_dict!(ChunkingShardingDims);
 
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,7 +45,10 @@ pub struct StorageProperties {
     pub(crate) pixel_scale_um: (f64, f64),
 
     #[pyo3(get, set)]
-    pub(crate) chunking: Py<ChunkingProperties>,
+    pub(crate) chunk_dims_px: Py<ChunkingShardingDims>,
+
+    #[pyo3(get, set)]
+    pub(crate) shard_dims_chunks: Py<ChunkingShardingDims>,
 
     #[pyo3(get, set)]
     pub(crate) enable_multiscale: bool,
@@ -78,13 +58,15 @@ impl_plain_old_dict!(StorageProperties);
 
 impl Default for StorageProperties {
     fn default() -> Self {
-        let chunking = Python::with_gil(|py| Py::new(py, ChunkingProperties::default()).unwrap());
+        let chunk_dims_px = Python::with_gil(|py| Py::new(py, ChunkingShardingDims::default()).unwrap());
+        let shard_dims_chunks = Python::with_gil(|py| Py::new(py, ChunkingShardingDims::default()).unwrap());
         Self {
             filename: Default::default(),
             external_metadata_json: Default::default(),
             first_frame_id: Default::default(),
             pixel_scale_um: Default::default(),
-            chunking,
+            chunk_dims_px,
+            shard_dims_chunks,
             enable_multiscale: Default::default(),
         }
     }
@@ -113,24 +95,26 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             )
         };
 
-        let chunking = Python::with_gil(|py| {
-            let tile = Py::new(
-                py,
-                TileShape {
-                    width: value.chunking.tile.width,
-                    height: value.chunking.tile.height,
-                    planes: value.chunking.tile.planes,
-                },
-            )
-            .unwrap();
+        let chunk_dims_px = Python::with_gil(|py| {
             Py::new(
                 py,
-                ChunkingProperties {
-                    max_bytes_per_chunk: value.chunking.max_bytes_per_chunk,
-                    tile,
+                ChunkingShardingDims {
+                    width: value.chunk_dims_px.width,
+                    height: value.chunk_dims_px.height,
+                    planes: value.chunk_dims_px.planes,
                 },
-            )
-            .unwrap()
+            ).unwrap()
+        });
+
+        let shard_dims_chunks = Python::with_gil(|py| {
+            Py::new(
+                py,
+                ChunkingShardingDims {
+                    width: value.shard_dims_chunks.width,
+                    height: value.shard_dims_chunks.height,
+                    planes: value.shard_dims_chunks.planes,
+                },
+            ).unwrap()
         });
 
         Ok(Self {
@@ -138,7 +122,8 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             first_frame_id: value.first_frame_id,
             external_metadata_json,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
-            chunking,
+            chunk_dims_px,
+            shard_dims_chunks,
             enable_multiscale: (value.enable_multiscale == 1),
         })
     }
@@ -173,14 +158,14 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             (null(), 0)
         };
 
-        let chunking_props = Python::with_gil(|py| -> PyResult<_> {
-            let chunking_props: ChunkingProperties = value.chunking.extract(py)?;
-            Ok(chunking_props)
+        let chunk_dims_px = Python::with_gil(|py| -> PyResult<_> {
+            let chunk_dims_px: ChunkingShardingDims = value.chunk_dims_px.extract(py)?;
+            Ok(chunk_dims_px)
         })?;
 
-        let tile_shape = Python::with_gil(|py| -> PyResult<_> {
-            let tile_shape: TileShape = chunking_props.tile.extract(py)?;
-            Ok(tile_shape)
+        let shard_dims_chunks = Python::with_gil(|py| -> PyResult<_> {
+            let shard_dims_chunks: ChunkingShardingDims = value.shard_dims_chunks.extract(py)?;
+            Ok(shard_dims_chunks)
         })?;
 
         // This copies the string into a buffer owned by the return value.
@@ -202,10 +187,18 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } else if !unsafe {
             capi::storage_properties_set_chunking_props(
                 &mut out,
-                tile_shape.width,
-                tile_shape.height,
-                tile_shape.planes,
-                chunking_props.max_bytes_per_chunk,
+                chunk_dims_px.width,
+                chunk_dims_px.height,
+                chunk_dims_px.planes,
+            ) == 1
+        } {
+            Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else if !unsafe {
+            capi::storage_properties_set_sharding_props(
+                &mut out,
+                shard_dims_chunks.width,
+                shard_dims_chunks.height,
+                shard_dims_chunks.planes,
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
@@ -227,7 +220,8 @@ impl Default for capi::StorageProperties {
             first_frame_id: Default::default(),
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
-            chunking: Default::default(),
+            chunk_dims_px: Default::default(),
+            shard_dims_chunks: Default::default(),
             enable_multiscale: Default::default(),
         }
     }
@@ -252,9 +246,7 @@ impl Default for capi::PixelScale {
     }
 }
 
-impl Default
-    for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s
-{
+impl Default for capi::StorageProperties_storage_properties_chunking_s {
     fn default() -> Self {
         Self {
             width: Default::default(),
@@ -264,43 +256,24 @@ impl Default
     }
 }
 
-impl TryFrom<&TileShape>
-    for capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s
-{
-    type Error = anyhow::Error;
-
-    fn try_from(value: &TileShape) -> Result<Self, Self::Error> {
-        let mut out: capi::StorageProperties_storage_properties_chunking_s_storage_properties_chunking_tile_s = unsafe { std::mem::zeroed() };
-
-        out.height = value.height;
-        out.width = value.width;
-        out.planes = value.planes;
-
-        Ok(out)
-    }
-}
-
-impl Default for capi::StorageProperties_storage_properties_chunking_s {
+impl Default for capi::StorageProperties_storage_properties_sharding_s {
     fn default() -> Self {
         Self {
-            max_bytes_per_chunk: Default::default(),
-            tile: Default::default(),
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
         }
     }
 }
 
-impl TryFrom<&ChunkingProperties> for capi::StorageProperties_storage_properties_chunking_s {
+impl TryFrom<&ChunkingShardingDims> for capi::StorageProperties_storage_properties_chunking_s {
     type Error = anyhow::Error;
 
-    fn try_from(value: &ChunkingProperties) -> Result<Self, Self::Error> {
-        let tile = Python::with_gil(|py| -> PyResult<_> {
-            let tile: TileShape = value.tile.extract(py)?;
-            Ok(tile)
-        })?;
-
+    fn try_from(value: &ChunkingShardingDims) -> Result<Self, Self::Error> {
         Ok(capi::StorageProperties_storage_properties_chunking_s {
-            max_bytes_per_chunk: value.max_bytes_per_chunk,
-            tile: (&tile).try_into()?,
+            width: value.width,
+            height: value.height,
+            planes: value.planes,
         })
     }
 }

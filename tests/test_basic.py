@@ -296,10 +296,9 @@ def test_write_external_metadata_to_zarr(
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
-    p.video[0].storage.settings.chunking.tile.width = 33
-    p.video[0].storage.settings.chunking.tile.height = 47
-    p.video[0].storage.settings.chunking.tile.planes = 1
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2**20
+    p.video[0].storage.settings.chunk_dims_px.width = 33
+    p.video[0].storage.settings.chunk_dims_px.height = 47
+    p.video[0].storage.settings.chunk_dims_px.planes = 4
 
     p = runtime.set_configuration(p)
 
@@ -447,10 +446,9 @@ def test_write_zarr_with_chunking(
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
     p.video[0].max_frame_count = number_of_frames
 
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2**20
-    p.video[0].storage.settings.chunking.tile.width = 1920 // 2
-    p.video[0].storage.settings.chunking.tile.height = 1080 // 2
-    p.video[0].storage.settings.chunking.tile.planes = 1
+    p.video[0].storage.settings.chunk_dims_px.width = 1920 // 2
+    p.video[0].storage.settings.chunk_dims_px.height = 1080 // 2
+    p.video[0].storage.settings.chunk_dims_px.planes = 64
 
     runtime.set_configuration(p)
 
@@ -495,14 +493,13 @@ def test_write_zarr_multiscale(
     p.video[0].storage.settings.pixel_scale_um = (1, 1)
     p.video[0].max_frame_count = 100
 
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
-    p.video[0].storage.settings.chunking.tile.width = (
+    p.video[0].storage.settings.chunk_dims_px.width = (
         p.video[0].camera.settings.shape[0] // 3
     )
-    p.video[0].storage.settings.chunking.tile.height = (
+    p.video[0].storage.settings.chunk_dims_px.height = (
         p.video[0].camera.settings.shape[1] // 3
     )
-    p.video[0].storage.settings.chunking.tile.planes = 1
+    p.video[0].storage.settings.chunk_dims_px.planes = 64
 
     p.video[0].storage.settings.enable_multiscale = True
 

@@ -35,11 +35,11 @@ fn main() {
         "acquire-driver-common",
         tags.acquire_driver_common.as_str(),
     );
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-zarr",
-        tags.acquire_driver_zarr.as_str(),
-    );
+    // fetch_acquire_driver(
+    //     &drivers_dir,
+    //     "acquire-driver-zarr",
+    //     tags.acquire_driver_zarr.as_str(),
+    // );
     fetch_acquire_driver(
         &drivers_dir,
         "acquire-driver-egrabber",
