@@ -169,4 +169,13 @@ It depends on what you changed:
 - **acquire-video-runtime** (c/c++ code): `touch wrapper.h; maturin develop`
 - **rust code**: `maturin develop`
 
+### Zarr V3 tests are failing
+
+You should make sure that the following environment variables are set:
+
+```
+ZARR_V3_EXPERIMENTAL_API: 1
+ZARR_V3_SHARDING: 1
+```
+
 [napari]: https://github.com/napari/napari

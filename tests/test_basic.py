@@ -526,6 +526,63 @@ def test_write_zarr_multiscale(
         image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
 
 
+@pytest.mark.parametrize(
+    ("number_of_frames", "expected_number_of_chunks", "codec"),
+    [
+        (64, 4, None),
+        (64, 4, "zstd"),
+        (65, 8, None),  # rollover
+        (65, 8, "lz4"),  # rollover
+    ],
+)
+def test_write_zarr_v3(
+    runtime: acquire.Runtime,
+    request: pytest.FixtureRequest,
+    number_of_frames: int,
+    expected_number_of_chunks: int,
+    codec: Optional[str],
+):
+    dm = runtime.device_manager()
+
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+
+    p.video[0].camera.settings.shape = (1920, 1080)
+    p.video[0].camera.settings.exposure_time_us = 1e4
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
+    p.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage,
+        f"ZarrV3Blosc1{codec.capitalize()}ByteShuffle" if codec else "ZarrV3",
+    )
+    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].max_frame_count = number_of_frames
+
+    p.video[0].storage.settings.chunk_dims_px.width = 1920 // 2
+    p.video[0].storage.settings.chunk_dims_px.height = 1080 // 2
+    p.video[0].storage.settings.chunk_dims_px.planes = 64
+
+    runtime.set_configuration(p)
+
+    runtime.start()
+    runtime.stop()
+
+    store = zarr.DirectoryStoreV3(p.video[0].storage.settings.filename)
+    group = zarr.open(store=store, mode="r")
+    data = group["0"]
+
+    assert data.chunks == (64, 1, 1080 // 2, 1920 // 2)
+
+    assert data.shape == (
+        number_of_frames,
+        1,
+        p.video[0].camera.settings.shape[1],
+        p.video[0].camera.settings.shape[0],
+    )
+    assert data.nchunks == expected_number_of_chunks
+
+
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
     + " See https://github.com/acquire-project/cpx/issues/147"
