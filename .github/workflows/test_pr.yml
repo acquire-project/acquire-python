@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request: # FIXME (aliddell)(P
     branches:
       - main
 
@@ -29,8 +29,6 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ github.token }}
-      ZARR_V3_EXPERIMENTAL_API: 1
-      ZARR_V3_SHARDING: 1
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.11.0
@@ -53,6 +51,9 @@ jobs:
           pip install -e '.[testing]'
 
       - name: Test
+        env:
+          ZARR_V3_EXPERIMENTAL_API: "1"
+          ZARR_V3_SHARDING: "1"
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
