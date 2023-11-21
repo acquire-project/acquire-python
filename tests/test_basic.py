@@ -809,6 +809,134 @@ def test_simulated_camera_capabilities(
     assert camera.triggers.frame_start == (1, 0)
 
 
+@pytest.mark.skip(
+    reason="Storage metadata is broken. See "
+    "https://github.com/acquire-project/acquire-video-runtime/issues/119"
+)
+@pytest.mark.parametrize(
+    ("descriptor", "chunking", "sharding", "multiscale"),
+    [
+        ("raw", None, None, False),
+        ("trash", None, None, False),
+        ("tiff", None, None, False),
+        ("tiff-json", None, None, False),
+        (
+            "zarr",
+            {
+                "width": {"low": 32, "high": 65535},
+                "height": {"low": 32, "high": 65535},
+                "planes": {"low": 32, "high": 65535},
+            },
+            None,
+            True,
+        ),
+    ],
+)
+def test_storage_capabilities(
+    runtime: Runtime,
+    descriptor: str,
+    chunking: Optional[Dict[str, Any]],
+    sharding: Optional[Dict[str, Any]],
+    multiscale: bool,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
+    p.video[0].storage.settings.filename = "out"
+    runtime.set_configuration(p)
+
+    c = runtime.get_capabilities()
+    storage = c.video[0].storage
+
+    assert (
+        storage.chunk_dims_px.width.kind == acquire.PropertyType.FixedPrecision
+    )
+    assert (
+        storage.chunk_dims_px.height.kind
+        == acquire.PropertyType.FixedPrecision
+    )
+    assert (
+        storage.chunk_dims_px.planes.kind
+        == acquire.PropertyType.FixedPrecision
+    )
+    if chunking is None:
+        assert storage.chunk_dims_px.is_supported is False
+        assert (
+            storage.chunk_dims_px.width.low
+            == storage.chunk_dims_px.width.high
+            == 0.0
+        )
+        assert (
+            storage.chunk_dims_px.height.low
+            == storage.chunk_dims_px.height.high
+            == 0.0
+        )
+        assert (
+            storage.chunk_dims_px.planes.low
+            == storage.chunk_dims_px.planes.high
+            == 0.0
+        )
+    else:
+        assert storage.chunk_dims_px.is_supported is True
+        assert storage.chunk_dims_px.width.low == chunking["width"]["low"]
+        assert storage.chunk_dims_px.width.high == chunking["width"]["high"]
+        assert storage.chunk_dims_px.height.low == chunking["height"]["low"]
+        assert storage.chunk_dims_px.height.high == chunking["height"]["high"]
+        assert storage.chunk_dims_px.planes.low == chunking["planes"]["low"]
+        assert storage.chunk_dims_px.planes.high == chunking["planes"]["high"]
+
+    assert (
+        storage.shard_dims_chunks.width.kind
+        == acquire.PropertyType.FixedPrecision
+    )
+    assert (
+        storage.shard_dims_chunks.height.kind
+        == acquire.PropertyType.FixedPrecision
+    )
+    assert (
+        storage.shard_dims_chunks.planes.kind
+        == acquire.PropertyType.FixedPrecision
+    )
+    if sharding is None:
+        assert storage.shard_dims_chunks.is_supported is False
+        assert (
+            storage.shard_dims_chunks.width.low
+            == storage.shard_dims_chunks.width.high
+            == 0.0
+        )
+        assert (
+            storage.shard_dims_chunks.height.low
+            == storage.shard_dims_chunks.height.high
+            == 0.0
+        )
+        assert (
+            storage.shard_dims_chunks.planes.low
+            == storage.shard_dims_chunks.planes.high
+            == 0.0
+        )
+    else:
+        assert storage.shard_dims_chunks.is_supported is True
+        assert storage.shard_dims_chunks.width.low == chunking["width"]["low"]
+        assert (
+            storage.shard_dims_chunks.width.high == chunking["width"]["high"]
+        )
+        assert (
+            storage.shard_dims_chunks.height.low == chunking["height"]["low"]
+        )
+        assert (
+            storage.shard_dims_chunks.height.high == chunking["height"]["high"]
+        )
+        assert (
+            storage.shard_dims_chunks.planes.low == chunking["planes"]["low"]
+        )
+        assert (
+            storage.shard_dims_chunks.planes.high == chunking["planes"]["high"]
+        )
+
+    assert storage.multiscale.is_supported == multiscale
+
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:

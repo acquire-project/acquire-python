@@ -363,9 +363,16 @@ impl Display for capi::String {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkingShardingCapabilities {
+    #[pyo3(get, set)]
     is_supported: bool,
+
+    #[pyo3(get, set)]
     width: Py<Property>,
+
+    #[pyo3(get, set)]
     height: Py<Property>,
+
+    #[pyo3(get, set)]
     planes: Py<Property>,
 }
 
@@ -389,6 +396,7 @@ impl Default for ChunkingShardingCapabilities {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultiscaleCapabilities {
+    #[pyo3(get, set)]
     is_supported: bool,
 }
 
@@ -406,8 +414,13 @@ impl Default for MultiscaleCapabilities {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageCapabilities {
+    #[pyo3(get, set)]
     chunk_dims_px: Py<ChunkingShardingCapabilities>,
+
+    #[pyo3(get, set)]
     shard_dims_chunks: Py<ChunkingShardingCapabilities>,
+
+    #[pyo3(get, set)]
     multiscale: Py<MultiscaleCapabilities>,
 }
 
@@ -448,7 +461,7 @@ impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
             let height: Property = value.shard_dims_chunks.height.try_into()?;
             let planes: Property = value.shard_dims_chunks.planes.try_into()?;
             let sharding = ChunkingShardingCapabilities {
-                is_supported: (value.chunk_dims_px.is_supported == 1),
+                is_supported: (value.shard_dims_chunks.is_supported == 1),
                 width: Py::new(py, width)?,
                 height: Py::new(py, height)?,
                 planes: Py::new(py, planes)?,
