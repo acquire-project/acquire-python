@@ -64,6 +64,11 @@ impl RawRuntime {
         Ok(())
     }
 
+    fn execute_trigger(&self, stream_id: u32) -> Result<()> {
+        unsafe { capi::acquire_execute_trigger(self.inner.as_ptr(), stream_id) }.ok()?;
+        Ok(())
+    }
+
     fn stop(&self) -> Result<()> {
         unsafe { capi::acquire_stop(self.inner.as_ptr()) }.ok()?;
         Ok(())
@@ -164,6 +169,10 @@ impl Runtime {
             capi::acquire_get_state(self.as_ref().as_ptr())
         })
         .try_into()?)
+    }
+
+    fn execute_trigger(&self, stream_id: u32, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || Ok(self.inner.execute_trigger(stream_id)?))
     }
 
     fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {
