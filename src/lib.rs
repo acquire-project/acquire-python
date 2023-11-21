@@ -6,6 +6,7 @@ pub(crate) mod device;
 pub(crate) mod device_manager;
 pub(crate) mod runtime;
 pub(crate) mod storage;
+pub(crate) mod capabilities;
 
 use anyhow::{anyhow, Result};
 use device_manager::DeviceManager;
@@ -67,6 +68,17 @@ fn acquire(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<core_properties::VideoStream>()?;
     m.add_class::<core_properties::Camera>()?;
     m.add_class::<core_properties::Storage>()?;
+
+    m.add_class::<capabilities::Capabilities>()?;
+    m.add_class::<capabilities::VideoStreamCapabilities>()?;
+    m.add_class::<camera::CameraCapabilities>()?;
+    m.add_class::<camera::DigitalLineCapabilities>()?;
+    m.add_class::<camera::TriggerCapabilities>()?;
+    m.add_class::<storage::StorageCapabilities>()?;
+    m.add_class::<storage::ChunkingShardingCapabilities>()?;
+    m.add_class::<storage::MultiscaleCapabilities>()?;
+    m.add_class::<components::Property>()?;
+    m.add_class::<components::PropertyType>()?;
 
     m.add_class::<device::DeviceIdentifier>()?;
     m.add_class::<device::DeviceState>()?;

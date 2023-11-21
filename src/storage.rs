@@ -1,4 +1,10 @@
-use crate::{capi, components::macros::impl_plain_old_dict};
+use crate::{
+    capi,
+    components::{
+        macros::impl_plain_old_dict,
+        Property,
+    },
+};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -266,11 +272,47 @@ impl Default for capi::StorageProperties_storage_properties_sharding_s {
     }
 }
 
+impl TryFrom<capi::StorageProperties_storage_properties_chunking_s> for ChunkingShardingDims {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::StorageProperties_storage_properties_chunking_s) -> Result<Self, Self::Error> {
+        Ok(ChunkingShardingDims {
+            width: value.width,
+            height: value.height,
+            planes: value.planes,
+        })
+    }
+}
+
 impl TryFrom<&ChunkingShardingDims> for capi::StorageProperties_storage_properties_chunking_s {
     type Error = anyhow::Error;
 
     fn try_from(value: &ChunkingShardingDims) -> Result<Self, Self::Error> {
         Ok(capi::StorageProperties_storage_properties_chunking_s {
+            width: value.width,
+            height: value.height,
+            planes: value.planes,
+        })
+    }
+}
+
+impl TryFrom<capi::StorageProperties_storage_properties_sharding_s> for ChunkingShardingDims {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::StorageProperties_storage_properties_sharding_s) -> Result<Self, Self::Error> {
+        Ok(ChunkingShardingDims {
+            width: value.width,
+            height: value.height,
+            planes: value.planes,
+        })
+    }
+}
+
+impl TryFrom<&ChunkingShardingDims> for capi::StorageProperties_storage_properties_sharding_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &ChunkingShardingDims) -> Result<Self, Self::Error> {
+        Ok(capi::StorageProperties_storage_properties_sharding_s {
             width: value.width,
             height: value.height,
             planes: value.planes,
@@ -314,5 +356,227 @@ impl Display for capi::String {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = unsafe { CStr::from_ptr(self.str_) }.to_string_lossy();
         write!(f, "{}", s)
+    }
+}
+
+/// StorageCapabilities::ChunkingShardingCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChunkingShardingCapabilities {
+    is_supported: bool,
+    width: Py<Property>,
+    height: Py<Property>,
+    planes: Py<Property>,
+}
+
+impl_plain_old_dict!(ChunkingShardingCapabilities);
+
+impl Default for ChunkingShardingCapabilities {
+    fn default() -> Self {
+        let width = Python::with_gil(|py| Py::new(py, Property::default()).unwrap());
+        let height = Python::with_gil(|py| Py::new(py, Property::default()).unwrap());
+        let planes = Python::with_gil(|py| Py::new(py, Property::default()).unwrap());
+        Self {
+            is_supported: Default::default(),
+            width,
+            height,
+            planes,
+        }
+    }
+}
+
+/// StorageCapabilities::MultiscaleCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MultiscaleCapabilities {
+    is_supported: bool,
+}
+
+impl_plain_old_dict!(MultiscaleCapabilities);
+
+impl Default for MultiscaleCapabilities {
+    fn default() -> Self {
+        Self {
+            is_supported: Default::default(),
+        }
+    }
+}
+
+/// StorageCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StorageCapabilities {
+    chunk_dims_px: Py<ChunkingShardingCapabilities>,
+    shard_dims_chunks: Py<ChunkingShardingCapabilities>,
+    multiscale: Py<MultiscaleCapabilities>,
+}
+
+impl_plain_old_dict!(StorageCapabilities);
+
+impl Default for StorageCapabilities {
+    fn default() -> Self {
+        let chunk_dims_px = Python::with_gil(|py| Py::new(py, ChunkingShardingCapabilities::default()).unwrap());
+        let shard_dims_chunks = Python::with_gil(|py| Py::new(py, ChunkingShardingCapabilities::default()).unwrap());
+        let multiscale = Python::with_gil(|py| Py::new(py, MultiscaleCapabilities::default()).unwrap());
+        Self {
+            chunk_dims_px,
+            shard_dims_chunks,
+            multiscale,
+        }
+    }
+}
+
+impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::StoragePropertyMetadata) -> Result<Self, Self::Error> {
+        let chunk_dims_px = Python::with_gil(|py| -> PyResult<_> {
+            let width: Property = value.chunk_dims_px.width.try_into()?;
+            let height: Property = value.chunk_dims_px.height.try_into()?;
+            let planes: Property = value.chunk_dims_px.planes.try_into()?;
+            let chunking = ChunkingShardingCapabilities {
+                is_supported: (value.chunk_dims_px.is_supported == 1),
+                width: Py::new(py, width)?,
+                height: Py::new(py, height)?,
+                planes: Py::new(py, planes)?,
+            };
+            Py::new(py, chunking)
+        })?;
+
+        let shard_dims_chunks = Python::with_gil(|py| -> PyResult<_> {
+            let width: Property = value.shard_dims_chunks.width.try_into()?;
+            let height: Property = value.shard_dims_chunks.height.try_into()?;
+            let planes: Property = value.shard_dims_chunks.planes.try_into()?;
+            let sharding = ChunkingShardingCapabilities {
+                is_supported: (value.chunk_dims_px.is_supported == 1),
+                width: Py::new(py, width)?,
+                height: Py::new(py, height)?,
+                planes: Py::new(py, planes)?,
+            };
+            Py::new(py, sharding)
+        })?;
+
+        let multiscale = Python::with_gil(|py| -> PyResult<_> {
+            let multiscale = MultiscaleCapabilities {
+                is_supported: (value.multiscale.is_supported == 1),
+            };
+            Py::new(py, multiscale)
+        })?;
+
+        Ok(Self {
+            chunk_dims_px,
+            shard_dims_chunks,
+            multiscale,
+        })
+    }
+}
+
+/// capi
+impl Default for capi::StoragePropertyMetadata_storage_property_metadata_chunking_s {
+    fn default() -> Self {
+        Self {
+            is_supported: Default::default(),
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&ChunkingShardingCapabilities> for capi::StoragePropertyMetadata_storage_property_metadata_chunking_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &ChunkingShardingCapabilities) -> Result<Self, Self::Error> {
+        let (width, height, planes) = Python::with_gil(|py| -> PyResult<_> {
+            let width: Property = value.width.extract(py)?;
+            let height: Property = value.height.extract(py)?;
+            let planes: Property = value.planes.extract(py)?;
+            Ok((width, height, planes))
+        })?;
+
+        Ok(Self {
+            is_supported: value.is_supported as u8,
+            width: (&width).try_into()?,
+            height: (&height).try_into()?,
+            planes: (&planes).try_into()?,
+        })
+    }
+}
+
+impl Default for capi::StoragePropertyMetadata_storage_property_metadata_sharding_s {
+    fn default() -> Self {
+        Self {
+            is_supported: Default::default(),
+            width: Default::default(),
+            height: Default::default(),
+            planes: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&ChunkingShardingCapabilities> for capi::StoragePropertyMetadata_storage_property_metadata_sharding_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &ChunkingShardingCapabilities) -> Result<Self, Self::Error> {
+        let (width, height, planes) = Python::with_gil(|py| -> PyResult<_> {
+            let width: Property = value.width.extract(py)?;
+            let height: Property = value.height.extract(py)?;
+            let planes: Property = value.planes.extract(py)?;
+            Ok((width, height, planes))
+        })?;
+
+        Ok(Self {
+            is_supported: value.is_supported as u8,
+            width: (&width).try_into()?,
+            height: (&height).try_into()?,
+            planes: (&planes).try_into()?,
+        })
+    }
+}
+
+impl Default for capi::StoragePropertyMetadata_storage_property_metadata_multiscale_s {
+    fn default() -> Self {
+        Self {
+            is_supported: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&MultiscaleCapabilities> for capi::StoragePropertyMetadata_storage_property_metadata_multiscale_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &MultiscaleCapabilities) -> Result<Self, Self::Error> {
+        Ok(Self {
+            is_supported: value.is_supported as u8,
+        })
+    }
+}
+
+impl Default for capi::StoragePropertyMetadata {
+    fn default() -> Self {
+        Self {
+            chunk_dims_px: Default::default(),
+            shard_dims_chunks: Default::default(),
+            multiscale: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&StorageCapabilities> for capi::StoragePropertyMetadata {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &StorageCapabilities) -> Result<Self, Self::Error> {
+        let (chunk_dims_px, shard_dims_chunks, multiscale) = Python::with_gil(|py| -> PyResult<_> {
+            let chunk_dims_px: ChunkingShardingCapabilities = value.chunk_dims_px.extract(py)?;
+            let shard_dims_chunks: ChunkingShardingCapabilities = value.shard_dims_chunks.extract(py)?;
+            let multiscale: MultiscaleCapabilities = value.multiscale.extract(py)?;
+            Ok((chunk_dims_px, shard_dims_chunks, multiscale))
+        })?;
+
+        Ok(Self {
+            chunk_dims_px: (&chunk_dims_px).try_into()?,
+            shard_dims_chunks: (&shard_dims_chunks).try_into()?,
+            multiscale: (&multiscale).try_into()?,
+        })
     }
 }

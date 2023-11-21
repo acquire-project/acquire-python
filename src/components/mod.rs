@@ -4,6 +4,7 @@ mod sample_type;
 mod signal_io_kind;
 mod signal_type;
 mod trigger_edge;
+mod property;
 
 use anyhow::Result;
 use pyo3::prelude::*;
@@ -16,6 +17,7 @@ pub use sample_type::SampleType;
 pub use signal_io_kind::SignalIOKind;
 pub use signal_type::SignalType;
 pub use trigger_edge::TriggerEdge;
+pub use property::{Property, PropertyType};
 
 use crate::{capi, components::macros::impl_plain_old_dict};
 
