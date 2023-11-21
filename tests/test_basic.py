@@ -811,10 +811,6 @@ def test_simulated_camera_capabilities(
     assert camera.triggers.frame_start == (1, 0)
 
 
-@pytest.mark.skip(
-    reason="Storage metadata is broken. See "
-    "https://github.com/acquire-project/acquire-video-runtime/issues/119"
-)
 @pytest.mark.parametrize(
     ("descriptor", "chunking", "sharding", "multiscale"),
     [
@@ -836,6 +832,7 @@ def test_simulated_camera_capabilities(
 )
 def test_storage_capabilities(
     runtime: Runtime,
+    request: pytest.FixtureRequest,
     descriptor: str,
     chunking: Optional[Dict[str, Any]],
     sharding: Optional[Dict[str, Any]],
@@ -845,10 +842,21 @@ def test_storage_capabilities(
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
-    p.video[0].storage.settings.filename = "out"
+
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    p.video[0].storage.settings.filename = f"{request.node.name}.out"
+
+    p.video[0].storage.settings.external_metadata_json = json.dumps(
+        {"hello": "world"}
+    )  # for tiff-json
+    p.video[0].max_frame_count = 1000
     runtime.set_configuration(p)
 
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    runtime.start()
     c = runtime.get_capabilities()
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    runtime.abort()
     storage = c.video[0].storage
 
     assert (
