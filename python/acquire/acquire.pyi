@@ -31,8 +31,8 @@ class CameraCapabilities:
     line_interval_us: Property
     readout_direction: Property
     binning: Property
-    offset: Property
-    shape: Property
+    offset: OffsetShapeCapabilities
+    shape: OffsetShapeCapabilities
     supported_pixel_types: List[SampleType]
     digital_lines: DigitalLineCapabilities
     triggers: TriggerCapabilities
@@ -162,6 +162,12 @@ class InputTriggers:
 @final
 class MultiscaleCapabilities:
     is_supported: bool
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class OffsetShapeCapabilities:
+    x: Property
+    y: Property
     def dict(self) -> Dict[str, Any]: ...
 
 @final

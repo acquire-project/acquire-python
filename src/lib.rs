@@ -74,6 +74,7 @@ fn acquire(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<camera::CameraCapabilities>()?;
     m.add_class::<camera::DigitalLineCapabilities>()?;
     m.add_class::<camera::TriggerCapabilities>()?;
+    m.add_class::<camera::OffsetShapeCapabilities>()?;
     m.add_class::<storage::StorageCapabilities>()?;
     m.add_class::<storage::ChunkingShardingCapabilities>()?;
     m.add_class::<storage::MultiscaleCapabilities>()?;

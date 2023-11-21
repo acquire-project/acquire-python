@@ -675,6 +675,81 @@ def test_abort(runtime: Runtime):
     assert nframes < p.video[0].max_frame_count
 
 
+@pytest.mark.parametrize(
+    ("descriptor",),
+    [
+        ("simulated.*empty",),
+        ("simulated.*random",),
+        ("simulated.*sin",),
+    ],
+)
+def test_simulated_camera_capabilities(
+    runtime: Runtime,
+    descriptor: str,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, descriptor)
+    runtime.set_configuration(p)
+
+    c = runtime.get_capabilities()
+    camera = c.video[0].camera
+    assert camera.shape.x.writable is True
+    assert camera.shape.x.low == 1.0
+    assert camera.shape.x.high == 8192.0
+    assert camera.shape.x.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.shape.y.writable is True
+    assert camera.shape.y.low == 1.0
+    assert camera.shape.y.high == 8192.0
+    assert camera.shape.y.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.offset.x.writable is True
+    assert camera.offset.x.low == 0.0
+    assert camera.offset.x.high == 8190.0
+    assert camera.offset.x.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.offset.y.writable is True
+    assert camera.offset.y.low == 0.0
+    assert camera.offset.y.high == 8190.0
+    assert camera.offset.y.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.binning.writable is True
+    assert camera.binning.low == 1.0
+    assert camera.binning.high == 8.0
+    assert camera.binning.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.exposure_time_us.writable is True
+    assert camera.exposure_time_us.low == 0.0
+    assert camera.exposure_time_us.high == 1e6
+    assert camera.exposure_time_us.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.line_interval_us.writable is False
+    assert camera.line_interval_us.low == camera.line_interval_us.high == 0.0
+    assert camera.line_interval_us.kind == acquire.PropertyType.FixedPrecision
+
+    assert camera.readout_direction.writable is False
+    assert camera.readout_direction.low == camera.readout_direction.high == 0.0
+    assert camera.readout_direction.kind == acquire.PropertyType.FixedPrecision
+
+    assert len(camera.supported_pixel_types) == 5
+    assert acquire.SampleType.U8 in camera.supported_pixel_types
+    assert acquire.SampleType.U16 in camera.supported_pixel_types
+    assert acquire.SampleType.I8 in camera.supported_pixel_types
+    assert acquire.SampleType.I16 in camera.supported_pixel_types
+    assert acquire.SampleType.F32 in camera.supported_pixel_types
+
+    assert camera.digital_lines.line_count == 1
+    assert camera.digital_lines.names[0] == "software"
+    assert len(camera.digital_lines.names) == 8
+    for i in range(1, 8):
+        assert camera.digital_lines.names[i] == ""
+
+    assert camera.triggers.acquisition_start == (0, 0)
+    assert camera.triggers.exposure == (0, 0)
+    assert camera.triggers.frame_start == (1, 0)
+
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:

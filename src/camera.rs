@@ -270,7 +270,7 @@ impl Default for capi::CameraProperties_camera_properties_shape_s {
 /// CameraCapabilities::OffsetShapeCapabilities
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct OffsetShapeCapabilities {
+pub struct OffsetShapeCapabilities {
     #[pyo3(get, set)]
     x: Property,
 
@@ -425,6 +425,7 @@ pub struct CameraCapabilities {
     #[pyo3(get, set)]
     shape: Py<OffsetShapeCapabilities>,
 
+    #[pyo3(get, set)]
     supported_pixel_types: Vec<SampleType>,
 
     #[pyo3(get, set)]

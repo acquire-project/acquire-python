@@ -11,9 +11,16 @@ use crate::{
 #[pyclass]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct VideoStreamCapabilities {
+    #[pyo3(get, set)]
     camera: Py<CameraCapabilities>,
+
+    #[pyo3(get, set)]
     storage: Py<StorageCapabilities>,
+
+    #[pyo3(get, set)]
     max_frame_count: Py<Property>,
+
+    #[pyo3(get, set)]
     frame_average_count: Py<Property>,
 }
 
@@ -59,7 +66,34 @@ pub struct Capabilities {
     video: (Py<VideoStreamCapabilities>, Py<VideoStreamCapabilities>),
 }
 
-impl_plain_old_dict!(Capabilities);
+#[pymethods]
+impl Capabilities {
+    #[new]
+    #[pyo3(signature = (**kwargs))]
+    fn __new__(kwargs: Option<&pyo3::types::PyDict>) -> anyhow::Result<Self> {
+        if let Some(kwargs) = kwargs {
+            Ok(pythonize::depythonize(kwargs)?)
+        } else {
+            Ok(Default::default())
+        }
+    }
+
+    fn dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        Ok(pythonize::pythonize(py, self)?)
+    }
+
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        let obj = pythonize::pythonize(py, self)?;
+        let obj = obj.as_ref(py).downcast::<pyo3::types::PyDict>()?;
+        let args: String = obj
+            .iter()
+            .map(|(k, v)| format!("{}='{}'", k, v))
+            .reduce(|acc, e| format!("{},{}", acc, e))
+            .unwrap_or(String::new());
+
+        Ok(format!("Capabilities({})", args))
+    }
+}
 
 impl Default for Capabilities {
     fn default() -> Self {
