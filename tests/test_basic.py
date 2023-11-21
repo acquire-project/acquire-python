@@ -749,6 +749,8 @@ def test_simulated_camera_capabilities(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, descriptor)
+    # to ensure consistent offset.{x,y}.high values across testing scenarios
+    p.video[0].camera.settings.shape = (1, 1)
     runtime.set_configuration(p)
 
     c = runtime.get_capabilities()
