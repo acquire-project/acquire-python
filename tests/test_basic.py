@@ -6,12 +6,12 @@ from time import sleep
 from typing import Any, Dict, List, Optional
 
 import acquire
+from acquire import DeviceKind, DeviceState, Runtime, Trigger, PropertyType
 import dask.array as da
 import numcodecs.blosc as blosc
 import pytest
 import tifffile
 import zarr
-from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 from skimage.transform import downscale_local_mean
@@ -758,40 +758,40 @@ def test_simulated_camera_capabilities(
     assert camera.shape.x.writable is True
     assert camera.shape.x.low == 1.0
     assert camera.shape.x.high == 8192.0
-    assert camera.shape.x.kind == acquire.PropertyType.FixedPrecision
+    assert camera.shape.x.kind == PropertyType.FixedPrecision
 
     assert camera.shape.y.writable is True
     assert camera.shape.y.low == 1.0
     assert camera.shape.y.high == 8192.0
-    assert camera.shape.y.kind == acquire.PropertyType.FixedPrecision
+    assert camera.shape.y.kind == PropertyType.FixedPrecision
 
     assert camera.offset.x.writable is True
     assert camera.offset.x.low == 0.0
     assert camera.offset.x.high == 8190.0
-    assert camera.offset.x.kind == acquire.PropertyType.FixedPrecision
+    assert camera.offset.x.kind == PropertyType.FixedPrecision
 
     assert camera.offset.y.writable is True
     assert camera.offset.y.low == 0.0
     assert camera.offset.y.high == 8190.0
-    assert camera.offset.y.kind == acquire.PropertyType.FixedPrecision
+    assert camera.offset.y.kind == PropertyType.FixedPrecision
 
     assert camera.binning.writable is True
     assert camera.binning.low == 1.0
     assert camera.binning.high == 8.0
-    assert camera.binning.kind == acquire.PropertyType.FixedPrecision
+    assert camera.binning.kind == PropertyType.FixedPrecision
 
     assert camera.exposure_time_us.writable is True
     assert camera.exposure_time_us.low == 0.0
     assert camera.exposure_time_us.high == 1e6
-    assert camera.exposure_time_us.kind == acquire.PropertyType.FixedPrecision
+    assert camera.exposure_time_us.kind == PropertyType.FixedPrecision
 
     assert camera.line_interval_us.writable is False
     assert camera.line_interval_us.low == camera.line_interval_us.high == 0.0
-    assert camera.line_interval_us.kind == acquire.PropertyType.FixedPrecision
+    assert camera.line_interval_us.kind == PropertyType.FixedPrecision
 
     assert camera.readout_direction.writable is False
     assert camera.readout_direction.low == camera.readout_direction.high == 0.0
-    assert camera.readout_direction.kind == acquire.PropertyType.FixedPrecision
+    assert camera.readout_direction.kind == PropertyType.FixedPrecision
 
     assert len(camera.supported_pixel_types) == 5
     assert acquire.SampleType.U8 in camera.supported_pixel_types
@@ -859,90 +859,50 @@ def test_storage_capabilities(
     runtime.abort()
     storage = c.video[0].storage
 
-    assert (
-        storage.chunk_dims_px.width.kind == acquire.PropertyType.FixedPrecision
-    )
-    assert (
-        storage.chunk_dims_px.height.kind
-        == acquire.PropertyType.FixedPrecision
-    )
-    assert (
-        storage.chunk_dims_px.planes.kind
-        == acquire.PropertyType.FixedPrecision
-    )
-    if chunking is None:
-        assert storage.chunk_dims_px.is_supported is False
-        assert (
-            storage.chunk_dims_px.width.low
-            == storage.chunk_dims_px.width.high
-            == 0.0
-        )
-        assert (
-            storage.chunk_dims_px.height.low
-            == storage.chunk_dims_px.height.high
-            == 0.0
-        )
-        assert (
-            storage.chunk_dims_px.planes.low
-            == storage.chunk_dims_px.planes.high
-            == 0.0
-        )
-    else:
-        assert storage.chunk_dims_px.is_supported is True
-        assert storage.chunk_dims_px.width.low == chunking["width"]["low"]
-        assert storage.chunk_dims_px.width.high == chunking["width"]["high"]
-        assert storage.chunk_dims_px.height.low == chunking["height"]["low"]
-        assert storage.chunk_dims_px.height.high == chunking["height"]["high"]
-        assert storage.chunk_dims_px.planes.low == chunking["planes"]["low"]
-        assert storage.chunk_dims_px.planes.high == chunking["planes"]["high"]
+    chunk_dims_px = storage.chunk_dims_px
 
-    assert (
-        storage.shard_dims_chunks.width.kind
-        == acquire.PropertyType.FixedPrecision
-    )
-    assert (
-        storage.shard_dims_chunks.height.kind
-        == acquire.PropertyType.FixedPrecision
-    )
-    assert (
-        storage.shard_dims_chunks.planes.kind
-        == acquire.PropertyType.FixedPrecision
-    )
-    if sharding is None:
-        assert storage.shard_dims_chunks.is_supported is False
-        assert (
-            storage.shard_dims_chunks.width.low
-            == storage.shard_dims_chunks.width.high
-            == 0.0
-        )
-        assert (
-            storage.shard_dims_chunks.height.low
-            == storage.shard_dims_chunks.height.high
-            == 0.0
-        )
-        assert (
-            storage.shard_dims_chunks.planes.low
-            == storage.shard_dims_chunks.planes.high
-            == 0.0
-        )
+    assert chunk_dims_px.width.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.height.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.planes.kind == PropertyType.FixedPrecision
+
+    if chunking is None:
+        assert chunk_dims_px.is_supported is False
+        assert chunk_dims_px.width.low == chunk_dims_px.width.high == 0.0
+        assert chunk_dims_px.height.low == chunk_dims_px.height.high == 0.0
+        assert chunk_dims_px.planes.low == chunk_dims_px.planes.high == 0.0
     else:
-        assert storage.shard_dims_chunks.is_supported is True
-        assert storage.shard_dims_chunks.width.low == chunking["width"]["low"]
-        assert (
-            storage.shard_dims_chunks.width.high == chunking["width"]["high"]
-        )
-        assert (
-            storage.shard_dims_chunks.height.low == chunking["height"]["low"]
-        )
-        assert (
-            storage.shard_dims_chunks.height.high == chunking["height"]["high"]
-        )
-        assert (
-            storage.shard_dims_chunks.planes.low == chunking["planes"]["low"]
-        )
-        assert (
-            storage.shard_dims_chunks.planes.high == chunking["planes"]["high"]
-        )
+        assert chunk_dims_px.is_supported is True
+        assert chunk_dims_px.width.low == chunking["width"]["low"]
+        assert chunk_dims_px.width.high == chunking["width"]["high"]
+        assert chunk_dims_px.height.low == chunking["height"]["low"]
+        assert chunk_dims_px.height.high == chunking["height"]["high"]
+        assert chunk_dims_px.planes.low == chunking["planes"]["low"]
+        assert chunk_dims_px.planes.high == chunking["planes"]["high"]
+
+    shard_dims_chunks = storage.shard_dims_chunks
+
+    assert shard_dims_chunks.width.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.height.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.planes.kind == PropertyType.FixedPrecision
+
+    if sharding is None:
+        assert shard_dims_chunks.is_supported is False
+        assert shard_dims_chunks.width.low == 0.0
+        assert shard_dims_chunks.width.high == 0.0
+
+        assert shard_dims_chunks.height.low == 0.0
+        assert shard_dims_chunks.height.high == 0.0
+
+        assert shard_dims_chunks.planes.low == 0.0
+        assert shard_dims_chunks.planes.high == 0.0
+    else:
+        assert shard_dims_chunks.is_supported is True
+        assert shard_dims_chunks.width.low == chunking["width"]["low"]
+        assert shard_dims_chunks.width.high == chunking["width"]["high"]
+        assert shard_dims_chunks.height.low == chunking["height"]["low"]
+        assert shard_dims_chunks.height.high == chunking["height"]["high"]
+        assert shard_dims_chunks.planes.low == chunking["planes"]["low"]
+        assert shard_dims_chunks.planes.high == chunking["planes"]["high"]
 
     assert storage.multiscale.is_supported == multiscale
 
