@@ -802,9 +802,7 @@ def test_simulated_camera_capabilities(
 
     assert camera.digital_lines.line_count == 1
     assert camera.digital_lines.names[0] == "software"
-    assert len(camera.digital_lines.names) == 8
-    for i in range(1, 8):
-        assert camera.digital_lines.names[i] == ""
+    assert camera.digital_lines.names[1:] == [""] * 7
 
     assert camera.triggers.acquisition_start == (0, 0)
     assert camera.triggers.exposure == (0, 0)
