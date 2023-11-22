@@ -25,6 +25,10 @@ jobs:
     permissions:
       actions: write
 
+    env:
+      ZARR_V3_EXPERIMENTAL_API: 1
+      ZARR_V3_SHARDING: 1
+
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.11.0
