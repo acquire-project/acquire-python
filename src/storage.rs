@@ -363,16 +363,16 @@ impl Display for capi::String {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkingShardingCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     is_supported: bool,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     width: Py<Property>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     height: Py<Property>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     planes: Py<Property>,
 }
 
@@ -396,7 +396,7 @@ impl Default for ChunkingShardingCapabilities {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultiscaleCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     is_supported: bool,
 }
 
@@ -414,13 +414,13 @@ impl Default for MultiscaleCapabilities {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     chunk_dims_px: Py<ChunkingShardingCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     shard_dims_chunks: Py<ChunkingShardingCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     multiscale: Py<MultiscaleCapabilities>,
 }
 

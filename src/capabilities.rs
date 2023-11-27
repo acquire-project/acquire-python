@@ -11,16 +11,16 @@ use crate::{
 #[pyclass]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct VideoStreamCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     camera: Py<CameraCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     storage: Py<StorageCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     max_frame_count: Py<Property>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     frame_average_count: Py<Property>,
 }
 
@@ -62,7 +62,7 @@ impl TryFrom<capi::AcquirePropertyMetadata_aq_metadata_video_s> for VideoStreamC
 #[pyclass]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Capabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     video: (Py<VideoStreamCapabilities>, Py<VideoStreamCapabilities>),
 }
 

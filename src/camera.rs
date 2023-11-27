@@ -271,10 +271,10 @@ impl Default for capi::CameraProperties_camera_properties_shape_s {
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OffsetShapeCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     x: Property,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     y: Property,
 }
 
@@ -323,10 +323,10 @@ impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_shape_s> fo
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DigitalLineCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     line_count: u8,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     names: [String; 8],
 }
 
@@ -365,10 +365,10 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetad
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerInputOutputCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     input: u8,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     output: u8,
 }
 
@@ -402,13 +402,13 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     acquisition_start: Py<TriggerInputOutputCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     exposure: Py<TriggerInputOutputCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     frame_start: Py<TriggerInputOutputCapabilities>,
 }
 
@@ -462,31 +462,31 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata> for T
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraCapabilities {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     exposure_time_us: Property,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     line_interval_us: Property,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     readout_direction: Property,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     binning: Property,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     offset: Py<OffsetShapeCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     shape: Py<OffsetShapeCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     supported_pixel_types: Vec<SampleType>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     digital_lines: Py<DigitalLineCapabilities>,
 
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     triggers: Py<TriggerCapabilities>,
 }
 
