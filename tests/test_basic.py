@@ -815,13 +815,14 @@ def test_simulated_camera_capabilities(
 
 
 @pytest.mark.parametrize(
-    ("descriptor", "chunking", "sharding", "multiscale"),
+    ("descriptor", "extension", "chunking", "sharding", "multiscale"),
     [
-        ("raw", None, None, False),
-        ("trash", None, None, False),
-        ("tiff", None, None, False),
-        ("tiff-json", None, None, False),
+        ("raw", "bin", None, None, False),
+        ("trash", "", None, None, False),
+        ("tiff", "tif", None, None, False),
+        ("tiff-json", "tif", None, None, False),
         (
+            "zarr",
             "zarr",
             {
                 "width": {"low": 32, "high": 65535},
@@ -837,6 +838,7 @@ def test_storage_capabilities(
     runtime: Runtime,
     request: pytest.FixtureRequest,
     descriptor: str,
+    extension: str,
     chunking: Optional[Dict[str, Any]],
     sharding: Optional[Dict[str, Any]],
     multiscale: bool,
@@ -847,7 +849,7 @@ def test_storage_capabilities(
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
 
     # FIXME (aliddell): hack to get the storage capabilities to be populated
-    p.video[0].storage.settings.filename = f"{request.node.name}.out"
+    p.video[0].storage.settings.filename = f"{request.node.name}.{extension}"
 
     p.video[0].storage.settings.external_metadata_json = json.dumps(
         {"hello": "world"}
