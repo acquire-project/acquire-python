@@ -312,9 +312,9 @@ class Trigger:
 
 @final
 class TriggerCapabilities:
-    acquisition_start: Tuple[int, int]
-    exposure: Tuple[int, int]
-    frame_start: Tuple[int, int]
+    acquisition_start: TriggerInputOutputCapabilities
+    exposure: TriggerInputOutputCapabilities
+    frame_start: TriggerInputOutputCapabilities
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -332,6 +332,12 @@ class TriggerEdge:
     def __le__(self, other: object) -> bool: ...
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
+
+@final
+class TriggerInputOutputCapabilities:
+    input: int
+    output: int
+    def dict(self) -> Dict[str, Any]: ...
 
 @final
 class VideoFrame:

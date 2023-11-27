@@ -361,28 +361,72 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetad
     }
 }
 
+/// CameraCapabilities::TriggerInputOutputCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TriggerInputOutputCapabilities {
+    #[pyo3(get, set)]
+    input: u8,
+
+    #[pyo3(get, set)]
+    output: u8,
+}
+
+impl_plain_old_dict!(TriggerInputOutputCapabilities);
+
+impl Default for TriggerInputOutputCapabilities {
+    fn default() -> Self {
+        Self {
+            input: Default::default(),
+            output: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s> for TriggerInputOutputCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                input: value.input,
+                output: value.output,
+            })
+        })?)
+    }
+}
+
 /// CameraCapabilities::TriggerCapabilities
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerCapabilities {
     #[pyo3(get, set)]
-    acquisition_start: (u8, u8),
+    acquisition_start: Py<TriggerInputOutputCapabilities>,
 
     #[pyo3(get, set)]
-    exposure: (u8, u8),
+    exposure: Py<TriggerInputOutputCapabilities>,
 
     #[pyo3(get, set)]
-    frame_start: (u8, u8),
+    frame_start: Py<TriggerInputOutputCapabilities>,
 }
 
 impl_plain_old_dict!(TriggerCapabilities);
 
 impl Default for TriggerCapabilities {
     fn default() -> Self {
+        let (acquisition_start, exposure, frame_start) = Python::with_gil(|py| {
+            (
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+            )
+        });
         Self {
-            acquisition_start: Default::default(),
-            exposure: Default::default(),
-            frame_start: Default::default(),
+            acquisition_start,
+            exposure,
+            frame_start,
         }
     }
 }
@@ -393,11 +437,22 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata> for T
     fn try_from(
         value: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata,
     ) -> Result<Self, Self::Error> {
+        let (acquisition_start, exposure, frame_start) = Python::with_gil(|py| -> PyResult<_> {
+            let acquisition_start: TriggerInputOutputCapabilities =
+                value.acquisition_start.try_into()?;
+            let exposure: TriggerInputOutputCapabilities = value.exposure.try_into()?;
+            let frame_start: TriggerInputOutputCapabilities = value.frame_start.try_into()?;
+            Ok((
+                Py::new(py, acquisition_start)?,
+                Py::new(py, exposure)?,
+                Py::new(py, frame_start)?,
+            ))
+        })?;
         Ok(Python::with_gil(|_| -> PyResult<_> {
             Ok(Self {
-                acquisition_start: (value.acquisition_start.input, value.acquisition_start.output),
-                exposure: (value.exposure.input, value.exposure.output),
-                frame_start: (value.frame_start.input, value.exposure.output),
+                acquisition_start,
+                exposure,
+                frame_start,
             })
         })?)
     }
@@ -605,6 +660,21 @@ impl Default for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_ca
     }
 }
 
+impl TryFrom<&TriggerInputOutputCapabilities> for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: &TriggerInputOutputCapabilities,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                input: value.input,
+                output: value.output,
+            })
+        })?)
+    }
+}
+
 impl Default for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata {
     fn default() -> Self {
         Self {
@@ -619,22 +689,29 @@ impl TryFrom<&TriggerCapabilities> for capi::CameraPropertyMetadata_CameraProper
     type Error = anyhow::Error;
 
     fn try_from(value: &TriggerCapabilities) -> Result<Self, Self::Error> {
-        Ok(Python::with_gil(|_| -> PyResult<_> {
-            Ok(Self {
-                acquisition_start: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
-                    input: value.acquisition_start.0,
-                    output: value.acquisition_start.1,
-                },
-                exposure: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
-                    input: value.exposure.0,
-                    output: value.exposure.1,
-                },
-                frame_start: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
-                    input: value.frame_start.0,
-                    output: value.frame_start.1,
-                },
-            })
-        })?)
+        let acquisition_start = Python::with_gil(|py| -> PyResult<_> {
+            let acquisition_start: TriggerInputOutputCapabilities =
+                value.acquisition_start.extract(py)?;
+            Ok(acquisition_start)
+        })?;
+
+        let exposure = Python::with_gil(|py| -> PyResult<_> {
+            let exposure: TriggerInputOutputCapabilities =
+                value.exposure.extract(py)?;
+            Ok(exposure)
+        })?;
+
+        let frame_start = Python::with_gil(|py| -> PyResult<_> {
+            let frame_start: TriggerInputOutputCapabilities =
+                value.frame_start.extract(py)?;
+            Ok(frame_start)
+        })?;
+
+        Ok(Self {
+            acquisition_start: (&acquisition_start).try_into()?,
+            exposure: (&exposure).try_into()?,
+            frame_start: (&frame_start).try_into()?,
+        })
     }
 }
 

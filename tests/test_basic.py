@@ -804,9 +804,14 @@ def test_simulated_camera_capabilities(
     assert camera.digital_lines.names[0] == "software"
     assert camera.digital_lines.names[1:] == [""] * 7
 
-    assert camera.triggers.acquisition_start == (0, 0)
-    assert camera.triggers.exposure == (0, 0)
-    assert camera.triggers.frame_start == (1, 0)
+    assert camera.triggers.acquisition_start.input == 0
+    assert camera.triggers.acquisition_start.output == 0
+
+    assert camera.triggers.exposure.input == 0
+    assert camera.triggers.exposure.output == 0
+
+    assert camera.triggers.frame_start.input == 1
+    assert camera.triggers.frame_start.output == 0
 
 
 @pytest.mark.parametrize(
