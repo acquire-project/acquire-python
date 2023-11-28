@@ -77,7 +77,8 @@ fn acquire(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<camera::TriggerInputOutputCapabilities>()?;
     m.add_class::<camera::OffsetShapeCapabilities>()?;
     m.add_class::<storage::StorageCapabilities>()?;
-    m.add_class::<storage::ChunkingShardingCapabilities>()?;
+    m.add_class::<storage::ChunkingCapabilities>()?;
+    m.add_class::<storage::ShardingCapabilities>()?;
     m.add_class::<storage::MultiscaleCapabilities>()?;
     m.add_class::<components::Property>()?;
     m.add_class::<components::PropertyType>()?;
@@ -87,7 +88,8 @@ fn acquire(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<camera::CameraProperties>()?;
     m.add_class::<camera::InputTriggers>()?;
     m.add_class::<camera::OutputTriggers>()?;
-    m.add_class::<storage::ChunkingShardingDims>()?;
+    m.add_class::<storage::ChunkDims>()?;
+    m.add_class::<storage::ShardDims>()?;
     m.add_class::<storage::StorageProperties>()?;
 
     m.add_class::<components::Direction>()?;

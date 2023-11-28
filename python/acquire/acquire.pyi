@@ -59,14 +59,14 @@ class Capabilities:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class ChunkingShardingDims:
+class ChunkDims:
     width: int
     height: int
     planes: int
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class ChunkingShardingCapabilities:
+class ChunkingCapabilities:
     is_supported: bool
     width: Property
     height: Property
@@ -254,6 +254,21 @@ class SampleType:
     def __ne__(self, other: object) -> bool: ...
 
 @final
+class ShardDims:
+    width: int
+    height: int
+    planes: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class ShardingCapabilities:
+    is_supported: bool
+    width: Property
+    height: Property
+    planes: Property
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class SignalIOKind:
     Input: ClassVar[SignalIOKind] = SignalIOKind.Input
     Output: ClassVar[SignalIOKind] = SignalIOKind.Output
@@ -285,8 +300,8 @@ class Storage:
 
 @final
 class StorageCapabilities:
-    chunk_dims_px: ChunkingShardingCapabilities
-    shard_dims_chunks: ChunkingShardingCapabilities
+    chunk_dims_px: ChunkingCapabilities
+    shard_dims_chunks: ShardingCapabilities
     multiscale: MultiscaleCapabilities
     def dict(self) -> Dict[str, Any]: ...
 
@@ -296,8 +311,8 @@ class StorageProperties:
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
-    chunk_dims_px: ChunkingShardingDims
-    shard_dims_chunks: ChunkingShardingDims
+    chunk_dims_px: ChunkDims
+    shard_dims_chunks: ShardDims
     enable_multiscale: bool
     def dict(self) -> Dict[str, Any]: ...
 
