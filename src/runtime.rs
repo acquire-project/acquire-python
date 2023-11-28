@@ -77,6 +77,22 @@ impl RawRuntime {
         unsafe { capi::acquire_abort(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
+
+    fn map_read(&self, stream_id: u32) -> Result<(*mut capi::VideoFrame, *mut capi::VideoFrame)> {
+        let mut beg = null_mut();
+        let mut end = null_mut();
+        unsafe {
+            capi::acquire_map_read(self.inner.as_ptr(), stream_id, &mut beg, &mut end).ok()?;
+        }
+        Ok((beg, end))
+    }
+
+    fn unmap_read(&self, stream_id: u32, consumed_bytes: usize) -> Result<()> {
+        unsafe {
+            capi::acquire_unmap_read(self.inner.as_ptr(), stream_id, consumed_bytes).ok()?;
+        }
+        Ok(())
+    }
 }
 
 impl Drop for RawRuntime {
@@ -167,6 +183,7 @@ impl Runtime {
     }
 
     fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {
+        let (beg, end) = self.inner.map_read(stream_id);
         let mut beg = null_mut();
         let mut end = null_mut();
         unsafe {
@@ -262,40 +279,81 @@ impl Drop for RawAvailableData {
             self.end.as_ptr(),
             consumed_bytes
         );
-        unsafe {
-            capi::acquire_unmap_read(
-                self.runtime.inner.as_ptr(),
-                self.stream_id,
-                consumed_bytes as _,
-            )
-            .ok()
-            .expect("Unexpected failure: Was the CoreRuntime NULL?");
-        }
+        self.runtime
+            .unmap_read(self.stream_id, consumed_bytes)
+            .expect("Unexpected failure: Was the runtime NULL?");
     }
 }
 
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Arc<RawAvailableData>,
+    inner: Option<Arc<RawAvailableData>>,
 }
 
 #[pymethods]
 impl AvailableData {
     fn get_frame_count(&self) -> usize {
-        self.inner.get_frame_count()
+        self.inner.map(|x| x.get_frame_count()).unwrap_or(0)
     }
 
-    fn frames(&self) -> VideoFrameIterator {
-        VideoFrameIterator {
-            store: self.inner.clone(),
-            cur: Mutex::new(self.inner.beg),
-            end: self.inner.end,
+    fn frames(&self) -> Option<VideoFrameIterator> {
+        if let Some(frames) = self.inner {
+            Some(VideoFrameIterator {
+                store: frames.clone(),
+                cur: Mutex::new(frames.beg),
+                end: frames.end,
+            })
+        } else {
+            None
         }
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
-        Py::new(slf.py(), slf.frames())
+        if let Some(frames) = self.frames() {
+            Py::new(slf.py(), frames)
+        } else {
+            None
+        }
     }
+}
+
+#[pyclass]
+pub(crate) struct AvailableDataContext {
+    inner: Arc<RawRuntime>,
+    stream_id: u32,
+}
+
+#[pymethods]
+impl AvailableDataContext {
+    fn __enter__(&self) -> PyResult<Option<AvailableData>> {
+        let AvailableDataContext { inner, stream_id } = *self;
+        let (beg, end) = inner.map_read(stream_id)?;
+        let nbytes = unsafe { byte_offset_from(beg, end) };
+        if nbytes > 0 {
+            log::trace!(
+                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+                stream_id,
+                beg,
+                end,
+                nbytes
+            )
+        };
+        Ok(if nbytes > 0 {
+            Some(AvailableData {
+                inner: Arc::new(RawAvailableData {
+                    runtime: self.inner.clone(),
+                    beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                    end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                    stream_id,
+                    consumed_bytes: None,
+                }),
+            })
+        } else {
+            None
+        })
+    }
+
+    fn __exit__(&self, _exc_type: PyAny, _exc_value: PyAny, _traceback: PyAny) {}
 }
 
 #[pyclass]

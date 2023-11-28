@@ -9,24 +9,24 @@ name = "acquire"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.19", features = [
+pyo3 = { version = "0.20", features = [
     "extension-module",
     "anyhow",
     "abi3-py38",
     "serde",
 ] }
-pyo3-log = "0.8"
-numpy = "0.19"
+pyo3-log = "0.9"
+numpy = "0.20"
 log = "0.4"
 anyhow = "1.0"
 parking_lot = "0.12"
 serde = { version = "1.0", features = ["derive"] }
-pythonize = "0.19"
+pythonize = "0.20.0"
 
 [build-dependencies]
-bindgen = "0.66"
+bindgen = "0.69.1"
 cmake = "0.1"
-http = "0.2"
+http = "1.0"
 json = "0.12"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
