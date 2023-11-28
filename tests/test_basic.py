@@ -6,12 +6,12 @@ from time import sleep
 from typing import Any, Dict, List, Optional
 
 import acquire
+from acquire import DeviceKind, DeviceState, Runtime, Trigger, PropertyType
 import dask.array as da
 import numcodecs.blosc as blosc
 import pytest
 import tifffile
 import zarr
-from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 from skimage.transform import downscale_local_mean
@@ -676,7 +676,9 @@ def test_abort(runtime: Runtime):
     assert nframes < p.video[0].max_frame_count
 
 
-def wait_for_data(runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None)-> acquire.AvailableData:
+def wait_for_data(
+    runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None
+) -> acquire.AvailableData:
     # None is used as a missing sentinel value, not to indicate no timeout.
     if timeout is None:
         timeout = timedelta(seconds=5)
@@ -687,20 +689,27 @@ def wait_for_data(runtime: Runtime, stream_id: int = 0, timeout: Optional[timede
             return packet
         sleep(sleep_duration.total_seconds())
         elapsed += sleep_duration
-    raise RuntimeError(f"Timed out waiting for condition after {elapsed.total_seconds()} seconds.")
+    raise RuntimeError(
+        f"Timed out waiting for condition after {elapsed.total_seconds()}"
+        " seconds."
+    )
 
 
 def test_execute_trigger(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 
-    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*empty.*")
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (64, 48)
     p.video[0].camera.settings.exposure_time_us = 1e3
     p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
-    p.video[0].camera.settings.input_triggers.frame_start = Trigger(enable=True, line=0, edge='Rising')
+    p.video[0].camera.settings.input_triggers.frame_start = Trigger(
+        enable=True, line=0, edge="Rising"
+    )
     p.video[0].max_frame_count = 10
 
     p = runtime.set_configuration(p)
@@ -723,6 +732,184 @@ def test_execute_trigger(runtime: Runtime):
         del packet
 
     runtime.stop()
+
+
+@pytest.mark.parametrize(
+    ("descriptor",),
+    [
+        ("simulated.*empty",),
+        ("simulated.*random",),
+        ("simulated.*sin",),
+    ],
+)
+def test_simulated_camera_capabilities(
+    runtime: Runtime,
+    descriptor: str,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, descriptor)
+    # to ensure consistent offset.{x,y}.high values across testing scenarios
+    p.video[0].camera.settings.shape = (1, 1)
+    runtime.set_configuration(p)
+
+    c = runtime.get_capabilities()
+    camera = c.video[0].camera
+    assert camera.shape.x.writable is True
+    assert camera.shape.x.low == 1.0
+    assert camera.shape.x.high == 8192.0
+    assert camera.shape.x.kind == PropertyType.FixedPrecision
+
+    assert camera.shape.y.writable is True
+    assert camera.shape.y.low == 1.0
+    assert camera.shape.y.high == 8192.0
+    assert camera.shape.y.kind == PropertyType.FixedPrecision
+
+    assert camera.offset.x.writable is True
+    assert camera.offset.x.low == 0.0
+    assert camera.offset.x.high == 8190.0
+    assert camera.offset.x.kind == PropertyType.FixedPrecision
+
+    assert camera.offset.y.writable is True
+    assert camera.offset.y.low == 0.0
+    assert camera.offset.y.high == 8190.0
+    assert camera.offset.y.kind == PropertyType.FixedPrecision
+
+    assert camera.binning.writable is True
+    assert camera.binning.low == 1.0
+    assert camera.binning.high == 8.0
+    assert camera.binning.kind == PropertyType.FixedPrecision
+
+    assert camera.exposure_time_us.writable is True
+    assert camera.exposure_time_us.low == 0.0
+    assert camera.exposure_time_us.high == 1e6
+    assert camera.exposure_time_us.kind == PropertyType.FixedPrecision
+
+    assert camera.line_interval_us.writable is False
+    assert camera.line_interval_us.low == camera.line_interval_us.high == 0.0
+    assert camera.line_interval_us.kind == PropertyType.FixedPrecision
+
+    assert camera.readout_direction.writable is False
+    assert camera.readout_direction.low == camera.readout_direction.high == 0.0
+    assert camera.readout_direction.kind == PropertyType.FixedPrecision
+
+    assert len(camera.supported_pixel_types) == 5
+    assert acquire.SampleType.U8 in camera.supported_pixel_types
+    assert acquire.SampleType.U16 in camera.supported_pixel_types
+    assert acquire.SampleType.I8 in camera.supported_pixel_types
+    assert acquire.SampleType.I16 in camera.supported_pixel_types
+    assert acquire.SampleType.F32 in camera.supported_pixel_types
+
+    assert camera.digital_lines.line_count == 1
+    assert camera.digital_lines.names[0] == "software"
+    assert camera.digital_lines.names[1:] == [""] * 7
+
+    assert camera.triggers.acquisition_start.input == 0
+    assert camera.triggers.acquisition_start.output == 0
+
+    assert camera.triggers.exposure.input == 0
+    assert camera.triggers.exposure.output == 0
+
+    assert camera.triggers.frame_start.input == 1
+    assert camera.triggers.frame_start.output == 0
+
+
+@pytest.mark.parametrize(
+    ("descriptor", "extension", "chunking", "sharding", "multiscale"),
+    [
+        ("raw", "bin", None, None, False),
+        ("trash", "", None, None, False),
+        ("tiff", "tif", None, None, False),
+        ("tiff-json", "tif", None, None, False),
+        (
+            "zarr",
+            "zarr",
+            {
+                "width": {"low": 32, "high": 65535},
+                "height": {"low": 32, "high": 65535},
+                "planes": {"low": 32, "high": 65535},
+            },
+            None,
+            True,
+        ),
+    ],
+)
+def test_storage_capabilities(
+    runtime: Runtime,
+    request: pytest.FixtureRequest,
+    descriptor: str,
+    extension: str,
+    chunking: Optional[Dict[str, Any]],
+    sharding: Optional[Dict[str, Any]],
+    multiscale: bool,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
+
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    p.video[0].storage.settings.filename = f"{request.node.name}.{extension}"
+
+    p.video[0].storage.settings.external_metadata_json = json.dumps(
+        {"hello": "world"}
+    )  # for tiff-json
+    p.video[0].max_frame_count = 1000
+    runtime.set_configuration(p)
+
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    runtime.start()
+    c = runtime.get_capabilities()
+    # FIXME (aliddell): hack to get the storage capabilities to be populated
+    runtime.abort()
+    storage = c.video[0].storage
+
+    chunk_dims_px = storage.chunk_dims_px
+
+    assert chunk_dims_px.width.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.height.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.planes.kind == PropertyType.FixedPrecision
+
+    if chunking is None:
+        assert chunk_dims_px.is_supported is False
+        assert chunk_dims_px.width.low == chunk_dims_px.width.high == 0.0
+        assert chunk_dims_px.height.low == chunk_dims_px.height.high == 0.0
+        assert chunk_dims_px.planes.low == chunk_dims_px.planes.high == 0.0
+    else:
+        assert chunk_dims_px.is_supported is True
+        assert chunk_dims_px.width.low == chunking["width"]["low"]
+        assert chunk_dims_px.width.high == chunking["width"]["high"]
+        assert chunk_dims_px.height.low == chunking["height"]["low"]
+        assert chunk_dims_px.height.high == chunking["height"]["high"]
+        assert chunk_dims_px.planes.low == chunking["planes"]["low"]
+        assert chunk_dims_px.planes.high == chunking["planes"]["high"]
+
+    shard_dims_chunks = storage.shard_dims_chunks
+
+    assert shard_dims_chunks.width.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.height.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.planes.kind == PropertyType.FixedPrecision
+
+    if sharding is None:
+        assert shard_dims_chunks.is_supported is False
+        assert shard_dims_chunks.width.low == 0.0
+        assert shard_dims_chunks.width.high == 0.0
+
+        assert shard_dims_chunks.height.low == 0.0
+        assert shard_dims_chunks.height.high == 0.0
+
+        assert shard_dims_chunks.planes.low == 0.0
+        assert shard_dims_chunks.planes.high == 0.0
+    else:
+        assert shard_dims_chunks.is_supported is True
+        assert shard_dims_chunks.width.low == chunking["width"]["low"]
+        assert shard_dims_chunks.width.high == chunking["width"]["high"]
+        assert shard_dims_chunks.height.low == chunking["height"]["low"]
+        assert shard_dims_chunks.height.high == chunking["height"]["high"]
+        assert shard_dims_chunks.planes.low == chunking["planes"]["low"]
+        assert shard_dims_chunks.planes.high == chunking["planes"]["high"]
+
+    assert storage.multiscale.is_supported == multiscale
 
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)

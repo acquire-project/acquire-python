@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use std::slice::Iter;
 
 #[pyclass]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -20,6 +21,22 @@ pub enum SampleType {
 impl Default for SampleType {
     fn default() -> Self {
         SampleType::U8
+    }
+}
+
+impl SampleType {
+    pub fn iter() -> Iter<'static, SampleType> {
+        static SAMPLE_TYPES: [SampleType; 8] = [
+            SampleType::U8,
+            SampleType::U16,
+            SampleType::I8,
+            SampleType::I16,
+            SampleType::F32,
+            SampleType::U10,
+            SampleType::U12,
+            SampleType::U14,
+        ];
+        SAMPLE_TYPES.iter()
     }
 }
 

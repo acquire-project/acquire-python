@@ -1,9 +1,10 @@
 use crate::{
     capi,
-    components::{macros::impl_plain_old_dict, Direction, SampleType, Trigger},
+    components::{macros::impl_plain_old_dict, Property, Direction, SampleType, Trigger},
 };
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::ffi::{CStr, c_char, c_void};
 
 #[pyclass]
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -212,173 +213,6 @@ impl TryFrom<&CameraProperties> for capi::CameraProperties {
     }
 }
 
-// impl Serialize for CameraProperties {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer,
-//     {
-//         struct TriggerList<'a>(&'a Py<PyList>);
-//         impl<'a> Serialize for TriggerList<'a> {
-//             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//             where
-//                 S: serde::Serializer,
-//             {
-//                 Ok(Python::with_gil(|py| {
-//                     let list = self.0.as_ref(py);
-//                     let mut seq = serializer.serialize_seq(Some(list.len()))?;
-//                     for e in list {
-//                         let w = e.extract::<Py<Trigger>>().unwrap();
-//                         seq.serialize_element(&w)?;
-//                     }
-//                     seq.end()
-//                 })?)
-//             }
-//         }
-//         let mut item = serializer.serialize_struct("camera", 7)?;
-//         macro_rules! ser_field {
-//             ($name:tt) => {
-//                 item.serialize_field(stringify!($name), &self.$name)
-//             };
-//         }
-//         ser_field!(exposure_time_us)?;
-//         ser_field!(line_interval_us)?;
-//         ser_field!(readout_direction)?;
-//         ser_field!(binning)?;
-//         ser_field!(pixel_type)?;
-//         ser_field!(offset)?;
-//         ser_field!(shape)?;
-//         item.serialize_field("triggers", &TriggerList(&self.triggers))?;
-//         item.end()
-//     }
-// }
-// impl<'de> Deserialize<'de> for CameraProperties {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         #[derive(Deserialize)]
-//         #[serde(field_identifier, rename_all = "snake_case")]
-//         enum Field {
-//             ExposureTimeMicroseconds,
-//             LineIntervalMicroseconds,
-//             ReadoutDirection,
-//             Binning,
-//             PixelType,
-//             Offset,
-//             Shape,
-//             Triggers,
-//         }
-//         struct SelfVisitor;
-//         impl<'de> Visitor<'de> for SelfVisitor {
-//             type Value = CameraProperties;
-//             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-//                 formatter.write_str("struct CameraProperties")
-//             }
-//             fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-//             where
-//                 A: serde::de::MapAccess<'de>,
-//             {
-//                 let mut exposure_time_us = None;
-//                 let mut line_interval_us = None;
-//                 let mut readout_direction = None;
-//                 let mut binning = None;
-//                 let mut pixel_type = None;
-//                 let mut offset = None;
-//                 let mut shape = None;
-//                 let mut triggers = None;
-//                 while let Some(key) = map.next_key()? {
-//                     match key {
-//                         Field::ExposureTimeMicroseconds => {
-//                             if exposure_time_us.is_some() {
-//                                 return Err(de::Error::duplicate_field("exposure_time_us"));
-//                             }
-//                             exposure_time_us = Some(map.next_value()?);
-//                         }
-//                         Field::LineIntervalMicroseconds => {
-//                             if line_interval_us.is_some() {
-//                                 return Err(de::Error::duplicate_field("line_interval_us"));
-//                             }
-//                             line_interval_us = Some(map.next_value()?);
-//                         }
-//                         Field::ReadoutDirection => {
-//                             if readout_direction.is_some() {
-//                                 return Err(de::Error::duplicate_field("readout_direction"));
-//                             }
-//                             readout_direction = Some(map.next_value()?);
-//                         }
-//                         Field::Binning => {
-//                             if binning.is_some() {
-//                                 return Err(de::Error::duplicate_field("binning"));
-//                             }
-//                             binning = Some(map.next_value()?);
-//                         }
-//                         Field::PixelType => {
-//                             if pixel_type.is_some() {
-//                                 return Err(de::Error::duplicate_field("pixel_type"));
-//                             }
-//                             pixel_type = Some(map.next_value()?);
-//                         }
-//                         Field::Offset => {
-//                             if offset.is_some() {
-//                                 return Err(de::Error::duplicate_field("offset"));
-//                             }
-//                             offset = Some(map.next_value()?);
-//                         }
-//                         Field::Shape => {
-//                             if shape.is_some() {
-//                                 return Err(de::Error::duplicate_field("shape"));
-//                             }
-//                             shape = Some(map.next_value()?);
-//                         }
-//                         Field::Triggers => {
-//                             if triggers.is_some() {
-//                                 return Err(de::Error::duplicate_field("triggers"));
-//                             }
-//                             let v: Vec<Trigger> = map.next_value()?;
-//                             triggers = Some(Python::with_gil(|py| {
-//                                 PyList::new(py, v.into_iter().map(|w| Py::new(py, w).unwrap()))
-//                                     .into()
-//                             }));
-//                         }
-//                     }
-//                 }
-//                 let exposure_time_us =
-//                     exposure_time_us.ok_or_else(|| de::Error::missing_field("exposure_time_us"))?;
-//                 let line_interval_us =
-//                     line_interval_us.ok_or_else(|| de::Error::missing_field("line_interval_us"))?;
-//                 let readout_direction = readout_direction
-//                     .ok_or_else(|| de::Error::missing_field("readout_direction"))?;
-//                 let binning = binning.ok_or_else(|| de::Error::missing_field("binning"))?;
-//                 let pixel_type =
-//                     pixel_type.ok_or_else(|| de::Error::missing_field("pixel_type"))?;
-//                 let offset = offset.ok_or_else(|| de::Error::missing_field("offset"))?;
-//                 let shape = shape.ok_or_else(|| de::Error::missing_field("shape"))?;
-//                 let triggers = triggers.ok_or_else(|| de::Error::missing_field("triggers"))?;
-//                 Ok(CameraProperties {
-//                     exposure_time_us,
-//                     line_interval_us,
-//                     readout_direction,
-//                     binning,
-//                     pixel_type,
-//                     offset,
-//                     shape,
-//                     triggers,
-//                 })
-//             }
-//         }
-//         const FIELDS: &'static [&'static str] = &[
-//             "gain_db",
-//             "exposure_time_us",
-//             "binning",
-//             "pixel_type",
-//             "offset",
-//             "shape",
-//             "triggers",
-//         ];
-//         deserializer.deserialize_struct("Character", FIELDS, SelfVisitor)
-//     }
-// }
-
 impl Default for capi::CameraProperties_camera_properties_input_triggers_s {
     fn default() -> Self {
         Self {
@@ -430,5 +264,512 @@ impl Default for capi::CameraProperties_camera_properties_shape_s {
             x: Default::default(),
             y: Default::default(),
         }
+    }
+}
+
+/// CameraCapabilities::OffsetShapeCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OffsetShapeCapabilities {
+    #[pyo3(get)]
+    x: Property,
+
+    #[pyo3(get)]
+    y: Property,
+}
+
+impl_plain_old_dict!(OffsetShapeCapabilities);
+
+impl Default for OffsetShapeCapabilities {
+    fn default() -> Self {
+        Self {
+            x: Property::default(),
+            y: Property::default(),
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s> for OffsetShapeCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_camera_properties_metadata_offset_s,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                x: value.x.try_into()?,
+                y: value.y.try_into()?,
+            })
+        })?)
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_shape_s> for OffsetShapeCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_camera_properties_metadata_shape_s,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                x: value.x.try_into()?,
+                y: value.y.try_into()?,
+            })
+        })?)
+    }
+}
+
+/// CameraCapabilities::DigitalLineCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DigitalLineCapabilities {
+    #[pyo3(get)]
+    line_count: u8,
+
+    #[pyo3(get)]
+    names: [String; 8],
+}
+
+impl_plain_old_dict!(DigitalLineCapabilities);
+
+impl Default for DigitalLineCapabilities {
+    fn default() -> Self {
+        Self {
+            line_count: Default::default(),
+            names: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata> for DigitalLineCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            let mut names: [String; 8] = Default::default();
+            for (i, name) in value.names.iter().enumerate() {
+                let name = unsafe { CStr::from_ptr(name.as_ptr()) }.to_str()?.to_owned();
+                names[i] = name;
+            }
+            Ok(Self {
+                line_count: value.line_count,
+                names,
+            })
+        })?)
+    }
+}
+
+/// CameraCapabilities::TriggerInputOutputCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TriggerInputOutputCapabilities {
+    #[pyo3(get)]
+    input: u8,
+
+    #[pyo3(get)]
+    output: u8,
+}
+
+impl_plain_old_dict!(TriggerInputOutputCapabilities);
+
+impl Default for TriggerInputOutputCapabilities {
+    fn default() -> Self {
+        Self {
+            input: Default::default(),
+            output: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s> for TriggerInputOutputCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                input: value.input,
+                output: value.output,
+            })
+        })?)
+    }
+}
+
+/// CameraCapabilities::TriggerCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TriggerCapabilities {
+    #[pyo3(get)]
+    acquisition_start: Py<TriggerInputOutputCapabilities>,
+
+    #[pyo3(get)]
+    exposure: Py<TriggerInputOutputCapabilities>,
+
+    #[pyo3(get)]
+    frame_start: Py<TriggerInputOutputCapabilities>,
+}
+
+impl_plain_old_dict!(TriggerCapabilities);
+
+impl Default for TriggerCapabilities {
+    fn default() -> Self {
+        let (acquisition_start, exposure, frame_start) = Python::with_gil(|py| {
+            (
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+                Py::new(py, TriggerInputOutputCapabilities::default()).unwrap(),
+            )
+        });
+        Self {
+            acquisition_start,
+            exposure,
+            frame_start,
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata> for TriggerCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata,
+    ) -> Result<Self, Self::Error> {
+        let (acquisition_start, exposure, frame_start) = Python::with_gil(|py| -> PyResult<_> {
+            let acquisition_start: TriggerInputOutputCapabilities =
+                value.acquisition_start.try_into()?;
+            let exposure: TriggerInputOutputCapabilities = value.exposure.try_into()?;
+            let frame_start: TriggerInputOutputCapabilities = value.frame_start.try_into()?;
+            Ok((
+                Py::new(py, acquisition_start)?,
+                Py::new(py, exposure)?,
+                Py::new(py, frame_start)?,
+            ))
+        })?;
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                acquisition_start,
+                exposure,
+                frame_start,
+            })
+        })?)
+    }
+}
+
+/// CameraCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CameraCapabilities {
+    #[pyo3(get)]
+    exposure_time_us: Property,
+
+    #[pyo3(get)]
+    line_interval_us: Property,
+
+    #[pyo3(get)]
+    readout_direction: Property,
+
+    #[pyo3(get)]
+    binning: Property,
+
+    #[pyo3(get)]
+    offset: Py<OffsetShapeCapabilities>,
+
+    #[pyo3(get)]
+    shape: Py<OffsetShapeCapabilities>,
+
+    #[pyo3(get)]
+    supported_pixel_types: Vec<SampleType>,
+
+    #[pyo3(get)]
+    digital_lines: Py<DigitalLineCapabilities>,
+
+    #[pyo3(get)]
+    triggers: Py<TriggerCapabilities>,
+}
+
+impl_plain_old_dict!(CameraCapabilities);
+
+impl Default for CameraCapabilities {
+    fn default() -> Self {
+        let (offset, shape, digital_lines, triggers) = Python::with_gil(|py| {
+            (
+                Py::new(py, OffsetShapeCapabilities::default()).unwrap(),
+                Py::new(py, OffsetShapeCapabilities::default()).unwrap(),
+                Py::new(py, DigitalLineCapabilities::default()).unwrap(),
+                Py::new(py, TriggerCapabilities::default()).unwrap(),
+            )
+        });
+        Self {
+            exposure_time_us: Property::default(),
+            line_interval_us: Property::default(),
+            readout_direction: Property::default(),
+            binning: Property::default(),
+            offset,
+            shape,
+            supported_pixel_types: Default::default(),
+            digital_lines,
+            triggers,
+        }
+    }
+}
+
+impl TryFrom<capi::CameraPropertyMetadata> for CameraCapabilities {
+    type Error = anyhow::Error;
+
+    fn try_from(value: capi::CameraPropertyMetadata) -> Result<Self, Self::Error> {
+        let (offset, shape, digital_lines, triggers) = Python::with_gil(|py| -> PyResult<_> {
+            let offset: OffsetShapeCapabilities = value.offset.try_into()?;
+            let shape: OffsetShapeCapabilities = value.shape.try_into()?;
+            let digital_lines: DigitalLineCapabilities = value.digital_lines.try_into()?;
+            let triggers: TriggerCapabilities = value.triggers.try_into()?;
+            Ok((
+                Py::new(py, offset)?,
+                Py::new(py, shape)?,
+                Py::new(py, digital_lines)?,
+                Py::new(py, triggers)?,
+            ))
+        })?;
+
+        let mut supported_pixel_types: Vec<SampleType> = Default::default();
+        for (i, &x) in SampleType::iter().enumerate() {
+            if value.supported_pixel_types & (1 << i) != 0 {
+                supported_pixel_types.push(x);
+            }
+        }
+
+        Ok(Self {
+            exposure_time_us: value.exposure_time_us.try_into()?,
+            line_interval_us: value.line_interval_us.try_into()?,
+            readout_direction: value.readout_direction.try_into()?,
+            binning: value.binning.try_into()?,
+            offset,
+            shape,
+            supported_pixel_types,
+            digital_lines,
+            triggers,
+        })
+    }
+}
+
+/// capi
+
+impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_offset_s {
+    fn default() -> Self {
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&OffsetShapeCapabilities> for capi::CameraPropertyMetadata_camera_properties_metadata_offset_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                x: (&value.x).try_into()?,
+                y: (&value.y).try_into()?,
+            })
+        })?)
+    }
+}
+
+impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s {
+    fn default() -> Self {
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&OffsetShapeCapabilities> for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                x: (&value.x).try_into()?,
+                y: (&value.y).try_into()?,
+            })
+        })?)
+    }
+}
+
+impl Default for capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata {
+    fn default() -> Self {
+        Self {
+            line_count: Default::default(),
+            names: [
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+            ],
+        }
+    }
+}
+
+impl TryFrom<&DigitalLineCapabilities> for capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &DigitalLineCapabilities) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            let mut names: [[c_char; 64]; 8] = [
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+                [0; 64],
+            ];
+            for (i, name) in value.names.iter().enumerate() {
+                let name = std::ffi::CString::new(name.as_str())?;
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        name.as_ptr() as *const c_void,
+                        names[i].as_mut_ptr() as *mut c_void,
+                        64,
+                    );
+                }
+            }
+            Ok(Self {
+                line_count: value.line_count,
+                names,
+            })
+        })?)
+    }
+}
+
+impl Default for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
+    fn default() -> Self {
+        Self {
+            input: Default::default(),
+            output: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&TriggerInputOutputCapabilities> for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata_camera_properties_metadata_trigger_capabilities_s {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: &TriggerInputOutputCapabilities,
+    ) -> Result<Self, Self::Error> {
+        Ok(Python::with_gil(|_| -> PyResult<_> {
+            Ok(Self {
+                input: value.input,
+                output: value.output,
+            })
+        })?)
+    }
+}
+
+impl Default for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata {
+    fn default() -> Self {
+        Self {
+            acquisition_start: Default::default(),
+            exposure: Default::default(),
+            frame_start: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&TriggerCapabilities> for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &TriggerCapabilities) -> Result<Self, Self::Error> {
+        let acquisition_start = Python::with_gil(|py| -> PyResult<_> {
+            let acquisition_start: TriggerInputOutputCapabilities =
+                value.acquisition_start.extract(py)?;
+            Ok(acquisition_start)
+        })?;
+
+        let exposure = Python::with_gil(|py| -> PyResult<_> {
+            let exposure: TriggerInputOutputCapabilities =
+                value.exposure.extract(py)?;
+            Ok(exposure)
+        })?;
+
+        let frame_start = Python::with_gil(|py| -> PyResult<_> {
+            let frame_start: TriggerInputOutputCapabilities =
+                value.frame_start.extract(py)?;
+            Ok(frame_start)
+        })?;
+
+        Ok(Self {
+            acquisition_start: (&acquisition_start).try_into()?,
+            exposure: (&exposure).try_into()?,
+            frame_start: (&frame_start).try_into()?,
+        })
+    }
+}
+
+impl Default for capi::CameraPropertyMetadata {
+    fn default() -> Self {
+        Self {
+            exposure_time_us: Default::default(),
+            line_interval_us: Default::default(),
+            readout_direction: Default::default(),
+            binning: Default::default(),
+            offset: Default::default(),
+            shape: Default::default(),
+            supported_pixel_types: Default::default(),
+            digital_lines: Default::default(),
+            triggers: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<&CameraCapabilities> for capi::CameraPropertyMetadata {
+    type Error = anyhow::Error;
+
+    fn try_from(src: &CameraCapabilities) -> Result<Self, Self::Error> {
+        let offset = Python::with_gil(|py| -> PyResult<_> {
+            let offset: OffsetShapeCapabilities = src.offset.extract(py)?;
+            Ok(offset)
+        })?;
+
+        let shape = Python::with_gil(|py| -> PyResult<_> {
+            let shape: OffsetShapeCapabilities = src.shape.extract(py)?;
+            Ok(shape)
+        })?;
+
+        let digital_lines = Python::with_gil(|py| -> PyResult<_> {
+            let digital_lines: DigitalLineCapabilities = src.digital_lines.extract(py)?;
+            Ok(digital_lines)
+        })?;
+
+        let triggers = Python::with_gil(|py| -> PyResult<_> {
+            let triggers: TriggerCapabilities = src.triggers.extract(py)?;
+            Ok(triggers)
+        })?;
+
+        let mut supported_pixel_types: u64 = 0;
+        for &x in &src.supported_pixel_types {
+            supported_pixel_types |= 1 << x as u64;
+        }
+
+        Ok(Self {
+            exposure_time_us: (&src.exposure_time_us).try_into()?,
+            line_interval_us: (&src.line_interval_us).try_into()?,
+            readout_direction: (&src.readout_direction).try_into()?,
+            binning: (&src.binning).try_into()?,
+            offset: (&offset).try_into()?,
+            shape: (&shape).try_into()?,
+            supported_pixel_types,
+            digital_lines: (&digital_lines).try_into()?,
+            triggers: (&triggers).try_into()?,
+        })
     }
 }
