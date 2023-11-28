@@ -111,6 +111,7 @@ jobs:
       - name: Test artifact
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_zarr --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
