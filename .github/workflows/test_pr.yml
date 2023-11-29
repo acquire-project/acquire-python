@@ -56,6 +56,7 @@ jobs:
           ZARR_V3_SHARDING: "1"
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_zarr --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
   dcam:
     name: Python ${{ matrix.python }} (DCAM)
