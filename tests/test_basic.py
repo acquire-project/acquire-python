@@ -3,7 +3,7 @@ import logging
 import time
 from datetime import timedelta
 from time import sleep
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import acquire
 import dask.array as da
@@ -11,7 +11,7 @@ import numcodecs.blosc as blosc
 import pytest
 import tifffile
 import zarr
-from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
+from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger, VideoFrame
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 from skimage.transform import downscale_local_mean
@@ -139,10 +139,10 @@ def test_repeat_with_no_stop(runtime: Runtime):
     runtime.start()
     # wait for 1 frame
     while True:
-        if a := runtime.get_available_data(0):
-            logging.info(f"Got {a.get_frame_count()}")
-            a = None
-            break
+        with runtime.get_available_data(0) as a:
+            if a:
+                logging.info(f"Got {a.get_frame_count()} frame")
+                break
     # acq is still on going here
     with pytest.raises(RuntimeError):
         logging.info("Next start should fail gracefully")
@@ -189,18 +189,19 @@ def test_setup(runtime: Runtime):
 
     while nframes < p.video[0].max_frame_count and not took_too_long():
         clock = time.time()
-        if a := runtime.get_available_data(0):
-            packet = a.get_frame_count()
-            for f in a.frames():
+        with runtime.get_available_data(0) as a:
+            if a:
+                packet = a.get_frame_count()
+                for f in a.frames():
+                    logging.info(
+                        f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}"
+                    )
+                    # del f  # <-- fails to get the last frames if this is held?
+                # del a  # <-- fails to get the last frames if this is held?
+                nframes += packet
                 logging.info(
-                    f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}"
+                    f"frame count: {nframes} - frames in packet: {packet}"
                 )
-                del f  # <-- fails to get the last frames if this is held?
-            del a  # <-- fails to get the last frames if this is held?
-            nframes += packet
-            logging.info(
-                f"frame count: {nframes} - frames in packet: {packet}"
-            )
 
         elapsed = time.time() - clock
         sleep(max(0, 0.1 - elapsed))
@@ -239,9 +240,10 @@ def test_change_filename(runtime: Runtime):
         nframes = 0
         runtime.start()
         while nframes < p.video[0].max_frame_count:
-            if packet := runtime.get_available_data(0):
-                nframes += packet.get_frame_count()
-                packet = None
+            with runtime.get_available_data(0) as packet:
+                if packet:
+                    nframes += packet.get_frame_count()
+                    packet = None
         logging.info("Stopping")
         runtime.stop()
 
@@ -265,9 +267,9 @@ def test_write_external_metadata_to_tiff(
     nframes = 0
     runtime.start()
     while nframes < p.video[0].max_frame_count:
-        if packet := runtime.get_available_data(0):
-            nframes += packet.get_frame_count()
-            packet = None
+        with runtime.get_available_data(0) as packet:
+            if packet:
+                nframes += packet.get_frame_count()
     runtime.stop()
 
     # Check that the written tif has the expected structure
@@ -310,9 +312,9 @@ def test_write_external_metadata_to_zarr(
     nframes = 0
     runtime.start()
     while nframes < p.video[0].max_frame_count:
-        if packet := runtime.get_available_data(0):
-            nframes += packet.get_frame_count()
-            packet = None
+        with runtime.get_available_data(0) as packet:
+            if packet:
+                nframes += packet.get_frame_count()
     runtime.stop()
 
     assert p.video[0].storage.settings.filename
@@ -631,19 +633,20 @@ def test_two_video_streams(runtime: Runtime):
     stream_id = 0
     while is_not_done():
         if nframes[stream_id] < p.video[stream_id].max_frame_count:
-            if packet := runtime.get_available_data(stream_id):
-                n = packet.get_frame_count()
-                for i, frame in enumerate(packet.frames()):
-                    expected_frame_id = nframes[stream_id] + i
-                    assert frame.metadata().frame_id == expected_frame_id, (
-                        "frame id's didn't match "
-                        + f"({frame.metadata().frame_id}!={expected_frame_id})"
-                        + f" [stream {stream_id} nframes {nframes}]"
-                    )
-                    del frame
-                del packet
-                nframes[stream_id] += n
-                logging.debug(f"NFRAMES {nframes}")
+            with runtime.get_available_data(stream_id) as packet:
+                if packet:
+                    n = packet.get_frame_count()
+                    for i, frame in enumerate(packet.frames()):
+                        expected_frame_id = nframes[stream_id] + i
+                        assert frame.metadata().frame_id == expected_frame_id, (
+                            "frame id's didn't match "
+                            + f"({frame.metadata().frame_id}!={expected_frame_id})"
+                            + f" [stream {stream_id} nframes {nframes}]"
+                        )
+                        del frame
+                    del packet
+                    nframes[stream_id] += n
+                    logging.debug(f"NFRAMES {nframes}")
 
         stream_id = (stream_id + 1) % 2
     logging.info("Stopping")
@@ -669,10 +672,12 @@ def test_abort(runtime: Runtime):
     logging.info("Aborting")
     runtime.abort()
 
-    while packet := runtime.get_available_data(0):
-        nframes += packet.get_frame_count()
-
-    del packet
+    while True:
+        with runtime.get_available_data(0) as packet:
+            if packet:
+                nframes += packet.get_frame_count()
+            else:
+                break
 
     logging.debug(
         f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
@@ -680,15 +685,17 @@ def test_abort(runtime: Runtime):
     assert nframes < p.video[0].max_frame_count
 
 
-def wait_for_data(runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None)-> acquire.AvailableData:
+def wait_for_data(runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None)-> Tuple[int,int]:
     # None is used as a missing sentinel value, not to indicate no timeout.
     if timeout is None:
         timeout = timedelta(seconds=5)
     sleep_duration = timedelta(microseconds=10000)
     elapsed = timedelta()
     while elapsed < timeout:
-        if packet := runtime.get_available_data(stream_id):
-            return packet
+        with runtime.get_available_data(stream_id) as packet:
+            if packet:
+                frames = list(packet.frames())
+                return (len(frames), frames[0].metadata().frame_id)
         sleep(sleep_duration.total_seconds())
         elapsed += sleep_duration
     raise RuntimeError(f"Timed out waiting for condition after {elapsed.total_seconds()} seconds.")
@@ -714,22 +721,18 @@ def test_execute_trigger(runtime: Runtime):
     runtime.start()
 
     # No triggers yet, so no data.
-    assert runtime.get_available_data(0) is None
+    with runtime.get_available_data(0) as packet:
+        assert packet is None
 
     # Snap a few individual frames
     for i in range(p.video[0].max_frame_count):
         runtime.execute_trigger(0)
-        packet = wait_for_data(runtime, 0)
-        frames = tuple(packet.frames())
-        assert packet.get_frame_count() == 1
-        assert frames[0].metadata().frame_id == i
-        del frames
-        del packet
+        count, frame_id = wait_for_data(runtime, 0)
+        assert count == 1
+        assert frame_id == i
 
     runtime.stop()
 
-
-# FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:
 #
