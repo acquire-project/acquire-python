@@ -104,21 +104,25 @@ def test_repeat_acq(runtime: Runtime):
     p = runtime.set_configuration(p)
     runtime.start()
     while True:
-        if a := runtime.get_available_data(0):
-            logging.info(f"Got {a.get_frame_count()}")
-            a = None
-            break
+        with runtime.get_available_data(0) as a:
+            if a:
+                logging.info(f"Got {a.get_frame_count()}")
+                break
+        assert a, "expected a not to be None"
+        assert a.get_frame_count()==0
+        assert next(a.frames()) is None
     runtime.stop()
-    assert runtime.get_available_data(0) is None
     # TODO: (nclack) assert 1 acquired frame. stop should block
     runtime.start()
     while True:
-        if a := runtime.get_available_data(0):
-            logging.info(f"Got {a.get_frame_count()}")
-            a = None
-            break
+        with runtime.get_available_data(0) as a:
+            if a:
+                logging.info(f"Got {a.get_frame_count()}")
+                break
+        assert a, "expected a not to be None"
+        assert a.get_frame_count()==0
+        assert next(a.frames()) is None
     runtime.stop()
-    assert runtime.get_available_data(0) is None
     # TODO: (nclack) assert 1 more acquired frame. stop cancels and waits.
 
 
