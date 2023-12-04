@@ -3,23 +3,26 @@
 [![DOI](https://zenodo.org/badge/632689876.svg)](https://zenodo.org/badge/latestdoi/632689876)
 [![Chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://acquire-imaging.zulipchat.com/)
 
-# acquire-imaging
+# Acquire (`acquire-imaging` on PyPI)
 
-This python package provides a multi-camera video streaming library focusing
-on performant microscopy.
+Acquire ([`acquire-imaging` on PyPI](https://pypi.org/project/acquire-imaging/)) provides high-speed, multi-camera, video streaming for up to **2** cameras and image acquisition with a programming interface for streaming video data directly to Python, cloud-friendly file formats, and visualization platforms, such as [napari](https://napari.org/stable/).
 
 > **Note** This is an early stage project. If you find it interesting please
 > reach out!
 
-Support for:
+Acquire supports the following cameras (currently only on Windows):
 
-- Up to two independent video streams
-- Camera support:
-  - Hamamatsu Orca Fusion BT (C15440-20UP) (windows only)
-  - Vieworks VC-151MX-M6H00
-- Streaming file format support:
-  - Tiff
-  - Zarr v2
+- [Hamamatsu Orca Fusion BT (C15440-20UP)](https://www.hamamatsu.com/eu/en/product/cameras/cmos-cameras/C15440-20UP.html)
+- [Vieworks VC-151MX-M6H00](https://www.visionsystech.com/products/cameras/vieworks-vc-151mx-sony-imx411-sensor-ultra-high-resolution-cmos-camera-151-mp)
+- [FLIR Blackfly USB3 (BFLY-U3-23S6M-C)](https://www.flir.com/products/blackfly-usb3/?model=BFLY-U3-23S6M-C&vertical=machine+vision&segment=iis)
+- [FLIR Oryx 10GigE (ORX-10GS-51S5M-C)](https://www.flir.com/products/oryx-10gige/?model=ORX-10GS-51S5M-C&vertical=machine+vision&segment=iis)
+
+Acquire also supports the following output file formats:
+
+- [Tiff](https://en.wikipedia.org/wiki/TIFF)
+- [Zarr](https://zarr.dev/)
+
+For testing and demonstration purposes, Acquire provides a few simulated cameras, as well as raw and trash output devices.
 
 ## Installation
 
@@ -29,38 +32,9 @@ python -m pip install acquire-imaging
 
 ## Usage
 
-See the tests for more examples.
+Check out our documentation [here](https://acquire-project.github.io/acquire-docs/). 
 
-The provided [napari][] plugin is a good example of how to stream for visualization.
-
-### List devices
-
-```python
-import acquire
-print(acquire.Runtime().device_manager().devices())
-```
-
-### Finite triggered acquisition
-
-```python
-import acquire
-runtime = acquire.Runtime()
-dm = runtime.device_manager()
-
-props = runtime.get_configuration()
-# select the first Hamamatsu camera
-props.video[0].camera.identifier = dm.select(acquire.DeviceKind.Camera, "hamamatsu.*")
-# stream to zarr
-props.video[0].storage.identifier = dm.select(acquire.DeviceKind.Storage, "zarr")
-props.video[0].storage.settings.filename = "out.zarr"
-props.video[0].camera.settings.shape = (2304, 2304)
-props.video[0].camera.settings.pixel_type = acquire.SampleType.U16
-props.video[0].max_frame_count = 100
-props = runtime.set_configuration(props)
-
-runtime.start()
-runtime.stop()  # wait for acquisition to complete
-```
+The provided [napari](https://napari.org/stable/) plugin ([code here](https://github.com/acquire-project/acquire-python/blob/main/python/acquire/__init__.py#L131)) is a good example of how to stream for visualization.
 
 # Development
 
