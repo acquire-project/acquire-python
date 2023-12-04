@@ -5,8 +5,6 @@
 
 # Acquire
 
-### Installation
-
 ```bash
 python -m pip install acquire-imaging
 ```
