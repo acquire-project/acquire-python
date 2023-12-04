@@ -22,7 +22,7 @@ Acquire also supports the following output file formats:
 - [Tiff](https://en.wikipedia.org/wiki/TIFF)
 - [Zarr](https://zarr.dev/)
 
-For testing and demonstration purposes, Acquire provides a few simulated cameras, as well as raw and trash output devices.
+For testing and demonstration purposes, Acquire provides a few simulated video sources.
 
 ## Installation
 
