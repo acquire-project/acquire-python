@@ -11,16 +11,10 @@ import pytest
 import tifffile
 
 
-@pytest.fixture(scope="module")
-def _runtime():
-    runtime = acquire.Runtime()
-    yield runtime
-
-
+# FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
-def runtime(_runtime: Runtime):
-    yield _runtime
-    _runtime.set_configuration(acquire.Properties())
+def runtime():
+    yield acquire.Runtime()
 
 
 def test_set():
