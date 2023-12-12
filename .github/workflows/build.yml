@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request: # TODO (aliddell): remove before merge
+    branches:
+      - main
 
 jobs:
   build:
