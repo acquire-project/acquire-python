@@ -4,6 +4,7 @@ imgui.ini
 Testing
 *.zarr
 *.tif
+*.bin
 *.json
 Cargo.lock
 

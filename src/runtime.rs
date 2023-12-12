@@ -17,6 +17,7 @@ use crate::{
     capi, components::macros::impl_plain_old_dict, core_properties::Properties,
     device::DeviceState, device_manager, Status,
 };
+use crate::capabilities::Capabilities;
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -169,6 +170,14 @@ impl Runtime {
             unsafe { capi::acquire_get_configuration(self.as_ref().as_ptr(), &mut props) }.ok()
         })?;
         Ok((&props).try_into()?)
+    }
+
+    fn get_capabilities(&self, py: Python<'_>) -> PyResult<Capabilities> {
+        let mut meta: capi::AcquirePropertyMetadata = Default::default();
+        Python::allow_threads(py, || {
+            unsafe { capi::acquire_get_configuration_metadata(self.as_ref().as_ptr(), &mut meta) }.ok()
+        })?;
+        Ok((&meta).try_into()?)
     }
 
     fn get_state(&self, py: Python<'_>) -> PyResult<DeviceState> {
