@@ -65,7 +65,7 @@ log_cli = true # when true, messages are printed immediately
 
 [tool.ruff]
 exclude = [
-    "*.pyi"
+    "__init__.py"
 ]
 
 ignore = [
