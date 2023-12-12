@@ -55,9 +55,8 @@ jobs:
           ZARR_V3_EXPERIMENTAL_API: "1"
           ZARR_V3_SHARDING: "1"
         run: |
-          python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-          python -m pytest -k test_zarr --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
-          python -m pytest -k test_docs --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_basic
+          python -m pytest -k test_zarr
 
   dcam:
     name: Python ${{ matrix.python }} (DCAM)
@@ -103,7 +102,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_dcam
 
   egrabber:
     name: Python ${{ matrix.python }} (eGrabber)
@@ -149,7 +148,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_egrabber
 
 
   spinnaker:
@@ -197,7 +196,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_spinnaker --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_spinnaker
 
 
   typing:
