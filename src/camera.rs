@@ -1,10 +1,10 @@
 use crate::{
     capi,
-    components::{macros::impl_plain_old_dict, Property, Direction, SampleType, Trigger},
+    components::{macros::impl_plain_old_dict, Direction, Property, SampleType, Trigger},
 };
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::ffi::{CStr, c_char, c_void};
+use std::ffi::{c_char, c_void, CStr};
 
 #[pyclass]
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -289,7 +289,9 @@ impl Default for OffsetShapeCapabilities {
     }
 }
 
-impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s> for OffsetShapeCapabilities {
+impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s>
+    for OffsetShapeCapabilities
+{
     type Error = anyhow::Error;
 
     fn try_from(
@@ -304,7 +306,9 @@ impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s> f
     }
 }
 
-impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_shape_s> for OffsetShapeCapabilities {
+impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_shape_s>
+    for OffsetShapeCapabilities
+{
     type Error = anyhow::Error;
 
     fn try_from(
@@ -341,7 +345,9 @@ impl Default for DigitalLineCapabilities {
     }
 }
 
-impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata> for DigitalLineCapabilities {
+impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata>
+    for DigitalLineCapabilities
+{
     type Error = anyhow::Error;
 
     fn try_from(
@@ -350,7 +356,9 @@ impl TryFrom<capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetad
         Ok(Python::with_gil(|_| -> PyResult<_> {
             let mut names: [String; 8] = Default::default();
             for (i, name) in value.names.iter().enumerate() {
-                let name = unsafe { CStr::from_ptr(name.as_ptr()) }.to_str()?.to_owned();
+                let name = unsafe { CStr::from_ptr(name.as_ptr()) }
+                    .to_str()?
+                    .to_owned();
                 names[i] = name;
             }
             Ok(Self {
@@ -565,7 +573,9 @@ impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_offset_
     }
 }
 
-impl TryFrom<&OffsetShapeCapabilities> for capi::CameraPropertyMetadata_camera_properties_metadata_offset_s {
+impl TryFrom<&OffsetShapeCapabilities>
+    for capi::CameraPropertyMetadata_camera_properties_metadata_offset_s
+{
     type Error = anyhow::Error;
 
     fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
@@ -587,7 +597,9 @@ impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s
     }
 }
 
-impl TryFrom<&OffsetShapeCapabilities> for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s {
+impl TryFrom<&OffsetShapeCapabilities>
+    for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s
+{
     type Error = anyhow::Error;
 
     fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
@@ -605,33 +617,21 @@ impl Default for capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineM
         Self {
             line_count: Default::default(),
             names: [
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
+                [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64],
             ],
         }
     }
 }
 
-impl TryFrom<&DigitalLineCapabilities> for capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata {
+impl TryFrom<&DigitalLineCapabilities>
+    for capi::CameraPropertyMetadata_CameraPropertyMetadataDigitalLineMetadata
+{
     type Error = anyhow::Error;
 
     fn try_from(value: &DigitalLineCapabilities) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|_| -> PyResult<_> {
             let mut names: [[c_char; 64]; 8] = [
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
-                [0; 64],
+                [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64], [0; 64],
             ];
             for (i, name) in value.names.iter().enumerate() {
                 let name = std::ffi::CString::new(name.as_str())?;
@@ -685,7 +685,9 @@ impl Default for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata {
     }
 }
 
-impl TryFrom<&TriggerCapabilities> for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata {
+impl TryFrom<&TriggerCapabilities>
+    for capi::CameraPropertyMetadata_CameraPropertiesTriggerMetadata
+{
     type Error = anyhow::Error;
 
     fn try_from(value: &TriggerCapabilities) -> Result<Self, Self::Error> {
@@ -696,14 +698,12 @@ impl TryFrom<&TriggerCapabilities> for capi::CameraPropertyMetadata_CameraProper
         })?;
 
         let exposure = Python::with_gil(|py| -> PyResult<_> {
-            let exposure: TriggerInputOutputCapabilities =
-                value.exposure.extract(py)?;
+            let exposure: TriggerInputOutputCapabilities = value.exposure.extract(py)?;
             Ok(exposure)
         })?;
 
         let frame_start = Python::with_gil(|py| -> PyResult<_> {
-            let frame_start: TriggerInputOutputCapabilities =
-                value.frame_start.extract(py)?;
+            let frame_start: TriggerInputOutputCapabilities = value.frame_start.extract(py)?;
             Ok(frame_start)
         })?;
 
