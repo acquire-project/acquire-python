@@ -1,32 +1,20 @@
 import json
 import logging
 import time
+from datetime import timedelta
 from time import sleep
 from typing import Any, Dict, List, Optional
 
 import acquire
-import dask.array as da
-import numcodecs.blosc as blosc
+from acquire import DeviceKind, DeviceState, Runtime, Trigger, PropertyType
 import pytest
 import tifffile
-import zarr
-from acquire.acquire import DeviceKind, DeviceState, Runtime, Trigger
-from ome_zarr.io import parse_url
-from ome_zarr.reader import Reader
-from skimage.transform import downscale_local_mean
-import numpy as np
 
 
-@pytest.fixture(scope="module")
-def _runtime():
-    runtime = acquire.Runtime()
-    yield runtime
-
-
+# FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
-def runtime(_runtime: Runtime):
-    yield _runtime
-    _runtime.set_configuration(acquire.Properties())
+def runtime():
+    yield acquire.Runtime()
 
 
 def test_set():
@@ -281,254 +269,6 @@ def test_write_external_metadata_to_tiff(
             assert meta(i)["frame_id"] == i
 
 
-def test_write_external_metadata_to_zarr(
-    runtime: Runtime, request: pytest.FixtureRequest
-):
-    dm = runtime.device_manager()
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
-    )
-    p.video[0].camera.settings.shape = (33, 47)
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
-    p.video[0].max_frame_count = 4
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
-    metadata = {"hello": "world"}
-    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
-    p.video[0].storage.settings.chunking.tile.width = 33
-    p.video[0].storage.settings.chunking.tile.height = 47
-    p.video[0].storage.settings.chunking.tile.planes = 1
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2**20
-
-    p = runtime.set_configuration(p)
-
-    nframes = 0
-    runtime.start()
-    while nframes < p.video[0].max_frame_count:
-        if packet := runtime.get_available_data(0):
-            nframes += packet.get_frame_count()
-            packet = None
-    runtime.stop()
-
-    assert p.video[0].storage.settings.filename
-    store = parse_url(p.video[0].storage.settings.filename)
-    assert store
-    reader = Reader(store)
-    nodes = list(reader())
-
-    # ome-ngff supports multiple images, in separate directories but we only
-    # wrote one.
-    multi_scale_image_node = nodes[0]
-
-    # ome-ngff always stores multi-scale images, but we only have a single
-    # scale/level.
-    image_data = multi_scale_image_node.data[0]
-    assert image_data.shape == (
-        p.video[0].max_frame_count,
-        1,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
-    )
-
-    multi_scale_image_metadata = multi_scale_image_node.metadata
-
-    axes = multi_scale_image_metadata["axes"]
-    axis_names = tuple(a["name"] for a in axes)
-    assert axis_names == ("t", "c", "y", "x")
-
-    axis_types = tuple(a["type"] for a in axes)
-    assert axis_types == ("time", "channel", "space", "space")
-
-    axis_units = tuple(a.get("unit") for a in axes)
-    assert axis_units == (None, None, "micrometer", "micrometer")
-
-    # We only have one multi-scale level and one transform.
-    transform = multi_scale_image_metadata["coordinateTransformations"][0][0]
-    pixel_scale_um = tuple(
-        transform["scale"][axis_names.index(axis)] for axis in ("x", "y")
-    )
-    assert pixel_scale_um == p.video[0].storage.settings.pixel_scale_um
-
-    # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
-    # to read external metadata instead.
-    group = zarr.open(p.video[0].storage.settings.filename)
-    assert group["0"].attrs.asdict() == metadata
-
-
-@pytest.mark.parametrize(
-    ("compressor_name",),
-    [
-        ("zstd",),
-        ("lz4",),
-    ],
-)
-def test_write_compressed_zarr(
-    runtime: Runtime, request: pytest.FixtureRequest, compressor_name
-):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
-
-    dm = runtime.device_manager()
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*empty.*"
-    )
-    p.video[0].camera.settings.shape = (64, 48)
-    p.video[0].camera.settings.exposure_time_us = 1e4
-    p.video[0].storage.identifier = dm.select(
-        DeviceKind.Storage,
-        f"ZarrBlosc1{compressor_name.capitalize()}ByteShuffle",
-    )
-    p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = filename
-    metadata = {"foo": "bar"}
-    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    runtime.set_configuration(p)
-
-    runtime.start()
-    runtime.stop()
-
-    # load from Zarr
-    group = zarr.open(p.video[0].storage.settings.filename)
-    data = group["0"]
-
-    assert data.compressor.cname == compressor_name
-    assert data.compressor.clevel == 1
-    assert data.compressor.shuffle == blosc.SHUFFLE
-
-    assert data.shape == (
-        p.video[0].max_frame_count,
-        1,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
-    )
-    assert data.attrs.asdict() == metadata
-
-    # load from Dask
-    data = da.from_zarr(p.video[0].storage.settings.filename, component="0")
-    assert data.shape == (
-        p.video[0].max_frame_count,
-        1,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
-    )
-
-
-@pytest.mark.parametrize(
-    ("number_of_frames", "expected_number_of_chunks", "compression"),
-    [
-        (64, 4, None),
-        (64, 4, {"codec": "zstd", "clevel": 1, "shuffle": 1}),
-        (65, 8, None),  # rollover
-        (65, 8, {"codec": "blosclz", "clevel": 2, "shuffle": 2}),  # rollover
-    ],
-)
-def test_write_zarr_with_chunking(
-    runtime: acquire.Runtime,
-    request: pytest.FixtureRequest,
-    number_of_frames: int,
-    expected_number_of_chunks: int,
-    compression: Optional[dict],
-):
-    dm = runtime.device_manager()
-
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*empty.*"
-    )
-    p.video[0].camera.settings.shape = (1920, 1080)
-    p.video[0].camera.settings.exposure_time_us = 1e4
-    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
-    p.video[0].storage.identifier = dm.select(
-        DeviceKind.Storage,
-        "Zarr",
-    )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
-    p.video[0].max_frame_count = number_of_frames
-
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 32 * 2**20
-    p.video[0].storage.settings.chunking.tile.width = 1920 // 2
-    p.video[0].storage.settings.chunking.tile.height = 1080 // 2
-    p.video[0].storage.settings.chunking.tile.planes = 1
-
-    runtime.set_configuration(p)
-
-    runtime.start()
-    runtime.stop()
-
-    group = zarr.open(p.video[0].storage.settings.filename)
-    data = group["0"]
-
-    assert data.chunks == (64, 1, 1080 // 2, 1920 // 2)
-
-    assert data.shape == (
-        number_of_frames,
-        1,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
-    )
-    assert data.nchunks == expected_number_of_chunks
-
-
-def test_write_zarr_multiscale(
-    runtime: acquire.Runtime,
-    request: pytest.FixtureRequest,
-):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
-
-    dm = runtime.device_manager()
-
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*empty.*"
-    )
-    p.video[0].camera.settings.shape = (1920, 1080)
-    p.video[0].camera.settings.exposure_time_us = 1e4
-    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
-    p.video[0].storage.identifier = dm.select(
-        DeviceKind.Storage,
-        "Zarr",
-    )
-    p.video[0].storage.settings.filename = filename
-    p.video[0].storage.settings.pixel_scale_um = (1, 1)
-    p.video[0].max_frame_count = 100
-
-    p.video[0].storage.settings.chunking.max_bytes_per_chunk = 16 * 2**20
-    p.video[0].storage.settings.chunking.tile.width = (
-        p.video[0].camera.settings.shape[0] // 3
-    )
-    p.video[0].storage.settings.chunking.tile.height = (
-        p.video[0].camera.settings.shape[1] // 3
-    )
-    p.video[0].storage.settings.chunking.tile.planes = 1
-
-    p.video[0].storage.settings.enable_multiscale = True
-
-    runtime.set_configuration(p)
-
-    runtime.start()
-    runtime.stop()
-
-    reader = Reader(parse_url(filename))
-    zgroup = list(reader())[0]
-    # loads each layer as a dask array from the Zarr dataset
-    data = [
-        da.from_zarr(filename, component=str(i))
-        for i in range(len(zgroup.data))
-    ]
-    assert len(data) == 3
-
-    image = data[0][0, 0, :, :].compute()  # convert dask array to numpy array
-
-    for d in data:
-        assert (
-            np.linalg.norm(image - d[0, 0, :, :].compute()) == 0
-        )  # validate against the same method from scikit-image
-        image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
-
-
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
     + " See https://github.com/acquire-project/cpx/issues/147"
@@ -619,6 +359,234 @@ def test_abort(runtime: Runtime):
         f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
     )
     assert nframes < p.video[0].max_frame_count
+
+
+def wait_for_data(
+    runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None
+) -> acquire.AvailableData:
+    # None is used as a missing sentinel value, not to indicate no timeout.
+    if timeout is None:
+        timeout = timedelta(seconds=5)
+    sleep_duration = timedelta(microseconds=10000)
+    elapsed = timedelta()
+    while elapsed < timeout:
+        if packet := runtime.get_available_data(stream_id):
+            return packet
+        sleep(sleep_duration.total_seconds())
+        elapsed += sleep_duration
+    raise RuntimeError(
+        f"Timed out waiting for condition after {elapsed.total_seconds()}"
+        " seconds."
+    )
+
+
+def test_execute_trigger(runtime: Runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+    p.video[0].camera.settings.binning = 1
+    p.video[0].camera.settings.shape = (64, 48)
+    p.video[0].camera.settings.exposure_time_us = 1e3
+    p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
+    p.video[0].camera.settings.input_triggers.frame_start = Trigger(
+        enable=True, line=0, edge="Rising"
+    )
+    p.video[0].max_frame_count = 10
+
+    p = runtime.set_configuration(p)
+
+    assert p.video[0].camera.settings.input_triggers.frame_start.enable
+
+    runtime.start()
+
+    # No triggers yet, so no data.
+    assert runtime.get_available_data(0) is None
+
+    # Snap a few individual frames
+    for i in range(p.video[0].max_frame_count):
+        runtime.execute_trigger(0)
+        packet = wait_for_data(runtime, 0)
+        frames = tuple(packet.frames())
+        assert packet.get_frame_count() == 1
+        assert frames[0].metadata().frame_id == i
+        del frames
+        del packet
+
+    runtime.stop()
+
+
+@pytest.mark.parametrize(
+    ("descriptor",),
+    [
+        ("simulated.*empty",),
+        ("simulated.*random",),
+        ("simulated.*sin",),
+    ],
+)
+def test_simulated_camera_capabilities(
+    runtime: Runtime,
+    descriptor: str,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, descriptor)
+    # to ensure consistent offset.{x,y}.high values across testing scenarios
+    p.video[0].camera.settings.shape = (1, 1)
+    runtime.set_configuration(p)
+
+    c = runtime.get_capabilities()
+    camera = c.video[0].camera
+    assert camera.shape.x.writable is True
+    assert camera.shape.x.low == 1.0
+    assert camera.shape.x.high == 8192.0
+    assert camera.shape.x.kind == PropertyType.FixedPrecision
+
+    assert camera.shape.y.writable is True
+    assert camera.shape.y.low == 1.0
+    assert camera.shape.y.high == 8192.0
+    assert camera.shape.y.kind == PropertyType.FixedPrecision
+
+    assert camera.offset.x.writable is True
+    assert camera.offset.x.low == 0.0
+    assert camera.offset.x.high == 8190.0
+    assert camera.offset.x.kind == PropertyType.FixedPrecision
+
+    assert camera.offset.y.writable is True
+    assert camera.offset.y.low == 0.0
+    assert camera.offset.y.high == 8190.0
+    assert camera.offset.y.kind == PropertyType.FixedPrecision
+
+    assert camera.binning.writable is True
+    assert camera.binning.low == 1.0
+    assert camera.binning.high == 8.0
+    assert camera.binning.kind == PropertyType.FixedPrecision
+
+    assert camera.exposure_time_us.writable is True
+    assert camera.exposure_time_us.low == 0.0
+    assert camera.exposure_time_us.high == 1e6
+    assert camera.exposure_time_us.kind == PropertyType.FixedPrecision
+
+    assert camera.line_interval_us.writable is False
+    assert camera.line_interval_us.low == camera.line_interval_us.high == 0.0
+    assert camera.line_interval_us.kind == PropertyType.FixedPrecision
+
+    assert camera.readout_direction.writable is False
+    assert camera.readout_direction.low == camera.readout_direction.high == 0.0
+    assert camera.readout_direction.kind == PropertyType.FixedPrecision
+
+    assert len(camera.supported_pixel_types) == 5
+    assert acquire.SampleType.U8 in camera.supported_pixel_types
+    assert acquire.SampleType.U16 in camera.supported_pixel_types
+    assert acquire.SampleType.I8 in camera.supported_pixel_types
+    assert acquire.SampleType.I16 in camera.supported_pixel_types
+    assert acquire.SampleType.F32 in camera.supported_pixel_types
+
+    assert camera.digital_lines.line_count == 1
+    assert camera.digital_lines.names[0] == "software"
+    assert camera.digital_lines.names[1:] == [""] * 7
+
+    assert camera.triggers.acquisition_start.input == 0
+    assert camera.triggers.acquisition_start.output == 0
+
+    assert camera.triggers.exposure.input == 0
+    assert camera.triggers.exposure.output == 0
+
+    assert camera.triggers.frame_start.input == 1
+    assert camera.triggers.frame_start.output == 0
+
+
+@pytest.mark.parametrize(
+    ("descriptor", "extension", "chunking", "sharding", "multiscale"),
+    [
+        ("raw", "bin", None, None, False),
+        ("trash", "", None, None, False),
+        ("tiff", "tif", None, None, False),
+        ("tiff-json", "tif", None, None, False),
+        (
+            "zarr",
+            "zarr",
+            {
+                "width": {"low": 32, "high": 65535},
+                "height": {"low": 32, "high": 65535},
+                "planes": {"low": 32, "high": 65535},
+            },
+            None,
+            True,
+        ),
+    ],
+)
+def test_storage_capabilities(
+    runtime: Runtime,
+    descriptor: str,
+    extension: str,
+    chunking: Optional[Dict[str, Any]],
+    sharding: Optional[Dict[str, Any]],
+    multiscale: bool,
+):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
+
+    p.video[0].storage.settings.external_metadata_json = json.dumps(
+        {"hello": "world"}
+    )  # for tiff-json
+    p.video[0].max_frame_count = 1000
+    runtime.set_configuration(p)
+
+    c = runtime.get_capabilities()
+    storage = c.video[0].storage
+
+    chunk_dims_px = storage.chunk_dims_px
+
+    assert chunk_dims_px.width.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.height.kind == PropertyType.FixedPrecision
+    assert chunk_dims_px.planes.kind == PropertyType.FixedPrecision
+
+    if chunking is None:
+        assert chunk_dims_px.is_supported is False
+        assert chunk_dims_px.width.low == chunk_dims_px.width.high == 0.0
+        assert chunk_dims_px.height.low == chunk_dims_px.height.high == 0.0
+        assert chunk_dims_px.planes.low == chunk_dims_px.planes.high == 0.0
+    else:
+        assert chunk_dims_px.is_supported is True
+        assert chunk_dims_px.width.low == chunking["width"]["low"]
+        assert chunk_dims_px.width.high == chunking["width"]["high"]
+        assert chunk_dims_px.height.low == chunking["height"]["low"]
+        assert chunk_dims_px.height.high == chunking["height"]["high"]
+        assert chunk_dims_px.planes.low == chunking["planes"]["low"]
+        assert chunk_dims_px.planes.high == chunking["planes"]["high"]
+
+    shard_dims_chunks = storage.shard_dims_chunks
+
+    assert shard_dims_chunks.width.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.height.kind == PropertyType.FixedPrecision
+    assert shard_dims_chunks.planes.kind == PropertyType.FixedPrecision
+
+    if sharding is None:
+        assert shard_dims_chunks.is_supported is False
+        assert shard_dims_chunks.width.low == 0.0
+        assert shard_dims_chunks.width.high == 0.0
+
+        assert shard_dims_chunks.height.low == 0.0
+        assert shard_dims_chunks.height.high == 0.0
+
+        assert shard_dims_chunks.planes.low == 0.0
+        assert shard_dims_chunks.planes.high == 0.0
+    else:
+        assert shard_dims_chunks.is_supported is True
+        assert shard_dims_chunks.width.low == chunking["width"]["low"]
+        assert shard_dims_chunks.width.high == chunking["width"]["high"]
+        assert shard_dims_chunks.height.low == chunking["height"]["low"]
+        assert shard_dims_chunks.height.high == chunking["height"]["high"]
+        assert shard_dims_chunks.planes.low == chunking["planes"]["low"]
+        assert shard_dims_chunks.planes.high == chunking["planes"]["high"]
+
+    assert storage.multiscale.is_supported == multiscale
 
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)

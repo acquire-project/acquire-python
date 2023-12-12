@@ -17,6 +17,7 @@ use crate::{
     capi, components::macros::impl_plain_old_dict, core_properties::Properties,
     device::DeviceState, device_manager, Status,
 };
+use crate::capabilities::Capabilities;
 
 unsafe extern "C" fn reporter(
     is_error: ::std::os::raw::c_int,
@@ -60,6 +61,11 @@ impl RawRuntime {
 
     fn start(&self) -> Result<()> {
         unsafe { capi::acquire_start(self.inner.as_ptr()) }.ok()?;
+        Ok(())
+    }
+
+    fn execute_trigger(&self, stream_id: u32) -> Result<()> {
+        unsafe { capi::acquire_execute_trigger(self.inner.as_ptr(), stream_id) }.ok()?;
         Ok(())
     }
 
@@ -150,11 +156,23 @@ impl Runtime {
         Ok((&props).try_into()?)
     }
 
+    fn get_capabilities(&self, py: Python<'_>) -> PyResult<Capabilities> {
+        let mut meta: capi::AcquirePropertyMetadata = Default::default();
+        Python::allow_threads(py, || {
+            unsafe { capi::acquire_get_configuration_metadata(self.as_ref().as_ptr(), &mut meta) }.ok()
+        })?;
+        Ok((&meta).try_into()?)
+    }
+
     fn get_state(&self, py: Python<'_>) -> PyResult<DeviceState> {
         Ok(Python::allow_threads(py, || unsafe {
             capi::acquire_get_state(self.as_ref().as_ptr())
         })
         .try_into()?)
+    }
+
+    fn execute_trigger(&self, stream_id: u32, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || Ok(self.inner.execute_trigger(stream_id)?))
     }
 
     fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {

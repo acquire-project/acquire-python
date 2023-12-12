@@ -51,8 +51,12 @@ jobs:
           pip install -e '.[testing]'
 
       - name: Test
+        env:
+          ZARR_V3_EXPERIMENTAL_API: "1"
+          ZARR_V3_SHARDING: "1"
         run: |
           python -m pytest -k test_basic --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+          python -m pytest -k test_zarr --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
           python -m pytest -k test_docs --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
   dcam:
@@ -99,7 +103,7 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0 --doctest-glob="*.pyi" --doctest-glob="*.md"
+          python -m pytest -k test_dcam --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
 
   egrabber:
     name: Python ${{ matrix.python }} (eGrabber)
@@ -145,7 +149,8 @@ jobs:
 
       - name: Test
         run: |
-          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0 --doctest-glob="*.pyi" --doctest-glob="*.md"
+          python -m pytest -k test_egrabber --color=yes --cov-report=xml --cov=acquire --maxfail=5 --log-cli-level=0
+
 
   spinnaker:
     name: Python ${{ matrix.python }} (Spinnaker)

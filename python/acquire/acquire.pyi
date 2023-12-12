@@ -26,6 +26,19 @@ class Camera:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class CameraCapabilities:
+    exposure_time_us: Property
+    line_interval_us: Property
+    readout_direction: Property
+    binning: Property
+    offset: OffsetShapeCapabilities
+    shape: OffsetShapeCapabilities
+    supported_pixel_types: List[SampleType]
+    digital_lines: DigitalLineCapabilities
+    triggers: TriggerCapabilities
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class CameraProperties:
     exposure_time_us: float
     line_interval_us: float
@@ -37,6 +50,27 @@ class CameraProperties:
     input_triggers: InputTriggers
     output_triggers: OutputTriggers
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class Capabilities:
+    video: Tuple[VideoStreamCapabilities, VideoStreamCapabilities]
+    def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class ChunkDims:
+    width: int
+    height: int
+    planes: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class ChunkingCapabilities:
+    is_supported: bool
+    width: Property
+    height: Property
+    planes: Property
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -101,6 +135,12 @@ class DeviceState:
     def __ne__(self, other: object) -> bool: ...
 
 @final
+class DigitalLineCapabilities:
+    line_count: int
+    names: Tuple[str, str, str, str, str, str, str, str]
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class Direction:
     Backward: ClassVar[Direction] = Direction.Backward
     Forward: ClassVar[Direction] = Direction.Forward
@@ -120,6 +160,17 @@ class InputTriggers:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class MultiscaleCapabilities:
+    is_supported: bool
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class OffsetShapeCapabilities:
+    x: Property
+    y: Property
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class OutputTriggers:
     exposure: Trigger
     frame_start: Trigger
@@ -135,6 +186,29 @@ class PID:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class Property:
+    writable: bool
+    low: float
+    high: float
+    kind: PropertyType
+    def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class PropertyType:
+    FixedPrecision: ClassVar[PropertyType] = PropertyType.FixedPrecision
+    FloatingPrecision: ClassVar[PropertyType] = PropertyType.FloatingPrecision
+    Enum: ClassVar[PropertyType] = PropertyType.Enum
+    String: ClassVar[PropertyType] = PropertyType.String
+    def __eq__(self, other: object) -> bool: ...
+    def __ge__(self, other: object) -> bool: ...
+    def __gt__(self, other: object) -> bool: ...
+    def __int__(self) -> int: ...
+    def __le__(self, other: object) -> bool: ...
+    def __lt__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+
+@final
 class Properties:
     video: Tuple[VideoStream, VideoStream]
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
@@ -146,9 +220,11 @@ class Runtime:
     def device_manager(self) -> DeviceManager: ...
     def get_available_data(self, stream_id: int) -> AvailableData: ...
     def get_configuration(self) -> Properties: ...
+    def get_capabilities(self) -> Capabilities: ...
     def get_state(self) -> DeviceState: ...
     def set_configuration(self, properties: Properties) -> Properties: ...
     def start(self) -> None: ...
+    def execute_trigger(self, stream_id: int) -> None: ...
     def stop(self) -> None: ...
     def abort(self) -> None: ...
 
@@ -176,6 +252,21 @@ class SampleType:
     def __le__(self, other: object) -> bool: ...
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
+
+@final
+class ShardDims:
+    width: int
+    height: int
+    planes: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class ShardingCapabilities:
+    is_supported: bool
+    width: Property
+    height: Property
+    planes: Property
+    def dict(self) -> Dict[str, Any]: ...
 
 @final
 class SignalIOKind:
@@ -208,16 +299,10 @@ class Storage:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class TileShape:
-    width: int
-    height: int
-    planes: int
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
-class ChunkingProperties:
-    max_bytes_per_chunk: int
-    tile: TileShape
+class StorageCapabilities:
+    chunk_dims_px: ChunkingCapabilities
+    shard_dims_chunks: ShardingCapabilities
+    multiscale: MultiscaleCapabilities
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -226,7 +311,8 @@ class StorageProperties:
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
-    chunking: ChunkingProperties
+    chunk_dims_px: ChunkDims
+    shard_dims_chunks: ShardDims
     enable_multiscale: bool
     def dict(self) -> Dict[str, Any]: ...
 
@@ -237,6 +323,13 @@ class Trigger:
     line: int
     kind: SignalIOKind
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class TriggerCapabilities:
+    acquisition_start: TriggerInputOutputCapabilities
+    exposure: TriggerInputOutputCapabilities
+    frame_start: TriggerInputOutputCapabilities
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -254,6 +347,12 @@ class TriggerEdge:
     def __le__(self, other: object) -> bool: ...
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
+
+@final
+class TriggerInputOutputCapabilities:
+    input: int
+    output: int
+    def dict(self) -> Dict[str, Any]: ...
 
 @final
 class VideoFrame:
@@ -278,6 +377,14 @@ class VideoStream:
     storage: Storage
     max_frame_count: int
     frame_average_count: int
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class VideoStreamCapabilities:
+    camera: CameraCapabilities
+    storage: StorageCapabilities
+    max_frame_count: Property
+    frame_average_count: Property
     def dict(self) -> Dict[str, Any]: ...
 
 @final
