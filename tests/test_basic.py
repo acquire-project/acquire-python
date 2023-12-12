@@ -11,16 +11,10 @@ import pytest
 import tifffile
 
 
-@pytest.fixture(scope="module")
-def _runtime():
-    runtime = acquire.Runtime()
-    yield runtime
-
-
+# FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
-def runtime(_runtime: Runtime):
-    yield _runtime
-    _runtime.set_configuration(acquire.Properties())
+def runtime():
+    yield acquire.Runtime()
 
 
 def test_set():
@@ -527,7 +521,6 @@ def test_simulated_camera_capabilities(
 )
 def test_storage_capabilities(
     runtime: Runtime,
-    request: pytest.FixtureRequest,
     descriptor: str,
     extension: str,
     chunking: Optional[Dict[str, Any]],
@@ -539,20 +532,13 @@ def test_storage_capabilities(
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, descriptor)
 
-    # FIXME (aliddell): hack to get the storage capabilities to be populated
-    p.video[0].storage.settings.filename = f"{request.node.name}.{extension}"
-
     p.video[0].storage.settings.external_metadata_json = json.dumps(
         {"hello": "world"}
     )  # for tiff-json
     p.video[0].max_frame_count = 1000
     runtime.set_configuration(p)
 
-    # FIXME (aliddell): hack to get the storage capabilities to be populated
-    runtime.start()
     c = runtime.get_capabilities()
-    # FIXME (aliddell): hack to get the storage capabilities to be populated
-    runtime.abort()
     storage = c.video[0].storage
 
     chunk_dims_px = storage.chunk_dims_px

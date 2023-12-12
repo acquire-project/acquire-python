@@ -16,16 +16,10 @@ import acquire
 from acquire import Runtime, DeviceKind
 
 
-@pytest.fixture(scope="module")
-def _runtime():
-    runtime = acquire.Runtime()
-    yield runtime
-
-
+# FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
-def runtime(_runtime: acquire.Runtime):
-    yield _runtime
-    _runtime.set_configuration(acquire.Properties())
+def runtime():
+    yield acquire.Runtime()
 
 
 def test_write_external_metadata_to_zarr(
