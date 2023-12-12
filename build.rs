@@ -21,6 +21,7 @@ fn main() {
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
+        .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
         .build();
 
     let drivers_json =
