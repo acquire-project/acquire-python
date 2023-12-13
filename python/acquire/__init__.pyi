@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 import napari  # type: ignore
 
-from .acquire import *
+from .acquire import Runtime, Properties
 
 def setup(
     runtime: Runtime,

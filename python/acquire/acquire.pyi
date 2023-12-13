@@ -91,11 +91,11 @@ class DeviceIdentifier:
 
 @final
 class DeviceKind:
-    Camera: ClassVar[DeviceKind] = DeviceKind.Camera
-    NONE: ClassVar[DeviceKind] = DeviceKind.NONE
-    Signals: ClassVar[DeviceKind] = DeviceKind.Signals
-    StageAxis: ClassVar[DeviceKind] = DeviceKind.StageAxis
-    Storage: ClassVar[DeviceKind] = DeviceKind.Storage
+    Camera: ClassVar[DeviceKind]
+    NONE: ClassVar[DeviceKind]
+    Signals: ClassVar[DeviceKind]
+    StageAxis: ClassVar[DeviceKind]
+    Storage: ClassVar[DeviceKind]
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
@@ -120,12 +120,10 @@ class DeviceManager:
 
 @final
 class DeviceState:
-    Closed: ClassVar[DeviceState] = DeviceState.Closed
-    AwaitingConfiguration: ClassVar[
-        DeviceState
-    ] = DeviceState.AwaitingConfiguration
-    Armed: ClassVar[DeviceState] = DeviceState.Armed
-    Running: ClassVar[DeviceState] = DeviceState.Running
+    Closed: ClassVar[DeviceState]
+    AwaitingConfiguration: ClassVar[DeviceState]
+    Armed: ClassVar[DeviceState]
+    Running: ClassVar[DeviceState]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -142,8 +140,8 @@ class DigitalLineCapabilities:
 
 @final
 class Direction:
-    Backward: ClassVar[Direction] = Direction.Backward
-    Forward: ClassVar[Direction] = Direction.Forward
+    Backward: ClassVar[Direction]
+    Forward: ClassVar[Direction]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -196,10 +194,10 @@ class Property:
 
 @final
 class PropertyType:
-    FixedPrecision: ClassVar[PropertyType] = PropertyType.FixedPrecision
-    FloatingPrecision: ClassVar[PropertyType] = PropertyType.FloatingPrecision
-    Enum: ClassVar[PropertyType] = PropertyType.Enum
-    String: ClassVar[PropertyType] = PropertyType.String
+    FixedPrecision: ClassVar[PropertyType]
+    FloatingPrecision: ClassVar[PropertyType]
+    Enum: ClassVar[PropertyType]
+    String: ClassVar[PropertyType]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -237,14 +235,14 @@ class SampleRateHz:
 
 @final
 class SampleType:
-    F32: ClassVar[SampleType] = SampleType.F32
-    I16: ClassVar[SampleType] = SampleType.I16
-    I8: ClassVar[SampleType] = SampleType.I8
-    U16: ClassVar[SampleType] = SampleType.U16
-    U8: ClassVar[SampleType] = SampleType.U8
-    U10: ClassVar[SampleType] = SampleType.U10
-    U12: ClassVar[SampleType] = SampleType.U12
-    U14: ClassVar[SampleType] = SampleType.U14
+    F32: ClassVar[SampleType]
+    I16: ClassVar[SampleType]
+    I8: ClassVar[SampleType]
+    U16: ClassVar[SampleType]
+    U8: ClassVar[SampleType]
+    U10: ClassVar[SampleType]
+    U12: ClassVar[SampleType]
+    U14: ClassVar[SampleType]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -270,8 +268,8 @@ class ShardingCapabilities:
 
 @final
 class SignalIOKind:
-    Input: ClassVar[SignalIOKind] = SignalIOKind.Input
-    Output: ClassVar[SignalIOKind] = SignalIOKind.Output
+    Input: ClassVar[SignalIOKind]
+    Output: ClassVar[SignalIOKind]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -282,8 +280,8 @@ class SignalIOKind:
 
 @final
 class SignalType:
-    Analog: ClassVar[SignalType] = SignalType.Analog
-    Digital: ClassVar[SignalType] = SignalType.Digital
+    Analog: ClassVar[SignalType]
+    Digital: ClassVar[SignalType]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -334,12 +332,12 @@ class TriggerCapabilities:
 
 @final
 class TriggerEdge:
-    Falling: ClassVar[TriggerEdge] = TriggerEdge.Falling
-    NotApplicable: ClassVar[TriggerEdge] = TriggerEdge.NotApplicable
-    Rising: ClassVar[TriggerEdge] = TriggerEdge.Rising
-    AnyEdge: ClassVar[TriggerEdge] = TriggerEdge.AnyEdge
-    LevelLow: ClassVar[TriggerEdge] = TriggerEdge.LevelLow
-    LevelHigh: ClassVar[TriggerEdge] = TriggerEdge.LevelHigh
+    Falling: ClassVar[TriggerEdge]
+    NotApplicable: ClassVar[TriggerEdge]
+    Rising: ClassVar[TriggerEdge]
+    AnyEdge: ClassVar[TriggerEdge]
+    LevelLow: ClassVar[TriggerEdge]
+    LevelHigh: ClassVar[TriggerEdge]
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...

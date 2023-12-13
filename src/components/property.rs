@@ -1,9 +1,9 @@
 use pyo3::prelude::*;
 
+use crate::components::macros::impl_plain_old_dict;
 use crate::{capi, components::macros::cvt};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use crate::components::macros::impl_plain_old_dict;
 
 /// PropertyType
 #[pyclass]
