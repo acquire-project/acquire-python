@@ -183,8 +183,6 @@ def test_setup(runtime: Runtime):
                     logging.info(
                         f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}"
                     )
-                    # del f  # <-- fails to get the last frames if this is held?
-                # del a  # <-- fails to get the last frames if this is held?
                 nframes += packet
                 logging.info(
                     f"frame count: {nframes} - frames in packet: {packet}"
@@ -230,7 +228,6 @@ def test_change_filename(runtime: Runtime):
             with runtime.get_available_data(0) as packet:
                 if packet:
                     nframes += packet.get_frame_count()
-                    packet = None
         logging.info("Stopping")
         runtime.stop()
 
@@ -328,8 +325,6 @@ def test_two_video_streams(runtime: Runtime):
                             + f"({frame.metadata().frame_id}!={expected_frame_id})"
                             + f" [stream {stream_id} nframes {nframes}]"
                         )
-                        del frame
-                    del packet
                     nframes[stream_id] += n
                     logging.debug(f"NFRAMES {nframes}")
 
