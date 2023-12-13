@@ -78,6 +78,22 @@ impl RawRuntime {
         unsafe { capi::acquire_abort(self.inner.as_ptr()) }.ok()?;
         Ok(())
     }
+
+    fn map_read(&self, stream_id: u32) -> Result<(*mut capi::VideoFrame, *mut capi::VideoFrame)> {
+        let mut beg = null_mut();
+        let mut end = null_mut();
+        unsafe {
+            capi::acquire_map_read(self.inner.as_ptr(), stream_id, &mut beg, &mut end).ok()?;
+        }
+        Ok((beg, end))
+    }
+
+    fn unmap_read(&self, stream_id: u32, consumed_bytes: usize) -> Result<()> {
+        unsafe {
+            capi::acquire_unmap_read(self.inner.as_ptr(), stream_id, consumed_bytes).ok()?;
+        }
+        Ok(())
+    }
 }
 
 impl Drop for RawRuntime {
@@ -176,34 +192,11 @@ impl Runtime {
         Python::allow_threads(py, || Ok(self.inner.execute_trigger(stream_id)?))
     }
 
-    fn get_available_data(&self, stream_id: u32) -> PyResult<Option<AvailableData>> {
-        let mut beg = null_mut();
-        let mut end = null_mut();
-        unsafe {
-            capi::acquire_map_read(self.as_ref().as_ptr(), stream_id, &mut beg, &mut end).ok()?;
-        }
-        let nbytes = unsafe { byte_offset_from(beg, end) };
-        if nbytes > 0 {
-            log::trace!(
-                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
-                stream_id,
-                beg,
-                end,
-                nbytes
-            )
-        };
-        Ok(if nbytes > 0 {
-            Some(AvailableData {
-                inner: Arc::new(RawAvailableData {
-                    runtime: self.inner.clone(),
-                    beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
-                    end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                    stream_id,
-                    consumed_bytes: None,
-                }),
-            })
-        } else {
-            None
+    fn get_available_data(&self, stream_id: u32) -> PyResult<AvailableDataContext> {
+        Ok(AvailableDataContext {
+            inner: self.inner.clone(),
+            stream_id,
+            available_data: None,
         })
     }
 }
@@ -272,62 +265,116 @@ impl Drop for RawAvailableData {
             self.end.as_ptr(),
             consumed_bytes
         );
-        unsafe {
-            capi::acquire_unmap_read(
-                self.runtime.inner.as_ptr(),
-                self.stream_id,
-                consumed_bytes as _,
-            )
-            .ok()
-            .expect("Unexpected failure: Was the CoreRuntime NULL?");
-        }
+        self.runtime
+            .unmap_read(self.stream_id, consumed_bytes)
+            .expect("Unexpected failure: Was the runtime NULL?");
     }
 }
 
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Arc<RawAvailableData>,
+    inner: Option<Arc<RawAvailableData>>,
 }
 
 #[pymethods]
 impl AvailableData {
     fn get_frame_count(&self) -> usize {
-        self.inner.get_frame_count()
+        if let Some(inner) = &self.inner {
+            inner.get_frame_count()
+        } else {
+            0
+        }
     }
 
     fn frames(&self) -> VideoFrameIterator {
         VideoFrameIterator {
-            store: self.inner.clone(),
-            cur: Mutex::new(self.inner.beg),
-            end: self.inner.end,
+            inner: if let Some(frames) = &self.inner {
+                Some(VideoFrameIteratorInner {
+                    store: frames.clone(),
+                    cur: Mutex::new(frames.beg),
+                    end: frames.end,
+                })
+            } else {
+                None
+            },
         }
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
         Py::new(slf.py(), slf.frames())
     }
+
+    fn invalidate(&mut self) {
+        // Will drop the RawAvailableData and cause Available data to act like
+        // an empty iterator.
+        self.inner = None;
+    }
 }
 
 #[pyclass]
-struct VideoFrameIterator {
+pub(crate) struct AvailableDataContext {
+    inner: Arc<RawRuntime>,
+    stream_id: u32,
+    available_data: Option<Py<AvailableData>>,
+}
+
+#[pymethods]
+impl AvailableDataContext {
+    fn __enter__(&mut self) -> PyResult<Option<Py<AvailableData>>> {
+        let AvailableDataContext {
+            inner,
+            stream_id,
+            available_data,
+        } = self;
+        let stream_id = *stream_id;
+        let (beg, end) = inner.map_read(stream_id)?;
+        let nbytes = unsafe { byte_offset_from(beg, end) };
+        if nbytes > 0 {
+            log::trace!(
+                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+                stream_id,
+                beg,
+                end,
+                nbytes
+            )
+        };
+        if nbytes > 0 {
+            *available_data = Some(Python::with_gil(|py| {
+                Py::new(
+                    py,
+                    AvailableData {
+                        inner: Some(Arc::new(RawAvailableData {
+                            runtime: self.inner.clone(),
+                            beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                            end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                            stream_id,
+                            consumed_bytes: None,
+                        })),
+                    },
+                )
+            })?);
+        }
+        return Ok(self.available_data.clone());
+    }
+
+    fn __exit__(&mut self, _exc_type: &PyAny, _exc_value: &PyAny, _traceback: &PyAny) {
+        Python::with_gil(|py| {
+            if let Some(a) = &self.available_data {
+                a.as_ref(py).borrow_mut().invalidate()
+            };
+        });
+    }
+}
+
+struct VideoFrameIteratorInner {
     store: Arc<RawAvailableData>,
     cur: Mutex<NonNull<capi::VideoFrame>>,
     end: NonNull<capi::VideoFrame>,
 }
 
-unsafe impl Send for VideoFrameIterator {}
+unsafe impl Send for VideoFrameIteratorInner {}
 
-#[pymethods]
-impl VideoFrameIterator {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-    fn __next__(&mut self) -> Option<VideoFrame> {
-        self.next()
-    }
-}
-
-impl Iterator for VideoFrameIterator {
+impl Iterator for VideoFrameIteratorInner {
     type Item = VideoFrame;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -347,6 +394,29 @@ impl Iterator for VideoFrameIterator {
         } else {
             None
         }
+    }
+}
+
+#[pyclass]
+struct VideoFrameIterator {
+    inner: Option<VideoFrameIteratorInner>,
+}
+
+#[pymethods]
+impl VideoFrameIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+    fn __next__(&mut self) -> Option<VideoFrame> {
+        self.next()
+    }
+}
+
+impl Iterator for VideoFrameIterator {
+    type Item = VideoFrame;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.as_mut().and_then(|it| it.next())
     }
 }
 
@@ -490,6 +560,5 @@ impl VideoFrame {
     }
 }
 
-// TODO: Can't ensure the output array doesn't outlive the available data
 // TODO: Is everything really Send
 // TODO: mark iterable and videoframe as things that can't be shared across threads

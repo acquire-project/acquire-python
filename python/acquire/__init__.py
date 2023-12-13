@@ -189,17 +189,18 @@ def gui(
         def next_frame() -> Optional[npt.NDArray[Any]]:
             """Get the next frame from the current stream."""
             if nframes[stream_id] < p.video[stream_id].max_frame_count:
-                if packet := runtime.get_available_data(stream_id):
-                    n = packet.get_frame_count()
-                    nframes[stream_id] += n
-                    logging.info(
-                        f"[stream {stream_id}] frame count: {nframes}"
-                    )
-                    f = next(packet.frames())
-                    logging.debug(
-                        f"stream {stream_id} frame {f.metadata().frame_id}"
-                    )
-                    return f.data().squeeze().copy()
+                with runtime.get_available_data(stream_id) as packet:
+                    if packet:
+                        n = packet.get_frame_count()
+                        nframes[stream_id] += n
+                        logging.info(
+                            f"[stream {stream_id}] frame count: {nframes}"
+                        )
+                        f = next(packet.frames())
+                        logging.debug(
+                            f"stream {stream_id} frame {f.metadata().frame_id}"
+                        )
+                        return f.data().squeeze().copy()
             return None
 
         while is_not_done():  # runtime.get_state()==DeviceState.Running:
