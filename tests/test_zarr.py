@@ -49,7 +49,6 @@ def test_write_external_metadata_to_zarr(
         with runtime.get_available_data(0) as packet:
             if packet:
                 nframes += packet.get_frame_count()
-                packet = None
     runtime.stop()
 
     assert p.video[0].storage.settings.filename
