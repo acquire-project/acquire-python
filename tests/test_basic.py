@@ -83,8 +83,12 @@ def test_zero_conf_start(runtime: Runtime):
 
 def test_repeat_acq(runtime: Runtime):
     p = acquire.setup(runtime, "simulated: radial sin", "Trash")
-    assert p.video[0].camera.identifier is not None, "Expected a camera identifier"
-    assert p.video[0].storage.identifier is not None, "Expected a storage identifier"
+    assert (
+        p.video[0].camera.identifier is not None
+    ), "Expected a camera identifier"
+    assert (
+        p.video[0].storage.identifier is not None
+    ), "Expected a storage identifier"
     assert p.video[0].storage.settings.filename == "out.tif"
     p.video[0].camera.settings.shape = (192, 108)
     p.video[0].max_frame_count = 10
@@ -96,7 +100,7 @@ def test_repeat_acq(runtime: Runtime):
                 logging.info(f"Got {a.get_frame_count()}")
                 break
         if a:
-            assert a.get_frame_count()==0
+            assert a.get_frame_count() == 0
             assert next(a.frames()) is None
     runtime.stop()
     # TODO: (nclack) assert 1 acquired frame. stop should block
@@ -107,7 +111,7 @@ def test_repeat_acq(runtime: Runtime):
                 logging.info(f"Got {a.get_frame_count()}")
                 break
         if a:
-            assert a.get_frame_count()==0
+            assert a.get_frame_count() == 0
             assert next(a.frames()) is None
     runtime.stop()
     # TODO: (nclack) assert 1 more acquired frame. stop cancels and waits.
@@ -320,7 +324,9 @@ def test_two_video_streams(runtime: Runtime):
                     n = packet.get_frame_count()
                     for i, frame in enumerate(packet.frames()):
                         expected_frame_id = nframes[stream_id] + i
-                        assert frame.metadata().frame_id == expected_frame_id, (
+                        assert (
+                            frame.metadata().frame_id == expected_frame_id
+                        ), (
                             "frame id's didn't match "
                             + f"({frame.metadata().frame_id}!={expected_frame_id})"
                             + f" [stream {stream_id} nframes {nframes}]"

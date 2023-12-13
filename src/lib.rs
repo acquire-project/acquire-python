@@ -13,7 +13,9 @@ use device_manager::DeviceManager;
 use pyo3::prelude::*;
 use std::ffi::CStr;
 
-use crate::runtime::{AvailableData, AvailableDataContext, VideoFrame, VideoFrameMetadata, VideoFrameTimestamps};
+use crate::runtime::{
+    AvailableData, AvailableDataContext, VideoFrame, VideoFrameMetadata, VideoFrameTimestamps,
+};
 
 trait Status: Copy + Sized {
     fn is_ok(&self) -> bool;
