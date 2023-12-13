@@ -2,10 +2,10 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    capi,
-    storage::StorageCapabilities,
     camera::CameraCapabilities,
+    capi,
     components::{macros::impl_plain_old_dict, Property},
+    storage::StorageCapabilities,
 };
 
 #[pyclass]
@@ -88,10 +88,7 @@ impl TryFrom<&capi::AcquirePropertyMetadata> for Capabilities {
                 (value.video[0].try_into()?, value.video[1].try_into()?);
 
             Ok(Self {
-                video: (
-                    Py::new(py, video.0)?,
-                    Py::new(py, video.1)?,
-                ),
+                video: (Py::new(py, video.0)?, Py::new(py, video.1)?),
             })
         })?)
     }
@@ -152,10 +149,7 @@ impl TryFrom<&Capabilities> for capi::AcquirePropertyMetadata {
                 (value.video.0.extract(py)?, value.video.1.extract(py)?);
 
             Ok(Self {
-                video: [
-                    (&video.0).try_into()?,
-                    (&video.1).try_into()?,
-                ],
+                video: [(&video.0).try_into()?, (&video.1).try_into()?],
             })
         })?)
     }

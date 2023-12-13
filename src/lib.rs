@@ -1,4 +1,5 @@
 pub(crate) mod camera;
+pub(crate) mod capabilities;
 pub(crate) mod capi;
 pub(crate) mod components;
 pub(crate) mod core_properties;
@@ -6,7 +7,6 @@ pub(crate) mod device;
 pub(crate) mod device_manager;
 pub(crate) mod runtime;
 pub(crate) mod storage;
-pub(crate) mod capabilities;
 
 use anyhow::{anyhow, Result};
 use device_manager::DeviceManager;
