@@ -185,7 +185,8 @@ def test_setup(runtime: Runtime):
                 packet = a.get_frame_count()
                 for f in a.frames():
                     logging.info(
-                        f"{f.data().shape} {f.data()[0][0][0][0]} {f.metadata()}"
+                        f"{f.data().shape} {f.data()[0][0][0][0]} "
+                        + f"{f.metadata()}"
                     )
                 nframes += packet
                 logging.info(
@@ -328,7 +329,8 @@ def test_two_video_streams(runtime: Runtime):
                             frame.metadata().frame_id == expected_frame_id
                         ), (
                             "frame id's didn't match "
-                            + f"({frame.metadata().frame_id}!={expected_frame_id})"
+                            + f"({frame.metadata().frame_id}"
+                            + f"!={expected_frame_id})"
                             + f" [stream {stream_id} nframes {nframes}]"
                         )
                     nframes[stream_id] += n
