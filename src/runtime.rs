@@ -196,7 +196,7 @@ impl Runtime {
         Ok(AvailableDataContext {
             inner: self.inner.clone(),
             stream_id,
-            available_data: None,
+            available_data: Python::with_gil(|py| Py::new(py, AvailableData { inner: None }))?,
         })
     }
 }
@@ -315,12 +315,12 @@ impl AvailableData {
 pub(crate) struct AvailableDataContext {
     inner: Arc<RawRuntime>,
     stream_id: u32,
-    available_data: Option<Py<AvailableData>>,
+    available_data: Py<AvailableData>,
 }
 
 #[pymethods]
 impl AvailableDataContext {
-    fn __enter__(&mut self) -> PyResult<Option<Py<AvailableData>>> {
+    fn __enter__(&mut self) -> PyResult<Py<AvailableData>> {
         let AvailableDataContext {
             inner,
             stream_id,
@@ -337,7 +337,7 @@ impl AvailableDataContext {
             end,
             nbytes
         );
-        *available_data = Some(Python::with_gil(|py| {
+        *available_data = Python::with_gil(|py| {
             Py::new(
                 py,
                 AvailableData {
@@ -350,15 +350,13 @@ impl AvailableDataContext {
                     })),
                 },
             )
-        })?);
+        })?;
         return Ok(self.available_data.clone());
     }
 
     fn __exit__(&mut self, _exc_type: &PyAny, _exc_value: &PyAny, _traceback: &PyAny) {
         Python::with_gil(|py| {
-            if let Some(a) = &self.available_data {
-                a.as_ref(py).borrow_mut().invalidate()
-            };
+            (&self.available_data).as_ref(py).borrow_mut().invalidate();
         });
     }
 }
