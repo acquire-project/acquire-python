@@ -329,31 +329,28 @@ impl AvailableDataContext {
         let stream_id = *stream_id;
         let (beg, end) = inner.map_read(stream_id)?;
         let nbytes = unsafe { byte_offset_from(beg, end) };
-        if nbytes > 0 {
-            log::trace!(
-                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
-                stream_id,
-                beg,
-                end,
-                nbytes
+
+        log::trace!(
+            "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+            stream_id,
+            beg,
+            end,
+            nbytes
+        );
+        *available_data = Some(Python::with_gil(|py| {
+            Py::new(
+                py,
+                AvailableData {
+                    inner: Some(Arc::new(RawAvailableData {
+                        runtime: self.inner.clone(),
+                        beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                        end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                        stream_id,
+                        consumed_bytes: None,
+                    })),
+                },
             )
-        };
-        if nbytes > 0 {
-            *available_data = Some(Python::with_gil(|py| {
-                Py::new(
-                    py,
-                    AvailableData {
-                        inner: Some(Arc::new(RawAvailableData {
-                            runtime: self.inner.clone(),
-                            beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
-                            end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                            stream_id,
-                            consumed_bytes: None,
-                        })),
-                    },
-                )
-            })?);
-        }
+        })?);
         return Ok(self.available_data.clone());
     }
 
