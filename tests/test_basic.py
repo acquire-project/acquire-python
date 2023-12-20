@@ -163,7 +163,6 @@ def test_setup(runtime: Runtime):
     assert p.video[0].storage.settings.filename == "out.tif"
     assert p.video[0].max_frame_count == 100
     p.video[0].camera.settings.pixel_type = acquire.SampleType.U8
-    p.video[0].camera.settings.exposure_time_us = 2e3
     p.video[0].camera.settings.shape = (192, 108)
     p = runtime.set_configuration(p)
 
