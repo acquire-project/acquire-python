@@ -290,7 +290,6 @@ impl AvailableData {
         VideoFrameIterator {
             inner: if let Some(frames) = &self.inner {
                 Some(VideoFrameIteratorInner {
-                    store: frames.clone(),
                     cur: Mutex::new(frames.beg),
                     end: frames.end,
                 })
@@ -362,7 +361,6 @@ impl AvailableDataContext {
 }
 
 struct VideoFrameIteratorInner {
-    store: Arc<RawAvailableData>,
     cur: Mutex<NonNull<capi::VideoFrame>>,
     end: NonNull<capi::VideoFrame>,
 }
@@ -375,10 +373,7 @@ impl Iterator for VideoFrameIteratorInner {
     fn next(&mut self) -> Option<Self::Item> {
         let mut cur = self.cur.lock();
         if *cur < self.end {
-            let out = VideoFrame {
-                _store: self.store.clone(),
-                cur: *cur,
-            };
+            let out = VideoFrame { cur: *cur };
 
             let c = cur.as_ptr();
             let o = unsafe { (c as *const u8).offset((*c).bytes_of_frame as _) }
@@ -498,7 +493,6 @@ impl IntoDimension for capi::ImageShape {
 
 #[pyclass]
 pub(crate) struct VideoFrame {
-    _store: Arc<RawAvailableData>,
     cur: NonNull<capi::VideoFrame>,
 }
 
