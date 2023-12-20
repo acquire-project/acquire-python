@@ -273,7 +273,7 @@ impl Drop for RawAvailableData {
 
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Option<Arc<RawAvailableData>>,
+    inner: Option<RawAvailableData>,
 }
 
 #[pymethods]
@@ -340,13 +340,13 @@ impl AvailableDataContext {
             Py::new(
                 py,
                 AvailableData {
-                    inner: Some(Arc::new(RawAvailableData {
+                    inner: Some(RawAvailableData {
                         runtime: self.inner.clone(),
                         beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
                         end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
                         stream_id,
                         consumed_bytes: None,
-                    })),
+                    }),
                 },
             )
         })?;
