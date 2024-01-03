@@ -5,3 +5,6 @@
 [submodule "acquire-libs/acquire-core-libs"]
 	path = acquire-libs/acquire-core-libs
 	url = ../acquire-core-libs.git
+[submodule "acquire-common"]
+	path = acquire-common
+	url = git@github.com:aliddell/acquire-common.git
