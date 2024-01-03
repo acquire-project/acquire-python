@@ -5,6 +5,7 @@ use numpy::{
     Ix4, ToPyArray,
 };
 use parking_lot::Mutex;
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -196,7 +197,15 @@ impl Runtime {
         Ok(AvailableDataContext {
             inner: self.inner.clone(),
             stream_id,
-            available_data: Python::with_gil(|py| Py::new(py, AvailableData { inner: None }))?,
+            available_data: Python::with_gil(|py| {
+                Py::new(
+                    py,
+                    AvailableData {
+                        inner: None,
+                        valid: Arc::new(Mutex::new(false)),
+                    },
+                )
+            })?,
         })
     }
 }
@@ -274,6 +283,7 @@ impl Drop for RawAvailableData {
 #[pyclass]
 pub(crate) struct AvailableData {
     inner: Option<RawAvailableData>,
+    valid: Arc<Mutex<bool>>,
 }
 
 #[pymethods]
@@ -290,6 +300,7 @@ impl AvailableData {
         VideoFrameIterator {
             inner: if let Some(frames) = &self.inner {
                 Some(VideoFrameIteratorInner {
+                    store_is_valid: self.valid.clone(),
                     cur: Mutex::new(frames.beg),
                     end: frames.end,
                 })
@@ -309,6 +320,7 @@ impl AvailableData {
         // Will drop the RawAvailableData and cause Available data to act like
         // an empty iterator.
         self.inner = None;
+        *self.valid.lock() = false;
     }
 }
 
@@ -349,6 +361,7 @@ impl AvailableDataContext {
                         stream_id,
                         consumed_bytes: None,
                     }),
+                    valid: Arc::new(Mutex::new(true)),
                 },
             )
         })?;
@@ -363,6 +376,7 @@ impl AvailableDataContext {
 }
 
 struct VideoFrameIteratorInner {
+    store_is_valid: Arc<Mutex<bool>>,
     cur: Mutex<NonNull<capi::VideoFrame>>,
     end: NonNull<capi::VideoFrame>,
 }
@@ -375,7 +389,10 @@ impl Iterator for VideoFrameIteratorInner {
     fn next(&mut self) -> Option<Self::Item> {
         let mut cur = self.cur.lock();
         if *cur < self.end {
-            let out = VideoFrame { cur: *cur };
+            let out = VideoFrame {
+                store_is_valid: self.store_is_valid.clone(),
+                cur: *cur,
+            };
 
             let c = cur.as_ptr();
             let o = unsafe { (c as *const u8).offset((*c).bytes_of_frame as _) }
@@ -495,6 +512,7 @@ impl IntoDimension for capi::ImageShape {
 
 #[pyclass]
 pub(crate) struct VideoFrame {
+    store_is_valid: Arc<Mutex<bool>>,
     cur: NonNull<capi::VideoFrame>,
 }
 
@@ -503,6 +521,11 @@ unsafe impl Send for VideoFrame {}
 #[pymethods]
 impl VideoFrame {
     fn metadata(slf: PyRef<'_, Self>) -> PyResult<VideoFrameMetadata> {
+        if !*slf.store_is_valid.lock() {
+            return Err(PyRuntimeError::new_err(
+                "VideoFrame is not valid outside of context",
+            ));
+        }
         let cur = slf.cur.as_ptr();
         let meta = unsafe {
             VideoFrameMetadata {
@@ -513,7 +536,12 @@ impl VideoFrame {
         Ok(meta)
     }
 
-    fn data<'py>(&self, py: Python<'py>) -> Py<PyAny> {
+    fn data<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+        if !*self.store_is_valid.lock() {
+            return Err(PyRuntimeError::new_err(
+                "VideoFrame is not valid outside of context",
+            ));
+        }
         let cur = self.cur.as_ptr();
 
         macro_rules! gen_match {
@@ -547,7 +575,7 @@ impl VideoFrame {
         }
         .unwrap();
 
-        array.to_pyobject(py)
+        Ok(array.to_pyobject(py))
     }
 }
 
