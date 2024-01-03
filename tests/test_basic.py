@@ -615,6 +615,7 @@ def test_invalidated_frame(runtime: Runtime):
 
     runtime.stop()
 
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:
