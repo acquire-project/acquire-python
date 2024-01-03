@@ -302,7 +302,9 @@ impl AvailableData {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
         Py::new(slf.py(), slf.frames())
     }
+}
 
+impl AvailableData {
     fn invalidate(&mut self) {
         // Will drop the RawAvailableData and cause Available data to act like
         // an empty iterator.
