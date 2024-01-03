@@ -593,6 +593,28 @@ def test_storage_capabilities(
     assert storage.multiscale.is_supported == multiscale
 
 
+def test_invalidated_frame(runtime: Runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "trash")
+    p.video[0].max_frame_count = 1
+    runtime.set_configuration(p)
+
+    frame = None
+    runtime.start()
+    while frame is None:
+        with runtime.get_available_data(0) as packet:
+            if packet.get_frame_count() > 0:
+                frame = next(packet.frames())
+                frame.data()
+    with pytest.raises(RuntimeError):
+        frame.metadata()
+    with pytest.raises(RuntimeError):
+        frame.data()
+
+    runtime.stop()
+
 # FIXME: (nclack) awkwardness around references  (available frames, f)
 
 # NOTES:
