@@ -201,8 +201,7 @@ impl Runtime {
                 Py::new(
                     py,
                     AvailableData {
-                        inner: None,
-                        valid: Arc::new(Mutex::new(false)),
+                        inner: Arc::new(Mutex::new(None)),
                     },
                 )
             })?,
@@ -282,14 +281,13 @@ impl Drop for RawAvailableData {
 
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Option<RawAvailableData>,
-    valid: Arc<Mutex<bool>>,
+    inner: Arc<Mutex<Option<RawAvailableData>>>,
 }
 
 #[pymethods]
 impl AvailableData {
     fn get_frame_count(&self) -> usize {
-        if let Some(inner) = &self.inner {
+        if let Some(inner) = &*self.inner.lock() {
             inner.get_frame_count()
         } else {
             0
@@ -298,9 +296,9 @@ impl AvailableData {
 
     fn frames(&self) -> VideoFrameIterator {
         VideoFrameIterator {
-            inner: if let Some(frames) = &self.inner {
+            inner: if let Some(frames) = &*self.inner.lock() {
                 Some(VideoFrameIteratorInner {
-                    store_is_valid: self.valid.clone(),
+                    store: self.inner.clone(),
                     cur: Mutex::new(frames.beg),
                     end: frames.end,
                 })
@@ -319,8 +317,7 @@ impl AvailableData {
     fn invalidate(&mut self) {
         // Will drop the RawAvailableData and cause Available data to act like
         // an empty iterator.
-        self.inner = None;
-        *self.valid.lock() = false;
+        *self.inner.lock() = None;
     }
 }
 
@@ -354,14 +351,13 @@ impl AvailableDataContext {
             Py::new(
                 py,
                 AvailableData {
-                    inner: Some(RawAvailableData {
+                    inner: Arc::new(Mutex::new(Some(RawAvailableData {
                         runtime: self.inner.clone(),
                         beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
                         end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
                         stream_id,
                         consumed_bytes: None,
-                    }),
-                    valid: Arc::new(Mutex::new(true)),
+                    }))),
                 },
             )
         })?;
@@ -376,7 +372,7 @@ impl AvailableDataContext {
 }
 
 struct VideoFrameIteratorInner {
-    store_is_valid: Arc<Mutex<bool>>,
+    store: Arc<Mutex<Option<RawAvailableData>>>,
     cur: Mutex<NonNull<capi::VideoFrame>>,
     end: NonNull<capi::VideoFrame>,
 }
@@ -388,9 +384,9 @@ impl Iterator for VideoFrameIteratorInner {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut cur = self.cur.lock();
-        if *cur < self.end {
+        if (*self.store.lock()).is_some() && *cur < self.end {
             let out = VideoFrame {
-                store_is_valid: self.store_is_valid.clone(),
+                _store: self.store.clone(),
                 cur: *cur,
             };
 
@@ -512,7 +508,7 @@ impl IntoDimension for capi::ImageShape {
 
 #[pyclass]
 pub(crate) struct VideoFrame {
-    store_is_valid: Arc<Mutex<bool>>,
+    _store: Arc<Mutex<Option<RawAvailableData>>>,
     cur: NonNull<capi::VideoFrame>,
 }
 
@@ -521,7 +517,7 @@ unsafe impl Send for VideoFrame {}
 #[pymethods]
 impl VideoFrame {
     fn metadata(slf: PyRef<'_, Self>) -> PyResult<VideoFrameMetadata> {
-        if !*slf.store_is_valid.lock() {
+        if (*slf._store.lock()).is_none() {
             return Err(PyRuntimeError::new_err(
                 "VideoFrame is not valid outside of context",
             ));
@@ -537,7 +533,7 @@ impl VideoFrame {
     }
 
     fn data<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
-        if !*self.store_is_valid.lock() {
+        if (*self._store.lock()).is_none() {
             return Err(PyRuntimeError::new_err(
                 "VideoFrame is not valid outside of context",
             ));
