@@ -232,7 +232,7 @@ jobs:
     needs:
       - platforms
       - dcam
-      - egrabber
+#      - egrabber
       - typing
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
