@@ -5,7 +5,6 @@ use std::fs;
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 struct DriverManifest {
-    acquire_common: String,
     acquire_driver_zarr: String,
     acquire_driver_egrabber: String,
     acquire_driver_hdcam: String,
@@ -18,27 +17,16 @@ fn main() {
     let tags: DriverManifest =
         serde_json::from_str(drivers_json.as_str()).expect("Failed to parse drivers.json");
 
-    let dst = if std::path::Path::new("acquire-common/CMakeLists.txt").exists() {
-        cmake::Config::new("acquire-common")
-            .target("acquire-common")
-            .profile("RelWithDebInfo")
-            .static_crt(true)
-            .define("NOTEST", "TRUE")
-            .define("NO_UNIT_TESTS", "TRUE")
-            .define("NO_EXAMPLES", "TRUE")
-            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
-            .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
-            .build()
-    } else {
-        let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-        fetch_acquire_common(
-            &(out_dir.join("acquire-common")),
-            tags.acquire_common.as_str(),
-        );
-        out_dir.parent().unwrap().to_owned()
-    };
-
-    panic!("OUT_DIR: {}", std::env::var("OUT_DIR").unwrap());
+    let dst = cmake::Config::new("acquire-common")
+        .target("acquire-common")
+        .profile("RelWithDebInfo")
+        .static_crt(true)
+        .define("NOTEST", "TRUE")
+        .define("NO_UNIT_TESTS", "TRUE")
+        .define("NO_EXAMPLES", "TRUE")
+        .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
+        .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
+        .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
@@ -64,6 +52,10 @@ fn main() {
         .write_to_file(dst.join("bindings.rs"))
         .expect("Failed to write bindings.");
 
+    // copy acquire-driver-common
+    copy_shared_lib(&dst, "acquire-driver-common");
+
+    // download and copy driver artifacts
     let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
 
     fetch_acquire_driver(
@@ -129,16 +121,12 @@ fn fetch_artifact(dst: &std::path::PathBuf, name: &str, tag: &str) {
     ));
 }
 
-fn fetch_acquire_common(dst: &std::path::PathBuf, tag: &str) {
-    fetch_artifact(dst, "acquire-common", tag);
-}
-
 fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
     fetch_artifact(dst, name, tag);
-    copy_acquire_driver(&dst, name);
+    copy_shared_lib(dst, name);
 }
 
-fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
+fn copy_shared_lib(src: &std::path::PathBuf, name: &str) {
     let (prefix, postfix) = if cfg!(target_os = "windows") {
         ("", ".dll")
     } else if cfg!(target_os = "macos") {
@@ -151,12 +139,12 @@ fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
 
     let lib = format!("{prefix}{name}{postfix}");
 
-    std::fs::copy(
-        format!("{}/lib/{lib}", dst.display()),
+    fs::copy(
+        format!("{}/lib/{lib}", src.display()),
         format!("python/acquire/{lib}"),
     )
     .expect(&format!(
         "Failed to copy {}/lib/{lib} to python folder.",
-        dst.display()
+        src.display()
     ));
 }

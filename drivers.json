@@ -1,5 +1,4 @@
 {
-  "acquire-common": "0.2.0",
   "acquire-driver-zarr": "0.1.7",
   "acquire-driver-egrabber": "0.1.5",
   "acquire-driver-hdcam": "0.1.7",
