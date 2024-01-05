@@ -5,6 +5,7 @@ use numpy::{
     Ix4, ToPyArray,
 };
 use parking_lot::Mutex;
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -196,7 +197,14 @@ impl Runtime {
         Ok(AvailableDataContext {
             inner: self.inner.clone(),
             stream_id,
-            available_data: None,
+            available_data: Python::with_gil(|py| {
+                Py::new(
+                    py,
+                    AvailableData {
+                        inner: Arc::new(Mutex::new(None)),
+                    },
+                )
+            })?,
         })
     }
 }
@@ -273,13 +281,13 @@ impl Drop for RawAvailableData {
 
 #[pyclass]
 pub(crate) struct AvailableData {
-    inner: Option<Arc<RawAvailableData>>,
+    inner: Arc<Mutex<Option<RawAvailableData>>>,
 }
 
 #[pymethods]
 impl AvailableData {
     fn get_frame_count(&self) -> usize {
-        if let Some(inner) = &self.inner {
+        if let Some(inner) = &*self.inner.lock() {
             inner.get_frame_count()
         } else {
             0
@@ -288,9 +296,9 @@ impl AvailableData {
 
     fn frames(&self) -> VideoFrameIterator {
         VideoFrameIterator {
-            inner: if let Some(frames) = &self.inner {
+            inner: if let Some(frames) = &*self.inner.lock() {
                 Some(VideoFrameIteratorInner {
-                    store: frames.clone(),
+                    store: self.inner.clone(),
                     cur: Mutex::new(frames.beg),
                     end: frames.end,
                 })
@@ -303,11 +311,13 @@ impl AvailableData {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VideoFrameIterator>> {
         Py::new(slf.py(), slf.frames())
     }
+}
 
+impl AvailableData {
     fn invalidate(&mut self) {
         // Will drop the RawAvailableData and cause Available data to act like
         // an empty iterator.
-        self.inner = None;
+        *self.inner.lock() = None;
     }
 }
 
@@ -315,12 +325,12 @@ impl AvailableData {
 pub(crate) struct AvailableDataContext {
     inner: Arc<RawRuntime>,
     stream_id: u32,
-    available_data: Option<Py<AvailableData>>,
+    available_data: Py<AvailableData>,
 }
 
 #[pymethods]
 impl AvailableDataContext {
-    fn __enter__(&mut self) -> PyResult<Option<Py<AvailableData>>> {
+    fn __enter__(&mut self) -> PyResult<Py<AvailableData>> {
         let AvailableDataContext {
             inner,
             stream_id,
@@ -329,45 +339,40 @@ impl AvailableDataContext {
         let stream_id = *stream_id;
         let (beg, end) = inner.map_read(stream_id)?;
         let nbytes = unsafe { byte_offset_from(beg, end) };
-        if nbytes > 0 {
-            log::trace!(
-                "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
-                stream_id,
-                beg,
-                end,
-                nbytes
+
+        log::trace!(
+            "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
+            stream_id,
+            beg,
+            end,
+            nbytes
+        );
+        *available_data = Python::with_gil(|py| {
+            Py::new(
+                py,
+                AvailableData {
+                    inner: Arc::new(Mutex::new(Some(RawAvailableData {
+                        runtime: self.inner.clone(),
+                        beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                        end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                        stream_id,
+                        consumed_bytes: None,
+                    }))),
+                },
             )
-        };
-        if nbytes > 0 {
-            *available_data = Some(Python::with_gil(|py| {
-                Py::new(
-                    py,
-                    AvailableData {
-                        inner: Some(Arc::new(RawAvailableData {
-                            runtime: self.inner.clone(),
-                            beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
-                            end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                            stream_id,
-                            consumed_bytes: None,
-                        })),
-                    },
-                )
-            })?);
-        }
+        })?;
         return Ok(self.available_data.clone());
     }
 
     fn __exit__(&mut self, _exc_type: &PyAny, _exc_value: &PyAny, _traceback: &PyAny) {
         Python::with_gil(|py| {
-            if let Some(a) = &self.available_data {
-                a.as_ref(py).borrow_mut().invalidate()
-            };
+            (&self.available_data).as_ref(py).borrow_mut().invalidate();
         });
     }
 }
 
 struct VideoFrameIteratorInner {
-    store: Arc<RawAvailableData>,
+    store: Arc<Mutex<Option<RawAvailableData>>>,
     cur: Mutex<NonNull<capi::VideoFrame>>,
     end: NonNull<capi::VideoFrame>,
 }
@@ -379,7 +384,7 @@ impl Iterator for VideoFrameIteratorInner {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut cur = self.cur.lock();
-        if *cur < self.end {
+        if (*self.store.lock()).is_some() && *cur < self.end {
             let out = VideoFrame {
                 _store: self.store.clone(),
                 cur: *cur,
@@ -503,7 +508,7 @@ impl IntoDimension for capi::ImageShape {
 
 #[pyclass]
 pub(crate) struct VideoFrame {
-    _store: Arc<RawAvailableData>,
+    _store: Arc<Mutex<Option<RawAvailableData>>>,
     cur: NonNull<capi::VideoFrame>,
 }
 
@@ -512,6 +517,11 @@ unsafe impl Send for VideoFrame {}
 #[pymethods]
 impl VideoFrame {
     fn metadata(slf: PyRef<'_, Self>) -> PyResult<VideoFrameMetadata> {
+        if (*slf._store.lock()).is_none() {
+            return Err(PyRuntimeError::new_err(
+                "VideoFrame is not valid outside of context",
+            ));
+        }
         let cur = slf.cur.as_ptr();
         let meta = unsafe {
             VideoFrameMetadata {
@@ -522,7 +532,12 @@ impl VideoFrame {
         Ok(meta)
     }
 
-    fn data<'py>(&self, py: Python<'py>) -> Py<PyAny> {
+    fn data<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+        if (*self._store.lock()).is_none() {
+            return Err(PyRuntimeError::new_err(
+                "VideoFrame is not valid outside of context",
+            ));
+        }
         let cur = self.cur.as_ptr();
 
         macro_rules! gen_match {
@@ -556,7 +571,7 @@ impl VideoFrame {
         }
         .unwrap();
 
-        array.to_pyobject(py)
+        Ok(array.to_pyobject(py))
     }
 }
 

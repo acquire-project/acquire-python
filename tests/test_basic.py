@@ -96,9 +96,8 @@ def test_repeat_acq(runtime: Runtime):
     runtime.start()
     while True:
         with runtime.get_available_data(0) as a:
-            if a:
-                logging.info(f"Got {a.get_frame_count()}")
-                break
+            logging.info(f"Got {a.get_frame_count()}")
+            break
         if a:
             assert a.get_frame_count() == 0
             assert next(a.frames()) is None
@@ -107,12 +106,11 @@ def test_repeat_acq(runtime: Runtime):
     runtime.start()
     while True:
         with runtime.get_available_data(0) as a:
-            if a:
-                logging.info(f"Got {a.get_frame_count()}")
-                break
-        if a:
-            assert a.get_frame_count() == 0
-            assert next(a.frames()) is None
+            logging.info(f"Got {a.get_frame_count()}")
+            break
+
+        assert a.get_frame_count() == 0
+        assert next(a.frames()) is None
     runtime.stop()
     # TODO: (nclack) assert 1 more acquired frame. stop cancels and waits.
 
@@ -131,7 +129,7 @@ def test_repeat_with_no_stop(runtime: Runtime):
     # wait for 1 frame
     while True:
         with runtime.get_available_data(0) as a:
-            if a:
+            if a.get_frame_count() > 0:
                 logging.info(f"Got {a.get_frame_count()} frame")
                 break
     # acq is still on going here
@@ -181,17 +179,16 @@ def test_setup(runtime: Runtime):
     while nframes < p.video[0].max_frame_count and not took_too_long():
         clock = time.time()
         with runtime.get_available_data(0) as a:
-            if a:
-                packet = a.get_frame_count()
-                for f in a.frames():
-                    logging.info(
-                        f"{f.data().shape} {f.data()[0][0][0][0]} "
-                        + f"{f.metadata()}"
-                    )
-                nframes += packet
+            packet = a.get_frame_count()
+            for f in a.frames():
                 logging.info(
-                    f"frame count: {nframes} - frames in packet: {packet}"
+                    f"{f.data().shape} {f.data()[0][0][0][0]} "
+                    + f"{f.metadata()}"
                 )
+            nframes += packet
+            logging.info(
+                f"frame count: {nframes} - frames in packet: {packet}"
+            )
 
         elapsed = time.time() - clock
         sleep(max(0, 0.1 - elapsed))
@@ -231,8 +228,7 @@ def test_change_filename(runtime: Runtime):
         runtime.start()
         while nframes < p.video[0].max_frame_count:
             with runtime.get_available_data(0) as packet:
-                if packet:
-                    nframes += packet.get_frame_count()
+                nframes += packet.get_frame_count()
         logging.info("Stopping")
         runtime.stop()
 
@@ -257,8 +253,7 @@ def test_write_external_metadata_to_tiff(
     runtime.start()
     while nframes < p.video[0].max_frame_count:
         with runtime.get_available_data(0) as packet:
-            if packet:
-                nframes += packet.get_frame_count()
+            nframes += packet.get_frame_count()
     runtime.stop()
 
     # Check that the written tif has the expected structure
@@ -321,20 +316,17 @@ def test_two_video_streams(runtime: Runtime):
     while is_not_done():
         if nframes[stream_id] < p.video[stream_id].max_frame_count:
             with runtime.get_available_data(stream_id) as packet:
-                if packet:
-                    n = packet.get_frame_count()
-                    for i, frame in enumerate(packet.frames()):
-                        expected_frame_id = nframes[stream_id] + i
-                        assert (
-                            frame.metadata().frame_id == expected_frame_id
-                        ), (
-                            "frame id's didn't match "
-                            + f"({frame.metadata().frame_id}"
-                            + f"!={expected_frame_id})"
-                            + f" [stream {stream_id} nframes {nframes}]"
-                        )
-                    nframes[stream_id] += n
-                    logging.debug(f"NFRAMES {nframes}")
+                n = packet.get_frame_count()
+                for i, frame in enumerate(packet.frames()):
+                    expected_frame_id = nframes[stream_id] + i
+                    assert frame.metadata().frame_id == expected_frame_id, (
+                        "frame id's didn't match "
+                        + f"({frame.metadata().frame_id}"
+                        + f"!={expected_frame_id})"
+                        + f" [stream {stream_id} nframes {nframes}]"
+                    )
+                nframes[stream_id] += n
+                logging.debug(f"NFRAMES {nframes}")
 
         stream_id = (stream_id + 1) % 2
     logging.info("Stopping")
@@ -362,9 +354,9 @@ def test_abort(runtime: Runtime):
 
     while True:
         with runtime.get_available_data(0) as packet:
-            if packet:
-                nframes += packet.get_frame_count()
-            else:
+            frame_count = packet.get_frame_count()
+            nframes += frame_count
+            if frame_count == 0:
                 break
 
     logging.debug(
@@ -383,7 +375,7 @@ def wait_for_data(
     elapsed = timedelta()
     while elapsed < timeout:
         with runtime.get_available_data(stream_id) as packet:
-            if packet:
+            if packet.get_frame_count() > 0:
                 frames = list(packet.frames())
                 return (len(frames), frames[0].metadata().frame_id)
         sleep(sleep_duration.total_seconds())
@@ -419,7 +411,7 @@ def test_execute_trigger(runtime: Runtime):
 
     # No triggers yet, so no data.
     with runtime.get_available_data(0) as packet:
-        assert packet is None
+        assert packet.get_frame_count() == 0
 
     # Snap a few individual frames
     for i in range(p.video[0].max_frame_count):
@@ -599,6 +591,29 @@ def test_storage_capabilities(
         assert shard_dims_chunks.planes.high == chunking["planes"]["high"]
 
     assert storage.multiscale.is_supported == multiscale
+
+
+def test_invalidated_frame(runtime: Runtime):
+    dm = runtime.device_manager()
+    p = runtime.get_configuration()
+    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, ".*empty")
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "trash")
+    p.video[0].max_frame_count = 1
+    runtime.set_configuration(p)
+
+    frame = None
+    runtime.start()
+    while frame is None:
+        with runtime.get_available_data(0) as packet:
+            if packet.get_frame_count() > 0:
+                frame = next(packet.frames())
+                frame.data()
+    with pytest.raises(RuntimeError):
+        frame.metadata()
+    with pytest.raises(RuntimeError):
+        frame.data()
+
+    runtime.stop()
 
 
 # FIXME: (nclack) awkwardness around references  (available frames, f)
