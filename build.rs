@@ -5,7 +5,6 @@ use std::fs;
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 struct DriverManifest {
-    acquire_driver_common: String,
     acquire_driver_zarr: String,
     acquire_driver_egrabber: String,
     acquire_driver_hdcam: String,
@@ -13,8 +12,13 @@ struct DriverManifest {
 }
 
 fn main() {
-    let dst = cmake::Config::new("acquire-libs")
-        .target("acquire-video-runtime")
+    let drivers_json =
+        fs::read_to_string("drivers.json").expect("Failed to read from drivers.json.");
+    let tags: DriverManifest =
+        serde_json::from_str(drivers_json.as_str()).expect("Failed to parse drivers.json");
+
+    let dst = cmake::Config::new("acquire-common")
+        .target("acquire-common")
         .profile("RelWithDebInfo")
         .static_crt(true)
         .define("NOTEST", "TRUE")
@@ -23,39 +27,6 @@ fn main() {
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
         .build();
-
-    let drivers_json =
-        fs::read_to_string("drivers.json").expect("Failed to read from drivers.json.");
-    let tags: DriverManifest =
-        serde_json::from_str(drivers_json.as_str()).expect("Failed to parse drivers.json");
-
-    let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
-
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-common",
-        tags.acquire_driver_common.as_str(),
-    );
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-zarr",
-        tags.acquire_driver_zarr.as_str(),
-    );
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-egrabber",
-        tags.acquire_driver_egrabber.as_str(),
-    );
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-hdcam",
-        tags.acquire_driver_hdcam.as_str(),
-    );
-    fetch_acquire_driver(
-        &drivers_dir,
-        "acquire-driver-spinnaker",
-        tags.acquire_driver_spinnaker.as_str(),
-    );
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=acquire-video-runtime");
@@ -80,9 +51,36 @@ fn main() {
     bindings
         .write_to_file(dst.join("bindings.rs"))
         .expect("Failed to write bindings.");
+
+    // copy acquire-driver-common
+    copy_shared_lib(&dst, "acquire-driver-common");
+
+    // download and copy driver artifacts
+    let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
+
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-zarr",
+        tags.acquire_driver_zarr.as_str(),
+    );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-egrabber",
+        tags.acquire_driver_egrabber.as_str(),
+    );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-hdcam",
+        tags.acquire_driver_hdcam.as_str(),
+    );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-spinnaker",
+        tags.acquire_driver_spinnaker.as_str(),
+    );
 }
 
-fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
+fn fetch_artifact(dst: &std::path::PathBuf, name: &str, tag: &str) {
     let build = if cfg!(target_os = "windows") {
         "win64"
     } else if cfg!(target_os = "macos") {
@@ -121,11 +119,14 @@ fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
     zip_extract::extract(std::io::Cursor::new(archive), &dst, true).expect(&*format!(
         "Failed to extract {name}-{tag}-{build}.zip from response."
     ));
-
-    copy_acquire_driver(&dst, name);
 }
 
-fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
+fn fetch_acquire_driver(dst: &std::path::PathBuf, name: &str, tag: &str) {
+    fetch_artifact(dst, name, tag);
+    copy_shared_lib(dst, name);
+}
+
+fn copy_shared_lib(src: &std::path::PathBuf, name: &str) {
     let (prefix, postfix) = if cfg!(target_os = "windows") {
         ("", ".dll")
     } else if cfg!(target_os = "macos") {
@@ -138,12 +139,12 @@ fn copy_acquire_driver(dst: &std::path::PathBuf, name: &str) {
 
     let lib = format!("{prefix}{name}{postfix}");
 
-    std::fs::copy(
-        format!("{}/lib/{lib}", dst.display()),
+    fs::copy(
+        format!("{}/lib/{lib}", src.display()),
         format!("python/acquire/{lib}"),
     )
     .expect(&format!(
         "Failed to copy {}/lib/{lib} to python folder.",
-        dst.display()
+        src.display()
     ));
 }
