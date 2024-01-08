@@ -9,6 +9,7 @@ struct DriverManifest {
     acquire_driver_egrabber: String,
     acquire_driver_hdcam: String,
     acquire_driver_spinnaker: String,
+    acquire_driver_pvcam: String,
 }
 
 fn main() {
@@ -77,6 +78,11 @@ fn main() {
         &drivers_dir,
         "acquire-driver-spinnaker",
         tags.acquire_driver_spinnaker.as_str(),
+    );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-pvcam",
+        tags.acquire_driver_pvcam.as_str(),
     );
 }
 
