@@ -45,28 +45,19 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Checkout core-libs nightly
+      - name: Checkout acquire-common nightly
         if: ${{github.ref_name == 'nightly'}}
         run: |
           git fetch --tags
           git checkout nightly
           git submodule update
-        working-directory: ${{github.workspace}}/acquire-libs/acquire-core-libs
-        
-      - name: Checkout runtime nightly
-        if: ${{github.ref_name == 'nightly'}}
-        run: |
-          git fetch --tags
-          git checkout nightly
-          git submodule update
-        working-directory: ${{github.workspace}}/acquire-libs/acquire-video-runtime
+        working-directory: ${{github.workspace}}/acquire-common
 
       - name: Set config to pull nightly drivers
         if: ${{github.ref_name == 'nightly'}}
         run: |
           cat >drivers.json <<EOF
           {
-            "acquire-driver-common": "nightly",
             "acquire-driver-zarr": "nightly",
             "acquire-driver-egrabber": "nightly",
             "acquire-driver-hdcam": "nightly",
