@@ -20,6 +20,8 @@ Acquire supports the following cameras (currently only on Windows):
 - [Vieworks VC-151MX-M6H00](https://www.visionsystech.com/products/cameras/vieworks-vc-151mx-sony-imx411-sensor-ultra-high-resolution-cmos-camera-151-mp)
 - [FLIR Blackfly USB3 (BFLY-U3-23S6M-C)](https://www.flir.com/products/blackfly-usb3/?model=BFLY-U3-23S6M-C&vertical=machine+vision&segment=iis)
 - [FLIR Oryx 10GigE (ORX-10GS-51S5M-C)](https://www.flir.com/products/oryx-10gige/?model=ORX-10GS-51S5M-C&vertical=machine+vision&segment=iis)
+- [Photometrics Prime BSI](https://www.photometrics.com/products/prime-family/primebsi)
+- [Photometrics Prime BSI Express](https://www.photometrics.com/products/prime-family/primebsiexpress)
 
 Acquire also supports the following output file formats:
 
@@ -80,24 +82,24 @@ touch wrapper.h # will trigger a rebuild
 python -m build
 ```
 
-This package depends on a submodule ([acquire-video-runtime](https://github.com/acquire-project/acquire-video-runtime))
+This package depends on a submodule ([acquire-common](https://github.com/acquire-project/acquire-common))
 and binaries from the following Acquire drivers:
-- [acquire-driver-common](https://github.com/acquire-project/acquire-driver-common)
 - [acquire-driver-hdcam](https://github.com/acquire-project/acquire-driver-hdcam)
 - [acquire-driver-egrabber](https://github.com/acquire-project/acquire-driver-egrabber)
 - [acquire-driver-zarr](https://github.com/acquire-project/acquire-driver-zarr)
 - [acquire-driver-spinnaker](https://github.com/acquire-project/acquire-driver-spinnaker)
+- [acquire-driver-pvcam](https://github.com/acquire-project/acquire-driver-pvcam)
 
 The build script will automatically try to fetch the binaries from GitHub releases.
 In order to configure which release of each driver to use, you can set the value in `drivers.json`:
 
 ```json
 {
-  "acquire-driver-common": "0.1.0",
   "acquire-driver-hdcam": "0.1.0",
   "acquire-driver-egrabber": "0.1.0",
   "acquire-driver-zarr": "0.1.0",
-  "acquire-driver-spinnaker": "0.1.0"
+  "acquire-driver-spinnaker": "0.1.0",
+  "acquire-driver-pvcam": "0.1.0"
 }
 ```
 

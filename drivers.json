@@ -2,5 +2,6 @@
   "acquire-driver-zarr": "0.1.8",
   "acquire-driver-egrabber": "0.1.5",
   "acquire-driver-hdcam": "0.1.7",
-  "acquire-driver-spinnaker": "0.1.1"
+  "acquire-driver-spinnaker": "0.1.1",
+  "acquire-driver-pvcam": "0.1.0"
 }

@@ -61,7 +61,8 @@ jobs:
             "acquire-driver-zarr": "nightly",
             "acquire-driver-egrabber": "nightly",
             "acquire-driver-hdcam": "nightly",
-            "acquire-driver-spinnaker": "nightly"
+            "acquire-driver-spinnaker": "nightly",
+            "acquire-driver-pvcam": "nightly"
           }
           EOF
         shell: bash
