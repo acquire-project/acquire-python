@@ -338,7 +338,11 @@ impl AvailableDataContext {
         } = self;
         let stream_id = *stream_id;
         let (beg, end) = inner.map_read(stream_id)?;
-        let nbytes = unsafe { byte_offset_from(beg, end) };
+        let nbytes = if beg.is_null() || end.is_null() {
+            0
+        } else {
+            unsafe { byte_offset_from(beg, end) }
+        };
 
         log::trace!(
             "[stream {}] ACQUIRED {:p}-{:p}:{} bytes",
@@ -351,13 +355,17 @@ impl AvailableDataContext {
             Py::new(
                 py,
                 AvailableData {
-                    inner: Arc::new(Mutex::new(Some(RawAvailableData {
-                        runtime: self.inner.clone(),
-                        beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
-                        end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
-                        stream_id,
-                        consumed_bytes: None,
-                    }))),
+                    inner: Arc::new(Mutex::new(if nbytes > 0 {
+                        Some(RawAvailableData {
+                            runtime: self.inner.clone(),
+                            beg: NonNull::new(beg).ok_or(anyhow!("Expected non-null buffer"))?,
+                            end: NonNull::new(end).ok_or(anyhow!("Expected non-null buffer"))?,
+                            stream_id,
+                            consumed_bytes: None,
+                        })
+                    } else {
+                        None
+                    })),
                 },
             )
         })?;
