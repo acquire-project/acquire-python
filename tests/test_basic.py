@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 from datetime import timedelta
 from time import sleep
@@ -616,7 +617,29 @@ def test_invalidated_frame(runtime: Runtime):
     runtime.stop()
 
 
-# FIXME: (nclack) awkwardness around references  (available frames, f)
+def test_switch_device_identifier(
+    runtime: Runtime, request: pytest.FixtureRequest
+):
+    p = acquire.setup(runtime, "simulated.*empty", "trash")
+    assert p.video[0].storage.identifier.name == "trash"
+    p = runtime.set_configuration(p)
+
+    dm = runtime.device_manager()
+    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "tiff")
+    p.video[0].storage.settings.filename = f"{request.node.name}.tif"
+    p = runtime.set_configuration(p)
+    assert p.video[0].storage.identifier.name == "tiff"
+
+    runtime.start()
+    runtime.stop()
+
+    # will raise an exception if the file doesn't exist or is invalid
+    with tifffile.TiffFile(p.video[0].storage.settings.filename):
+        pass
+
+    # cleanup
+    os.remove(p.video[0].storage.settings.filename)
+
 
 # NOTES:
 #
