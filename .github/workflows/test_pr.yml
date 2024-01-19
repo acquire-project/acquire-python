@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request:  # FIXME (aliddell): change back to `pull_request_target`
     branches:
       - main
 
@@ -24,6 +24,8 @@ jobs:
           - "3.8"
           - "3.9"
           - "3.10"
+          - "3.11"
+          - "3.12"
 
     permissions:
       actions: write
@@ -68,7 +70,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [ "3.8", "3.9", "3.10" ]
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
     permissions:
       actions: write
@@ -103,7 +110,7 @@ jobs:
       - name: Test
         run: |
           python -m pytest -k test_dcam
-          
+
   # TODO (aliddell): uncomment when we get an eGrabber runner up again
   # egrabber:
   #   name: Python ${{ matrix.python }} (eGrabber)
@@ -115,7 +122,12 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       python: [ "3.8", "3.9", "3.10" ]
+  #        python:
+  #          - "3.8"
+  #          - "3.9"
+  #          - "3.10"
+  #          - "3.11"
+  #          - "3.12"
 
   #   permissions:
   #     actions: write
@@ -162,7 +174,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [ "3.8", "3.9", "3.10" ]
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
     permissions:
       actions: write
@@ -208,7 +225,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [ "3.8", "3.9", "3.10" ]
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
     permissions:
       actions: write
@@ -277,7 +299,7 @@ jobs:
     needs:
       - platforms
       - dcam
-#      - egrabber
+      #      - egrabber
       - spinnaker
       - pvcam
       - typing
