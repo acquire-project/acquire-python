@@ -91,8 +91,8 @@ fn acquire(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<camera::CameraProperties>()?;
     m.add_class::<camera::InputTriggers>()?;
     m.add_class::<camera::OutputTriggers>()?;
-    m.add_class::<storage::ChunkDims>()?;
-    m.add_class::<storage::ShardDims>()?;
+    m.add_class::<storage::DimensionType>()?;
+    m.add_class::<storage::Dimension>()?;
     m.add_class::<storage::StorageProperties>()?;
 
     m.add_class::<components::Direction>()?;
