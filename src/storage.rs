@@ -71,12 +71,10 @@ impl Default for Dimension {
 
 impl_plain_old_dict!(Dimension);
 
-impl TryFrom<capi::StorageProperties_storage_properties_dimension_s> for Dimension {
+impl TryFrom<capi::Dimension> for Dimension {
     type Error = anyhow::Error;
 
-    fn try_from(
-        value: capi::StorageProperties_storage_properties_dimension_s,
-    ) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::Dimension) -> Result<Self, Self::Error> {
         let name = if value.name.nbytes == 0 {
             None
         } else {
@@ -117,19 +115,7 @@ pub struct StorageProperties {
     pub(crate) pixel_scale_um: (f64, f64),
 
     #[pyo3(get, set)]
-    pub(crate) acquisition_dimensions: (
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-        Py<Dimension>,
-    ),
-
-    #[pyo3(get, set)]
-    pub(crate) append_dimension: u8,
+    pub(crate) acquisition_dimensions: Vec<Py<Dimension>>,
 
     #[pyo3(get, set)]
     pub(crate) enable_multiscale: bool,
@@ -144,17 +130,7 @@ impl Default for StorageProperties {
             external_metadata_json: Default::default(),
             first_frame_id: Default::default(),
             pixel_scale_um: Default::default(),
-            acquisition_dimensions: (
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-                Python::with_gil(|py| Py::new(py, Dimension::default()).unwrap()),
-            ),
-            append_dimension: Default::default(),
+            acquisition_dimensions: Default::default(),
             enable_multiscale: Default::default(),
         }
     }
@@ -183,46 +159,24 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             )
         };
 
+        let mut acquisition_dimensions: Vec<Py<Dimension>> = Default::default();
+        for i in 1..value.acquisition_dimensions.size {
+            acquisition_dimensions.push(Python::with_gil(|py| {
+                Py::new(
+                    py,
+                    Dimension::try_from(unsafe { *value.acquisition_dimensions.data.add(i) })
+                        .unwrap(),
+                )
+                .unwrap()
+            }));
+        }
+
         Ok(Self {
             filename,
             first_frame_id: value.first_frame_id,
             external_metadata_json,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
-            acquisition_dimensions: (
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[0])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[1])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[2])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[3])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[4])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[5])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[6])?)
-                })
-                .unwrap(),
-                Python::with_gil(|py| {
-                    Py::new(py, Dimension::try_from(value.acquisition_dimensions[7])?)
-                })
-                .unwrap(),
-            ),
-            append_dimension: value.append_dimension as u8,
+            acquisition_dimensions,
             enable_multiscale: (value.enable_multiscale == 1),
         })
     }
@@ -410,7 +364,6 @@ impl Default for capi::StorageProperties {
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
             acquisition_dimensions: Default::default(),
-            append_dimension: Default::default(),
             enable_multiscale: Default::default(),
         }
     }
@@ -462,11 +415,6 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
         } else if !unsafe {
-            capi::storage_properties_set_append_dimension(&mut out, value.append_dimension as u32)
-                == 1
-        } {
-            Err(anyhow::anyhow!("Failed acquire api status check"))
-        } else if !unsafe {
             capi::storage_properties_set_enable_multiscale(&mut out, value.enable_multiscale as u8)
                 == 1
         } {
@@ -477,8 +425,19 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
     }
 }
 
-/// capi::StorageProperties_storage_properties_dimension_s
-impl Default for capi::StorageProperties_storage_properties_dimension_s {
+/// capi::StorageProperties_storage_properties_dimensions_s
+impl Default for capi::StorageProperties_storage_properties_dimensions_s {
+    fn default() -> Self {
+        Self {
+            data: null_mut(),
+            size: Default::default(),
+            capacity: Default::default(),
+        }
+    }
+}
+
+/// capi::Dimension
+impl Default for capi::Dimension {
     fn default() -> Self {
         Self {
             name: Default::default(),
@@ -490,12 +449,11 @@ impl Default for capi::StorageProperties_storage_properties_dimension_s {
     }
 }
 
-impl TryFrom<&Dimension> for capi::StorageProperties_storage_properties_dimension_s {
+impl TryFrom<&Dimension> for capi::Dimension {
     type Error = anyhow::Error;
 
     fn try_from(value: &Dimension) -> Result<Self, Self::Error> {
-        let mut out: capi::StorageProperties_storage_properties_dimension_s =
-            unsafe { std::mem::zeroed() };
+        let mut out: capi::Dimension = unsafe { std::mem::zeroed() };
         // Careful: x needs to live long enough
         let x = if let Some(name) = &value.name {
             Some(CString::new(name.as_str())?)
@@ -510,7 +468,7 @@ impl TryFrom<&Dimension> for capi::StorageProperties_storage_properties_dimensio
 
         // This copies the string into a buffer owned by the return value.
         if !unsafe {
-            capi::storage_properties_dimension_init(
+            capi::dimension_init(
                 &mut out,
                 name,
                 bytes_of_name as _,
