@@ -536,9 +536,9 @@ def test_storage_capabilities(
     c = runtime.get_capabilities()
     storage = c.video[0].storage
 
-    assert storage.chunking.is_supported == chunking
-    assert storage.sharding.is_supported == sharding
-    assert storage.multiscale.is_supported == multiscale
+    assert storage.chunking_is_supported == chunking
+    assert storage.sharding_is_supported == sharding
+    assert storage.multiscale_is_supported == multiscale
 
 
 def test_invalidated_frame(runtime: Runtime):

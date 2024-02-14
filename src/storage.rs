@@ -14,23 +14,23 @@ use std::{
 #[pyclass]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DimensionType {
-    NONE,
-    Spatial,
+    Space,
     Channel,
     Time,
+    Other,
 }
 
 impl Default for DimensionType {
     fn default() -> Self {
-        DimensionType::NONE
+        DimensionType::Space
     }
 }
 
 cvt!(DimensionType => capi::DimensionType,
-    NONE => DimensionType_DimensionType_None,
-    Spatial => DimensionType_DimensionType_Spatial,
+    Space => DimensionType_DimensionType_Space,
     Channel => DimensionType_DimensionType_Channel,
-    Time => DimensionType_DimensionType_Time
+    Time => DimensionType_DimensionType_Time,
+    Other => DimensionType_DimensionType_Other
 );
 
 #[pyclass]
@@ -71,10 +71,10 @@ impl Default for Dimension {
 
 impl_plain_old_dict!(Dimension);
 
-impl TryFrom<capi::Dimension> for Dimension {
+impl TryFrom<capi::StorageDimension> for Dimension {
     type Error = anyhow::Error;
 
-    fn try_from(value: capi::Dimension) -> Result<Self, Self::Error> {
+    fn try_from(value: capi::StorageDimension) -> Result<Self, Self::Error> {
         let name = if value.name.nbytes == 0 {
             None
         } else {
@@ -240,72 +240,18 @@ impl Display for capi::String {
     }
 }
 
-/// StorageCapabilities::ChunkingCapabilities
-#[pyclass]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChunkingCapabilities {
-    #[pyo3(get)]
-    is_supported: bool,
-}
-
-impl_plain_old_dict!(ChunkingCapabilities);
-
-impl Default for ChunkingCapabilities {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
-/// StorageCapabilities::ShardingCapabilities
-#[pyclass]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShardingCapabilities {
-    #[pyo3(get)]
-    is_supported: bool,
-}
-
-impl_plain_old_dict!(ShardingCapabilities);
-
-impl Default for ShardingCapabilities {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
-/// StorageCapabilities::MultiscaleCapabilities
-#[pyclass]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MultiscaleCapabilities {
-    #[pyo3(get)]
-    is_supported: bool,
-}
-
-impl_plain_old_dict!(MultiscaleCapabilities);
-
-impl Default for MultiscaleCapabilities {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
 /// StorageCapabilities
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageCapabilities {
     #[pyo3(get)]
-    chunking: Py<ChunkingCapabilities>,
+    chunking_is_supported: bool,
 
     #[pyo3(get)]
-    sharding: Py<ShardingCapabilities>,
+    sharding_is_supported: bool,
 
     #[pyo3(get)]
-    multiscale: Py<MultiscaleCapabilities>,
+    multiscale_is_supported: bool,
 }
 
 impl_plain_old_dict!(StorageCapabilities);
@@ -313,11 +259,9 @@ impl_plain_old_dict!(StorageCapabilities);
 impl Default for StorageCapabilities {
     fn default() -> Self {
         Self {
-            chunking: Python::with_gil(|py| Py::new(py, ChunkingCapabilities::default()).unwrap()),
-            sharding: Python::with_gil(|py| Py::new(py, ShardingCapabilities::default()).unwrap()),
-            multiscale: Python::with_gil(|py| {
-                Py::new(py, MultiscaleCapabilities::default()).unwrap()
-            }),
+            chunking_is_supported: Default::default(),
+            sharding_is_supported: Default::default(),
+            multiscale_is_supported: Default::default(),
         }
     }
 }
@@ -326,31 +270,10 @@ impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::StoragePropertyMetadata) -> Result<Self, Self::Error> {
-        let chunking = Python::with_gil(|py| -> PyResult<_> {
-            let chunking = ChunkingCapabilities {
-                is_supported: (value.multiscale.is_supported == 1),
-            };
-            Py::new(py, chunking)
-        })?;
-
-        let sharding = Python::with_gil(|py| -> PyResult<_> {
-            let sharding = ShardingCapabilities {
-                is_supported: (value.multiscale.is_supported == 1),
-            };
-            Py::new(py, sharding)
-        })?;
-
-        let multiscale = Python::with_gil(|py| -> PyResult<_> {
-            let multiscale = MultiscaleCapabilities {
-                is_supported: (value.multiscale.is_supported == 1),
-            };
-            Py::new(py, multiscale)
-        })?;
-
         Ok(Self {
-            chunking,
-            sharding,
-            multiscale,
+            chunking_is_supported: value.chunking_is_supported == 1,
+            sharding_is_supported: value.sharding_is_supported == 1,
+            multiscale_is_supported: value.multiscale_is_supported == 1,
         })
     }
 }
@@ -431,13 +354,14 @@ impl Default for capi::StorageProperties_storage_properties_dimensions_s {
         Self {
             data: null_mut(),
             size: Default::default(),
-            capacity: Default::default(),
+            init: Default::default(),
+            destroy: Default::default(),
         }
     }
 }
 
-/// capi::Dimension
-impl Default for capi::Dimension {
+/// capi::StorageDimension
+impl Default for capi::StorageDimension {
     fn default() -> Self {
         Self {
             name: Default::default(),
@@ -449,11 +373,11 @@ impl Default for capi::Dimension {
     }
 }
 
-impl TryFrom<&Dimension> for capi::Dimension {
+impl TryFrom<&Dimension> for capi::StorageDimension {
     type Error = anyhow::Error;
 
     fn try_from(value: &Dimension) -> Result<Self, Self::Error> {
-        let mut out: capi::Dimension = unsafe { std::mem::zeroed() };
+        let mut out: capi::StorageDimension = unsafe { std::mem::zeroed() };
         // Careful: x needs to live long enough
         let x = if let Some(name) = &value.name {
             Some(CString::new(name.as_str())?)
@@ -468,7 +392,7 @@ impl TryFrom<&Dimension> for capi::Dimension {
 
         // This copies the string into a buffer owned by the return value.
         if !unsafe {
-            capi::dimension_init(
+            capi::storage_dimension_init(
                 &mut out,
                 name,
                 bytes_of_name as _,
@@ -489,9 +413,9 @@ impl TryFrom<&Dimension> for capi::Dimension {
 impl Default for capi::StoragePropertyMetadata {
     fn default() -> Self {
         Self {
-            chunking: Default::default(),
-            sharding: Default::default(),
-            multiscale: Default::default(),
+            chunking_is_supported: Default::default(),
+            sharding_is_supported: Default::default(),
+            multiscale_is_supported: Default::default(),
         }
     }
 }
@@ -500,80 +424,10 @@ impl TryFrom<&StorageCapabilities> for capi::StoragePropertyMetadata {
     type Error = anyhow::Error;
 
     fn try_from(value: &StorageCapabilities) -> Result<Self, Self::Error> {
-        let (chunking, sharding, multiscale) = Python::with_gil(|py| -> PyResult<_> {
-            let chunking: ChunkingCapabilities = value.chunking.extract(py)?;
-            let sharding: ShardingCapabilities = value.sharding.extract(py)?;
-            let multiscale: MultiscaleCapabilities = value.multiscale.extract(py)?;
-            Ok((chunking, sharding, multiscale))
-        })?;
-
         Ok(Self {
-            chunking: (&chunking).try_into()?,
-            sharding: (&sharding).try_into()?,
-            multiscale: (&multiscale).try_into()?,
-        })
-    }
-}
-
-/// capi::StoragePropertyMetadata_storage_property_metadata_chunking_s
-impl Default for capi::StoragePropertyMetadata_storage_property_metadata_chunking_s {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
-impl TryFrom<&ChunkingCapabilities>
-    for capi::StoragePropertyMetadata_storage_property_metadata_chunking_s
-{
-    type Error = anyhow::Error;
-
-    fn try_from(value: &ChunkingCapabilities) -> Result<Self, Self::Error> {
-        Ok(Self {
-            is_supported: value.is_supported as u8,
-        })
-    }
-}
-
-/// capi::StoragePropertyMetadata_storage_property_metadata_sharding_s
-impl Default for capi::StoragePropertyMetadata_storage_property_metadata_sharding_s {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
-impl TryFrom<&ShardingCapabilities>
-    for capi::StoragePropertyMetadata_storage_property_metadata_sharding_s
-{
-    type Error = anyhow::Error;
-
-    fn try_from(value: &ShardingCapabilities) -> Result<Self, Self::Error> {
-        Ok(Self {
-            is_supported: value.is_supported as u8,
-        })
-    }
-}
-
-/// capi::StoragePropertyMetadata_storage_property_metadata_multiscale_s
-impl Default for capi::StoragePropertyMetadata_storage_property_metadata_multiscale_s {
-    fn default() -> Self {
-        Self {
-            is_supported: Default::default(),
-        }
-    }
-}
-
-impl TryFrom<&MultiscaleCapabilities>
-    for capi::StoragePropertyMetadata_storage_property_metadata_multiscale_s
-{
-    type Error = anyhow::Error;
-
-    fn try_from(value: &MultiscaleCapabilities) -> Result<Self, Self::Error> {
-        Ok(Self {
-            is_supported: value.is_supported as u8,
+            chunking_is_supported: value.chunking_is_supported as u8,
+            sharding_is_supported: value.sharding_is_supported as u8,
+            multiscale_is_supported: value.multiscale_is_supported as u8,
         })
     }
 }
