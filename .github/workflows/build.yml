@@ -12,7 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [ windows-latest, macos-latest, ubuntu-latest ]
+        platform: [ windows-latest, macos-13, ubuntu-latest ]
 
     runs-on: ${{matrix.platform}}
     steps:
@@ -21,7 +21,7 @@ jobs:
           submodules: true
 
       - name: Build (macOS)
-        if: matrix.platform == 'macos-latest'
+        if: matrix.platform == 'macos-13'
         uses: messense/maturin-action@v1
         with:
           command: build
@@ -29,7 +29,7 @@ jobs:
           args: --release -o dist
 
       - name: Build
-        if: matrix.platform != 'macos-latest'
+        if: matrix.platform != 'macos-13'
         uses: messense/maturin-action@v1
         with:
           command: build
