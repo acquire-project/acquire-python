@@ -26,6 +26,7 @@ fn main() {
         .define("NO_EXAMPLES", "TRUE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
+        .very_verbose(true) // TODO: remove this
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
