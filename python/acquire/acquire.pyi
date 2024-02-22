@@ -70,13 +70,7 @@ class Capabilities:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class ChunkingCapabilities:
-    is_supported: bool
-
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
-class Dimension:
+class StorageDimension:
     name: str
     kind: DimensionType
     array_size_px: int
@@ -88,9 +82,10 @@ class Dimension:
 @final
 class DimensionType:
     NONE: ClassVar[DimensionType]
-    Spatial: ClassVar[DimensionType]
+    Space: ClassVar[DimensionType]
     Channel: ClassVar[DimensionType]
     Time: ClassVar[DimensionType]
+    Other: ClassVar[DimensionType]
 
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def __eq__(self, other: object) -> bool: ...
@@ -192,12 +187,6 @@ class InputTriggers:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class MultiscaleCapabilities:
-    is_supported: bool
-
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
 class OffsetShapeCapabilities:
     x: Property
     y: Property
@@ -295,12 +284,6 @@ class SampleType:
     def __ne__(self, other: object) -> bool: ...
 
 @final
-class ShardingCapabilities:
-    is_supported: bool
-
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
 class SignalIOKind:
     Input: ClassVar[SignalIOKind]
     Output: ClassVar[SignalIOKind]
@@ -335,9 +318,9 @@ class Storage:
 
 @final
 class StorageCapabilities:
-    chunking: ChunkingCapabilities
-    sharding: ShardingCapabilities
-    multiscale: MultiscaleCapabilities
+    chunking_is_supported: bool
+    sharding_is_supported: bool
+    multiscale_is_supported: bool
 
     def dict(self) -> Dict[str, Any]: ...
 
@@ -347,16 +330,7 @@ class StorageProperties:
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
-    acquisition_dimensions: Tuple[
-        Dimension,
-        Dimension,
-        Dimension,
-        Dimension,
-        Dimension,
-        Dimension,
-        Dimension,
-        Dimension,
-    ]
+    acquisition_dimensions: List[StorageDimension]
     append_dimension: int
     enable_multiscale: bool
 

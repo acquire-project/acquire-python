@@ -35,7 +35,7 @@ cvt!(DimensionType => capi::DimensionType,
 
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Dimension {
+pub struct StorageDimension {
     #[pyo3(get, set)]
     #[serde(default)]
     pub(crate) name: Option<String>,
@@ -57,7 +57,7 @@ pub struct Dimension {
     pub(crate) shard_size_chunks: u32,
 }
 
-impl Default for Dimension {
+impl Default for StorageDimension {
     fn default() -> Self {
         Self {
             name: Default::default(),
@@ -69,9 +69,9 @@ impl Default for Dimension {
     }
 }
 
-impl_plain_old_dict!(Dimension);
+impl_plain_old_dict!(StorageDimension);
 
-impl TryFrom<capi::StorageDimension> for Dimension {
+impl TryFrom<capi::StorageDimension> for StorageDimension {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::StorageDimension) -> Result<Self, Self::Error> {
@@ -115,7 +115,7 @@ pub struct StorageProperties {
     pub(crate) pixel_scale_um: (f64, f64),
 
     #[pyo3(get, set)]
-    pub(crate) acquisition_dimensions: Vec<Py<Dimension>>,
+    pub(crate) acquisition_dimensions: Vec<Py<StorageDimension>>,
 
     #[pyo3(get, set)]
     pub(crate) enable_multiscale: bool,
@@ -159,13 +159,15 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
             )
         };
 
-        let mut acquisition_dimensions: Vec<Py<Dimension>> = Default::default();
+        let mut acquisition_dimensions: Vec<Py<StorageDimension>> = Default::default();
         for i in 1..value.acquisition_dimensions.size {
             acquisition_dimensions.push(Python::with_gil(|py| {
                 Py::new(
                     py,
-                    Dimension::try_from(unsafe { *value.acquisition_dimensions.data.add(i) })
-                        .unwrap(),
+                    StorageDimension::try_from(unsafe {
+                        *value.acquisition_dimensions.data.add(i)
+                    })
+                    .unwrap(),
                 )
                 .unwrap()
             }));
@@ -373,10 +375,10 @@ impl Default for capi::StorageDimension {
     }
 }
 
-impl TryFrom<&Dimension> for capi::StorageDimension {
+impl TryFrom<&StorageDimension> for capi::StorageDimension {
     type Error = anyhow::Error;
 
-    fn try_from(value: &Dimension) -> Result<Self, Self::Error> {
+    fn try_from(value: &StorageDimension) -> Result<Self, Self::Error> {
         let mut out: capi::StorageDimension = unsafe { std::mem::zeroed() };
         // Careful: x needs to live long enough
         let x = if let Some(name) = &value.name {
