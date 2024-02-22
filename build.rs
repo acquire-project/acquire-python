@@ -19,7 +19,6 @@ fn main() {
         serde_json::from_str(drivers_json.as_str()).expect("Failed to parse drivers.json");
 
     let dst = cmake::Config::new("acquire-common")
-        .target("acquire-common")
         .profile("RelWithDebInfo")
         .static_crt(true)
         .define("NOTEST", "TRUE")
