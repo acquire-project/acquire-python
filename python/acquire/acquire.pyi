@@ -81,7 +81,6 @@ class StorageDimension:
 
 @final
 class DimensionType:
-    NONE: ClassVar[DimensionType]
     Space: ClassVar[DimensionType]
     Channel: ClassVar[DimensionType]
     Time: ClassVar[DimensionType]
