@@ -4,6 +4,16 @@ import napari  # type: ignore
 
 from .acquire import Runtime, Properties
 
+__all__ = [
+    "Runtime",
+    "Properties",
+    "setup",
+    "setup_one_streams",
+    "setup_two_streams",
+    "g_runtime",
+    "gui",
+]
+
 def setup(
     runtime: Runtime,
     camera: Union[str, List[str]] = ...,
