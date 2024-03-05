@@ -15,6 +15,16 @@ import numpy.typing as npt
 from . import acquire
 from .acquire import *
 
+__all__ = [
+    "Runtime",
+    "Properties",
+    "setup",
+    "setup_one_streams",
+    "setup_two_streams",
+    "g_runtime",
+    "gui",
+]
+
 __doc__ = acquire.__doc__
 
 import logging
