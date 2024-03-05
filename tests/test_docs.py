@@ -13,6 +13,7 @@ SKIP = {
     "trigger.md",  # has some non-existant paths
 }
 
+# NOTE: this clones the repo on import... not the best practice, could be improved
 if not (DOCS_PATH := Path("acquire-docs", "docs")).exists():
     subprocess.check_call(["git", "clone", DOCS_REPO])
 
