@@ -22,7 +22,6 @@ except PackageNotFoundError:
 
 __doc__ = acquire.__doc__
 
-
 import logging
 
 if TYPE_CHECKING:
