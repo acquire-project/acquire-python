@@ -19,10 +19,10 @@ def runtime():
 
 
 def test_version():
-    assert isinstance(acquire.__version__, str)
-    # this will fail if pip install -e . has not been run
-    # so feel free to remove this line if it's not what you want to test
-    assert acquire.__version__ != "uninstalled"
+     assert isinstance(acquire.__version__, str)
+     # this will fail if pip install -e . has not been run
+     # so feel free to remove this line if it's not what you want to test
+     assert acquire.__version__ != "uninstalled"
 
 
 def test_set():
@@ -91,8 +91,12 @@ def test_zero_conf_start(runtime: Runtime):
 
 def test_repeat_acq(runtime: Runtime):
     p = acquire.setup(runtime, "simulated: radial sin", "Trash")
-    assert p.video[0].camera.identifier is not None, "Expected a camera identifier"
-    assert p.video[0].storage.identifier is not None, "Expected a storage identifier"
+    assert (
+        p.video[0].camera.identifier is not None
+    ), "Expected a camera identifier"
+    assert (
+        p.video[0].storage.identifier is not None
+    ), "Expected a storage identifier"
     assert p.video[0].storage.settings.filename == "out.tif"
     p.video[0].camera.settings.shape = (192, 108)
     p.video[0].max_frame_count = 10
@@ -151,7 +155,9 @@ def test_set_storage(runtime: Runtime):
     p = runtime.set_configuration(p)
     assert p.video[0].storage.identifier is not None
     assert p.video[0].storage.identifier.kind == acquire.DeviceKind.NONE
-    p.video[0].storage.identifier = dm.select(acquire.DeviceKind.Storage, "Tiff")
+    p.video[0].storage.identifier = dm.select(
+        acquire.DeviceKind.Storage, "Tiff"
+    )
     assert p.video[0].storage.identifier is not None
 
     p.video[0].storage.settings.filename = "out.tif"
@@ -184,10 +190,13 @@ def test_setup(runtime: Runtime):
             packet = a.get_frame_count()
             for f in a.frames():
                 logging.info(
-                    f"{f.data().shape} {f.data()[0][0][0][0]} " + f"{f.metadata()}"
+                    f"{f.data().shape} {f.data()[0][0][0][0]} "
+                    + f"{f.metadata()}"
                 )
             nframes += packet
-            logging.info(f"frame count: {nframes} - frames in packet: {packet}")
+            logging.info(
+                f"frame count: {nframes} - frames in packet: {packet}"
+            )
 
         elapsed = time.time() - clock
         sleep(max(0, 0.1 - elapsed))
@@ -237,7 +246,9 @@ def test_write_external_metadata_to_tiff(
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*sin")
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin"
+    )
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
     p.video[0].max_frame_count = 3
@@ -277,7 +288,9 @@ def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 
-    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*random.*")
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*random.*"
+    )
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (64, 64)
@@ -285,7 +298,9 @@ def test_two_video_streams(runtime: Runtime):
     p.video[0].max_frame_count = 90
     p.video[0].frame_average_count = 0  # disables
 
-    p.video[1].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*empty.*")
+    p.video[1].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
     p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[1].camera.settings.binning = 1
     p.video[1].camera.settings.shape = (64, 64)
@@ -331,7 +346,9 @@ def test_two_video_streams(runtime: Runtime):
 def test_abort(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*sin")
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*sin"
+    )
     p.video[0].camera.settings.shape = (24, 93)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[0].max_frame_count = 2**30
@@ -350,7 +367,9 @@ def test_abort(runtime: Runtime):
             if frame_count == 0:
                 break
 
-    logging.debug(f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}")
+    logging.debug(
+        f"Frames expected: {p.video[0].max_frame_count}, actual: {nframes}"
+    )
     assert nframes < p.video[0].max_frame_count
 
 
@@ -370,7 +389,8 @@ def wait_for_data(
         sleep(sleep_duration.total_seconds())
         elapsed += sleep_duration
     raise RuntimeError(
-        f"Timed out waiting for condition after {elapsed.total_seconds()}" " seconds."
+        f"Timed out waiting for condition after {elapsed.total_seconds()}"
+        " seconds."
     )
 
 
@@ -378,7 +398,9 @@ def test_execute_trigger(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
 
-    p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*empty.*")
+    p.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (64, 48)
@@ -602,7 +624,9 @@ def test_invalidated_frame(runtime: Runtime):
     runtime.stop()
 
 
-def test_switch_device_identifier(runtime: Runtime, request: pytest.FixtureRequest):
+def test_switch_device_identifier(
+    runtime: Runtime, request: pytest.FixtureRequest
+):
     p = acquire.setup(runtime, "simulated.*empty", "trash")
     assert p.video[0].storage.identifier.name == "trash"
     p = runtime.set_configuration(p)
