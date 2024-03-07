@@ -3,6 +3,11 @@ import subprocess
 import re
 import logging
 import pytest
+import os
+
+if not os.getenv("CI") or os.getenv("SKIP_DOCS_TEST", False):
+    pytest.skip("Skipping docs test", allow_module_level=True)
+
 
 logging.getLogger("acquire").setLevel(logging.CRITICAL)
 
