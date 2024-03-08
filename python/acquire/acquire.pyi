@@ -70,16 +70,6 @@ class Capabilities:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class StorageDimension:
-    name: str
-    kind: DimensionType
-    array_size_px: int
-    chunk_size_px: int
-    shard_size_chunks: int
-
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
 class DimensionType:
     Space: ClassVar[DimensionType]
     Channel: ClassVar[DimensionType]
@@ -320,6 +310,16 @@ class StorageCapabilities:
     chunking_is_supported: bool
     sharding_is_supported: bool
     multiscale_is_supported: bool
+
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class StorageDimension:
+    name: str
+    kind: DimensionType
+    array_size_px: int
+    chunk_size_px: int
+    shard_size_chunks: int
 
     def dict(self) -> Dict[str, Any]: ...
 

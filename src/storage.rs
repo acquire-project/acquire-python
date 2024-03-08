@@ -160,7 +160,7 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
         };
 
         let mut acquisition_dimensions: Vec<Py<StorageDimension>> = Default::default();
-        for i in 1..value.acquisition_dimensions.size {
+        for i in 0..value.acquisition_dimensions.size {
             acquisition_dimensions.push(Python::with_gil(|py| {
                 Py::new(
                     py,
@@ -294,6 +294,27 @@ impl Default for capi::StorageProperties {
     }
 }
 
+unsafe extern "C" fn init_storage_dimension_array(
+    data: *mut *mut capi::StorageDimension,
+    size: usize,
+) {
+    if data.is_null() {
+        return;
+    }
+
+    *data = std::alloc::alloc(std::alloc::Layout::array::<capi::StorageDimension>(size).unwrap())
+        as *mut capi::StorageDimension;
+}
+
+unsafe extern "C" fn destroy_storage_dimension_array(data: *mut capi::StorageDimension) {
+    if !data.is_null() {
+        std::alloc::dealloc(
+            data as *mut u8,
+            std::alloc::Layout::array::<capi::StorageDimension>(1).unwrap(),
+        );
+    }
+}
+
 impl TryFrom<&StorageProperties> for capi::StorageProperties {
     type Error = anyhow::Error;
 
@@ -338,13 +359,40 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                 },
             ) == 1
         } {
-            Err(anyhow::anyhow!("Failed acquire api status check"))
+            Err(anyhow::anyhow!("Failed to initialize storage properties."))
         } else if !unsafe {
             capi::storage_properties_set_enable_multiscale(&mut out, value.enable_multiscale as u8)
                 == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
+        } else if !unsafe {
+            if value.acquisition_dimensions.is_empty() {
+                true
+            } else {
+                out.acquisition_dimensions.init = Some(init_storage_dimension_array);
+                out.acquisition_dimensions.destroy = Some(destroy_storage_dimension_array);
+                capi::storage_properties_dimensions_init(
+                    &mut out,
+                    value.acquisition_dimensions.len(),
+                ) == 1
+            }
+        } {
+            Err(anyhow::anyhow!(
+                "Failed to initialize storage dimension array."
+            ))
         } else {
+            // initialize each dimension separately
+            for (i, pydim) in value.acquisition_dimensions.iter().enumerate() {
+                let dim = Python::with_gil(|py| -> PyResult<_> {
+                    let storage_dim: StorageDimension = pydim.extract(py)?;
+                    Ok(storage_dim)
+                })?;
+
+                unsafe {
+                    *out.acquisition_dimensions.data.add(i) = (&dim).try_into()?;
+                }
+            }
+
             Ok(out)
         }
     }
