@@ -59,6 +59,7 @@ jobs:
         run: |
           python -m pytest -k test_basic
           python -m pytest -k test_zarr
+          python -m pytest -k test_docs
 
   dcam:
     name: Python ${{ matrix.python }} (DCAM)
