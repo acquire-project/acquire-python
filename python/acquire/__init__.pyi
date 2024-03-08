@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 import napari  # type: ignore
 
-from .acquire import Runtime, Properties
+from .acquire import *
 
 __version__: str
 
