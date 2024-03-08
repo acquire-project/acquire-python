@@ -9,11 +9,16 @@ from typing import (
     Tuple,
     Union,
 )
-
+from importlib.metadata import version, PackageNotFoundError
 import numpy.typing as npt
 
 from . import acquire
 from .acquire import *
+
+try:
+    __version__ = version("acquire-imaging")
+except PackageNotFoundError:
+    __version__ = "uninstalled"
 
 __doc__ = acquire.__doc__
 

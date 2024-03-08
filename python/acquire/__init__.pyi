@@ -4,6 +4,8 @@ import napari  # type: ignore
 
 from .acquire import Runtime, Properties
 
+__version__: str
+
 def setup(
     runtime: Runtime,
     camera: Union[str, List[str]] = ...,

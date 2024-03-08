@@ -18,6 +18,13 @@ def runtime():
     yield acquire.Runtime()
 
 
+def test_version():
+     assert isinstance(acquire.__version__, str)
+     # this will fail if pip install -e . has not been run
+     # so feel free to remove this line if it's not what you want to test
+     assert acquire.__version__ != "uninstalled"
+
+
 def test_set():
     t = Trigger()
     assert not t.enable
