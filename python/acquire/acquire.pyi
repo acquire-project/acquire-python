@@ -71,6 +71,19 @@ class Capabilities:
 
 @final
 class DimensionType:
+    """The storage dimension type.
+
+    Space: spatial dimension.
+    Channel: color channel dimension.
+    Time: time dimension.
+    Other: other dimension.
+
+    When downsampling, Space and Time dimensions are downsampled by the same factor.
+    Channel and Other dimensions are not downsampled.
+
+    This value is also reflected in the dimension metadata of an OME-Zarr dataset.
+    """
+
     Space: ClassVar[DimensionType]
     Channel: ClassVar[DimensionType]
     Time: ClassVar[DimensionType]
