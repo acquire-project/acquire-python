@@ -37,25 +37,19 @@ def test_set_acquisition_dimensions(
     props.video[0].max_frame_count = 32
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 64
-    dimension_x.chunk_size_px = 64
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
     assert dimension_x.shard_size_chunks == 0
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 48
-    dimension_y.chunk_size_px = 48
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
     assert dimension_y.shard_size_chunks == 0
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 32
-    dimension_t.chunk_size_px = 32
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=32, chunk_size_px=32
+    )
     assert dimension_t.shard_size_chunks == 0
 
     props.video[0].storage.settings.acquisition_dimensions = [
@@ -123,25 +117,19 @@ def test_write_external_metadata_to_zarr(
     p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 33
-    dimension_x.chunk_size_px = 33
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=33, chunk_size_px=33
+    )
     assert dimension_x.shard_size_chunks == 0
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 47
-    dimension_y.chunk_size_px = 47
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=47, chunk_size_px=47
+    )
     assert dimension_y.shard_size_chunks == 0
 
-    dimension_z = acquire.StorageDimension()
-    dimension_z.name = "z"
-    dimension_z.kind = acquire.DimensionType.Space
-    dimension_z.array_size_px = 0
-    dimension_z.chunk_size_px = 4
+    dimension_z = acquire.StorageDimension(
+        name="z", kind="Space", array_size_px=0, chunk_size_px=4
+    )
     assert dimension_z.shard_size_chunks == 0
 
     p.video[0].storage.settings.acquisition_dimensions = [
@@ -233,32 +221,24 @@ def test_write_compressed_zarr(
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 64
-    dimension_x.chunk_size_px = 64
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
     assert dimension_x.shard_size_chunks == 0
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 48
-    dimension_y.chunk_size_px = 48
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
     assert dimension_y.shard_size_chunks == 0
 
-    dimension_c = acquire.StorageDimension()
-    dimension_c.name = "c"
-    dimension_c.kind = acquire.DimensionType.Channel
-    dimension_c.array_size_px = 1
-    dimension_c.chunk_size_px = 1
+    dimension_c = acquire.StorageDimension(
+        name="c", kind="Channel", array_size_px=1, chunk_size_px=1
+    )
     assert dimension_c.shard_size_chunks == 0
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 0
-    dimension_t.chunk_size_px = 70
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=70
+    )
     assert dimension_t.shard_size_chunks == 0
 
     p.video[0].storage.settings.acquisition_dimensions = [
@@ -332,25 +312,19 @@ def test_write_zarr_with_chunking(
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 1920
-    dimension_x.chunk_size_px = 960
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=960
+    )
     assert dimension_x.shard_size_chunks == 0
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 1080
-    dimension_y.chunk_size_px = 540
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=540
+    )
     assert dimension_y.shard_size_chunks == 0
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 0
-    dimension_t.chunk_size_px = 64
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
     assert dimension_t.shard_size_chunks == 0
 
     p.video[0].storage.settings.acquisition_dimensions = [
@@ -402,25 +376,19 @@ def test_write_zarr_multiscale(
     p.video[0].max_frame_count = 100
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 1920
-    dimension_x.chunk_size_px = 640
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=640
+    )
     assert dimension_x.shard_size_chunks == 0
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 1080
-    dimension_y.chunk_size_px = 360
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=360
+    )
     assert dimension_y.shard_size_chunks == 0
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 0
-    dimension_t.chunk_size_px = 64
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
     assert dimension_t.shard_size_chunks == 0
 
     p.video[0].storage.settings.acquisition_dimensions = [
@@ -487,26 +455,29 @@ def test_write_zarr_v3(
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 1920
-    dimension_x.chunk_size_px = 960
-    dimension_x.shard_size_chunks = 2
+    dimension_x = acquire.StorageDimension(
+        name="x",
+        kind="Space",
+        array_size_px=1920,
+        chunk_size_px=960,
+        shard_size_chunks=2,
+    )
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 1080
-    dimension_y.chunk_size_px = 540
-    dimension_y.shard_size_chunks = 2
+    dimension_y = acquire.StorageDimension(
+        name="y",
+        kind="Space",
+        array_size_px=1080,
+        chunk_size_px=540,
+        shard_size_chunks=2,
+    )
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 0
-    dimension_t.chunk_size_px = 64
-    dimension_t.shard_size_chunks = 1
+    dimension_t = acquire.StorageDimension(
+        name="t",
+        kind="Time",
+        array_size_px=0,
+        chunk_size_px=64,
+        shard_size_chunks=1,
+    )
 
     p.video[0].storage.settings.acquisition_dimensions = [
         dimension_x,
@@ -554,23 +525,17 @@ def test_metadata_with_trailing_whitespace(
     )
 
     # configure storage dimensions
-    dimension_x = acquire.StorageDimension()
-    dimension_x.name = "x"
-    dimension_x.kind = acquire.DimensionType.Space
-    dimension_x.array_size_px = 64
-    dimension_x.chunk_size_px = 64
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
 
-    dimension_y = acquire.StorageDimension()
-    dimension_y.name = "y"
-    dimension_y.kind = acquire.DimensionType.Space
-    dimension_y.array_size_px = 48
-    dimension_y.chunk_size_px = 48
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
 
-    dimension_t = acquire.StorageDimension()
-    dimension_t.name = "t"
-    dimension_t.kind = acquire.DimensionType.Time
-    dimension_t.array_size_px = 0
-    dimension_t.chunk_size_px = 64
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
 
     p.video[0].storage.settings.acquisition_dimensions = [
         dimension_x,
