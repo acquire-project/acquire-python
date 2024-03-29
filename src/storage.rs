@@ -294,27 +294,6 @@ impl Default for capi::StorageProperties {
     }
 }
 
-unsafe extern "C" fn init_storage_dimension_array(
-    data: *mut *mut capi::StorageDimension,
-    size: usize,
-) {
-    if data.is_null() {
-        return;
-    }
-
-    *data = std::alloc::alloc(std::alloc::Layout::array::<capi::StorageDimension>(size).unwrap())
-        as *mut capi::StorageDimension;
-}
-
-unsafe extern "C" fn destroy_storage_dimension_array(data: *mut capi::StorageDimension) {
-    if !data.is_null() {
-        std::alloc::dealloc(
-            data as *mut u8,
-            std::alloc::Layout::array::<capi::StorageDimension>(1).unwrap(),
-        );
-    }
-}
-
 impl TryFrom<&StorageProperties> for capi::StorageProperties {
     type Error = anyhow::Error;
 
@@ -357,6 +336,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                     x: value.pixel_scale_um.0,
                     y: value.pixel_scale_um.1,
                 },
+                value.acquisition_dimensions.len() as u8,
             ) == 1
         } {
             Err(anyhow::anyhow!("Failed to initialize storage properties."))
@@ -365,21 +345,6 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                 == 1
         } {
             Err(anyhow::anyhow!("Failed acquire api status check"))
-        } else if !unsafe {
-            if value.acquisition_dimensions.is_empty() {
-                true
-            } else {
-                out.acquisition_dimensions.init = Some(init_storage_dimension_array);
-                out.acquisition_dimensions.destroy = Some(destroy_storage_dimension_array);
-                capi::storage_properties_dimensions_init(
-                    &mut out,
-                    value.acquisition_dimensions.len(),
-                ) == 1
-            }
-        } {
-            Err(anyhow::anyhow!(
-                "Failed to initialize storage dimension array."
-            ))
         } else {
             // initialize each dimension separately
             for (i, pydim) in value.acquisition_dimensions.iter().enumerate() {
@@ -388,8 +353,31 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
                     Ok(storage_dim)
                 })?;
 
-                unsafe {
-                    *out.acquisition_dimensions.data.add(i) = (&dim).try_into()?;
+                // Careful: x needs to live long enough
+                let x = if let Some(name) = &dim.name {
+                    Some(CString::new(name.as_str())?)
+                } else {
+                    None
+                };
+                let (name, bytes_of_name) = if let Some(ref x) = x {
+                    (x.as_ptr(), x.to_bytes_with_nul().len())
+                } else {
+                    (null(), 0)
+                };
+
+                if !unsafe {
+                    capi::storage_properties_set_dimension(
+                        &mut out,
+                        i.try_into().unwrap(),
+                        name,
+                        bytes_of_name,
+                        dim.kind.into(),
+                        dim.array_size_px,
+                        dim.chunk_size_px,
+                        dim.shard_size_chunks,
+                    ) == 1
+                } {
+                    return Err(anyhow::anyhow!("Failed to set storage dimension."));
                 }
             }
 
@@ -404,8 +392,6 @@ impl Default for capi::StorageProperties_storage_properties_dimensions_s {
         Self {
             data: null_mut(),
             size: Default::default(),
-            init: Default::default(),
-            destroy: Default::default(),
         }
     }
 }
@@ -419,42 +405,6 @@ impl Default for capi::StorageDimension {
             array_size_px: Default::default(),
             chunk_size_px: Default::default(),
             shard_size_chunks: Default::default(),
-        }
-    }
-}
-
-impl TryFrom<&StorageDimension> for capi::StorageDimension {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &StorageDimension) -> Result<Self, Self::Error> {
-        let mut out: capi::StorageDimension = unsafe { std::mem::zeroed() };
-        // Careful: x needs to live long enough
-        let x = if let Some(name) = &value.name {
-            Some(CString::new(name.as_str())?)
-        } else {
-            None
-        };
-        let (name, bytes_of_name) = if let Some(ref x) = x {
-            (x.as_ptr(), x.to_bytes_with_nul().len())
-        } else {
-            (null(), 0)
-        };
-
-        // This copies the string into a buffer owned by the return value.
-        if !unsafe {
-            capi::storage_dimension_init(
-                &mut out,
-                name,
-                bytes_of_name as _,
-                value.kind.into(),
-                value.array_size_px,
-                value.chunk_size_px,
-                value.shard_size_chunks,
-            ) == 1
-        } {
-            Err(anyhow::anyhow!("Failed acquire api status check"))
-        } else {
-            Ok(out)
         }
     }
 }
