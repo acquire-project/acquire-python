@@ -330,7 +330,6 @@ class StorageProperties:
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     acquisition_dimensions: List[StorageDimension]
-    append_dimension: int
     enable_multiscale: bool
 
     def dict(self) -> Dict[str, Any]: ...
