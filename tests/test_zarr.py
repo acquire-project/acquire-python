@@ -22,6 +22,84 @@ def runtime():
     yield acquire.Runtime()
 
 
+def test_set_acquisition_dimensions(
+    runtime: Runtime, request: pytest.FixtureRequest
+):
+    dm = runtime.device_manager()
+    props = runtime.get_configuration()
+    props.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, ".*empty.*"
+    )
+    props.video[0].camera.settings.shape = (64, 48)
+
+    props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
+    props.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    props.video[0].max_frame_count = 32
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=32, chunk_size_px=32
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    props.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
+    assert len(props.video[0].storage.settings.acquisition_dimensions) == 3
+
+    # sleep(10)
+
+    # set and test
+    props = runtime.set_configuration(props)
+    assert len(props.video[0].storage.settings.acquisition_dimensions) == 3
+
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[0].name
+        == dimension_x.name
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[0].kind
+        == dimension_x.kind
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[0].array_size_px
+        == dimension_x.array_size_px
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[0].chunk_size_px
+        == dimension_x.chunk_size_px
+    )
+
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[2].name
+        == dimension_t.name
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[2].kind
+        == dimension_t.kind
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[2].array_size_px
+        == dimension_t.array_size_px
+    )
+    assert (
+        props.video[0].storage.settings.acquisition_dimensions[2].chunk_size_px
+        == dimension_t.chunk_size_px
+    )
+
+
 def test_write_external_metadata_to_zarr(
     runtime: Runtime, request: pytest.FixtureRequest
 ):
@@ -37,9 +115,28 @@ def test_write_external_metadata_to_zarr(
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
-    p.video[0].storage.settings.chunk_dims_px.width = 33
-    p.video[0].storage.settings.chunk_dims_px.height = 47
-    p.video[0].storage.settings.chunk_dims_px.planes = 4
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=33, chunk_size_px=33
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=47, chunk_size_px=47
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_z = acquire.StorageDimension(
+        name="z", kind="Space", array_size_px=0, chunk_size_px=4
+    )
+    assert dimension_z.shard_size_chunks == 0
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_z,
+    ]
 
     p = runtime.set_configuration(p)
 
@@ -65,7 +162,6 @@ def test_write_external_metadata_to_zarr(
     image_data = multi_scale_image_node.data[0]
     assert image_data.shape == (
         p.video[0].max_frame_count,
-        1,
         p.video[0].camera.settings.shape[1],
         p.video[0].camera.settings.shape[0],
     )
@@ -74,13 +170,13 @@ def test_write_external_metadata_to_zarr(
 
     axes = multi_scale_image_metadata["axes"]
     axis_names = tuple(a["name"] for a in axes)
-    assert axis_names == ("t", "c", "y", "x")
+    assert axis_names == ("z", "y", "x")
 
     axis_types = tuple(a["type"] for a in axes)
-    assert axis_types == ("time", "channel", "space", "space")
+    assert axis_types == ("space", "space", "space")
 
     axis_units = tuple(a.get("unit") for a in axes)
-    assert axis_units == (None, None, "micrometer", "micrometer")
+    assert axis_units == (None, "micrometer", "micrometer")
 
     # We only have one multi-scale level and one transform.
     transform = multi_scale_image_metadata["coordinateTransformations"][0][0]
@@ -123,6 +219,35 @@ def test_write_compressed_zarr(
     p.video[0].storage.settings.filename = filename
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_c = acquire.StorageDimension(
+        name="c", kind="Channel", array_size_px=1, chunk_size_px=1
+    )
+    assert dimension_c.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=70
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_c,
+        dimension_t,
+    ]
+
     runtime.set_configuration(p)
 
     runtime.start()
@@ -186,9 +311,27 @@ def test_write_zarr_with_chunking(
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
     p.video[0].max_frame_count = number_of_frames
 
-    p.video[0].storage.settings.chunk_dims_px.width = 1920 // 2
-    p.video[0].storage.settings.chunk_dims_px.height = 1080 // 2
-    p.video[0].storage.settings.chunk_dims_px.planes = 64
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=960
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=540
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
 
     runtime.set_configuration(p)
 
@@ -198,11 +341,10 @@ def test_write_zarr_with_chunking(
     group = zarr.open(p.video[0].storage.settings.filename)
     data = group["0"]
 
-    assert data.chunks == (64, 1, 1080 // 2, 1920 // 2)
+    assert data.chunks == (64, 540, 960)
 
     assert data.shape == (
         number_of_frames,
-        1,
         p.video[0].camera.settings.shape[1],
         p.video[0].camera.settings.shape[0],
     )
@@ -233,14 +375,27 @@ def test_write_zarr_multiscale(
     p.video[0].storage.settings.pixel_scale_um = (1, 1)
     p.video[0].max_frame_count = 100
 
-    p.video[0].storage.settings.chunk_dims_px.width = (
-        p.video[0].camera.settings.shape[0] // 3
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=640
     )
-    p.video[0].storage.settings.chunk_dims_px.height = (
-        p.video[0].camera.settings.shape[1] // 3
-    )
-    p.video[0].storage.settings.chunk_dims_px.planes = 64
+    assert dimension_x.shard_size_chunks == 0
 
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=360
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
     p.video[0].storage.settings.enable_multiscale = True
 
     runtime.set_configuration(p)
@@ -257,11 +412,11 @@ def test_write_zarr_multiscale(
     ]
     assert len(data) == 3
 
-    image = data[0][0, 0, :, :].compute()  # convert dask array to numpy array
+    image = data[0][0, :, :].compute()  # convert dask array to numpy array
 
     for d in data:
         assert (
-            np.linalg.norm(image - d[0, 0, :, :].compute()) == 0
+            np.linalg.norm(image - d[0, :, :].compute()) == 0
         )  # validate against the same method from scikit-image
         image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
 
@@ -299,9 +454,36 @@ def test_write_zarr_v3(
     p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
     p.video[0].max_frame_count = number_of_frames
 
-    p.video[0].storage.settings.chunk_dims_px.width = 1920 // 2
-    p.video[0].storage.settings.chunk_dims_px.height = 1080 // 2
-    p.video[0].storage.settings.chunk_dims_px.planes = 64
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x",
+        kind="Space",
+        array_size_px=1920,
+        chunk_size_px=960,
+        shard_size_chunks=2,
+    )
+
+    dimension_y = acquire.StorageDimension(
+        name="y",
+        kind="Space",
+        array_size_px=1080,
+        chunk_size_px=540,
+        shard_size_chunks=2,
+    )
+
+    dimension_t = acquire.StorageDimension(
+        name="t",
+        kind="Time",
+        array_size_px=0,
+        chunk_size_px=64,
+        shard_size_chunks=1,
+    )
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
 
     runtime.set_configuration(p)
 
@@ -312,11 +494,10 @@ def test_write_zarr_v3(
     group = zarr.open(store=store, mode="r")
     data = group["0"]
 
-    assert data.chunks == (64, 1, 1080 // 2, 1920 // 2)
+    assert data.chunks == (64, 540, 960)
 
     assert data.shape == (
         number_of_frames,
-        1,
         p.video[0].camera.settings.shape[1],
         p.video[0].camera.settings.shape[0],
     )
@@ -342,6 +523,26 @@ def test_metadata_with_trailing_whitespace(
     p.video[0].storage.settings.external_metadata_json = (
         json.dumps(metadata) + "   "
     )
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=64, chunk_size_px=64
+    )
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=48, chunk_size_px=48
+    )
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
+
     runtime.set_configuration(p)
 
     runtime.start()

@@ -29,6 +29,7 @@ class AvailableData:
 class Camera:
     identifier: Optional[DeviceIdentifier]
     settings: CameraProperties
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -43,6 +44,7 @@ class CameraCapabilities:
     supported_pixel_types: List[SampleType]
     digital_lines: DigitalLineCapabilities
     triggers: TriggerCapabilities
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -56,35 +58,52 @@ class CameraProperties:
     shape: Tuple[int, int]
     input_triggers: InputTriggers
     output_triggers: OutputTriggers
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class Capabilities:
     video: Tuple[VideoStreamCapabilities, VideoStreamCapabilities]
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class ChunkDims:
-    width: int
-    height: int
-    planes: int
-    def dict(self) -> Dict[str, Any]: ...
+class DimensionType:
+    """The storage dimension type.
 
-@final
-class ChunkingCapabilities:
-    is_supported: bool
-    width: Property
-    height: Property
-    planes: Property
-    def dict(self) -> Dict[str, Any]: ...
+    Space: spatial dimension.
+    Channel: color channel dimension.
+    Time: time dimension.
+    Other: other dimension.
+
+    When downsampling, Space and Time dimensions are downsampled by the same factor.
+    Channel and Other dimensions are not downsampled.
+
+    This value is also reflected in the dimension metadata of an OME-Zarr dataset.
+    """
+
+    Space: ClassVar[DimensionType]
+    Channel: ClassVar[DimensionType]
+    Time: ClassVar[DimensionType]
+    Other: ClassVar[DimensionType]
+
+    def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ge__(self, other: object) -> bool: ...
+    def __gt__(self, other: object) -> bool: ...
+    def __int__(self) -> int: ...
+    def __le__(self, other: object) -> bool: ...
+    def __lt__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
 
 @final
 class DeviceIdentifier:
     id: Tuple[int, int]
     kind: DeviceKind
     name: str
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
     @staticmethod
@@ -103,6 +122,7 @@ class DeviceKind:
     Signals: ClassVar[DeviceKind]
     StageAxis: ClassVar[DeviceKind]
     Storage: ClassVar[DeviceKind]
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
@@ -131,6 +151,7 @@ class DeviceState:
     AwaitingConfiguration: ClassVar[DeviceState]
     Armed: ClassVar[DeviceState]
     Running: ClassVar[DeviceState]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -143,12 +164,14 @@ class DeviceState:
 class DigitalLineCapabilities:
     line_count: int
     names: Tuple[str, str, str, str, str, str, str, str]
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class Direction:
     Backward: ClassVar[Direction]
     Forward: ClassVar[Direction]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -162,17 +185,14 @@ class InputTriggers:
     acquisition_start: Trigger
     exposure: Trigger
     frame_start: Trigger
-    def dict(self) -> Dict[str, Any]: ...
 
-@final
-class MultiscaleCapabilities:
-    is_supported: bool
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class OffsetShapeCapabilities:
     x: Property
     y: Property
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -180,6 +200,7 @@ class OutputTriggers:
     exposure: Trigger
     frame_start: Trigger
     trigger_wait: Trigger
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -187,6 +208,7 @@ class PID:
     derivative: float
     integral: float
     proportional: float
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -196,6 +218,7 @@ class Property:
     low: float
     high: float
     kind: PropertyType
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -205,6 +228,7 @@ class PropertyType:
     FloatingPrecision: ClassVar[PropertyType]
     Enum: ClassVar[PropertyType]
     String: ClassVar[PropertyType]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -216,6 +240,7 @@ class PropertyType:
 @final
 class Properties:
     video: Tuple[VideoStream, VideoStream]
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -237,6 +262,7 @@ class Runtime:
 class SampleRateHz:
     numerator: int
     denominator: int
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -250,6 +276,7 @@ class SampleType:
     U10: ClassVar[SampleType]
     U12: ClassVar[SampleType]
     U14: ClassVar[SampleType]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -259,24 +286,10 @@ class SampleType:
     def __ne__(self, other: object) -> bool: ...
 
 @final
-class ShardDims:
-    width: int
-    height: int
-    planes: int
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
-class ShardingCapabilities:
-    is_supported: bool
-    width: Property
-    height: Property
-    planes: Property
-    def dict(self) -> Dict[str, Any]: ...
-
-@final
 class SignalIOKind:
     Input: ClassVar[SignalIOKind]
     Output: ClassVar[SignalIOKind]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -289,6 +302,7 @@ class SignalIOKind:
 class SignalType:
     Analog: ClassVar[SignalType]
     Digital: ClassVar[SignalType]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -301,13 +315,25 @@ class SignalType:
 class Storage:
     identifier: Optional[DeviceIdentifier]
     settings: StorageProperties
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class StorageCapabilities:
-    chunk_dims_px: ChunkingCapabilities
-    shard_dims_chunks: ShardingCapabilities
-    multiscale: MultiscaleCapabilities
+    chunking_is_supported: bool
+    sharding_is_supported: bool
+    multiscale_is_supported: bool
+
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
+class StorageDimension:
+    name: str
+    kind: DimensionType
+    array_size_px: int
+    chunk_size_px: int
+    shard_size_chunks: int
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -316,9 +342,9 @@ class StorageProperties:
     filename: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
-    chunk_dims_px: ChunkDims
-    shard_dims_chunks: ShardDims
+    acquisition_dimensions: List[StorageDimension]
     enable_multiscale: bool
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -327,6 +353,7 @@ class Trigger:
     enable: bool
     line: int
     kind: SignalIOKind
+
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
 
@@ -335,6 +362,7 @@ class TriggerCapabilities:
     acquisition_start: TriggerInputOutputCapabilities
     exposure: TriggerInputOutputCapabilities
     frame_start: TriggerInputOutputCapabilities
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -345,6 +373,7 @@ class TriggerEdge:
     AnyEdge: ClassVar[TriggerEdge]
     LevelLow: ClassVar[TriggerEdge]
     LevelHigh: ClassVar[TriggerEdge]
+
     def __eq__(self, other: object) -> bool: ...
     def __ge__(self, other: object) -> bool: ...
     def __gt__(self, other: object) -> bool: ...
@@ -357,6 +386,7 @@ class TriggerEdge:
 class TriggerInputOutputCapabilities:
     input: int
     output: int
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -368,12 +398,14 @@ class VideoFrame:
 class VideoFrameMetadata:
     frame_id: int
     timestamps: VideoFrameTimestamps
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class VideoFrameTimestamps:
     hardware: int
     acq_thread: int
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -382,6 +414,7 @@ class VideoStream:
     storage: Storage
     max_frame_count: int
     frame_average_count: int
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
@@ -390,12 +423,14 @@ class VideoStreamCapabilities:
     storage: StorageCapabilities
     max_frame_count: Property
     frame_average_count: Property
+
     def dict(self) -> Dict[str, Any]: ...
 
 @final
 class VoltageRange:
     mn: float
     mx: float
+
     @overload
     def __init__(self) -> None: ...
     @overload
