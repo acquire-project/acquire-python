@@ -43,9 +43,7 @@ jobs:
           submodules: true
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
