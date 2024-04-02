@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request: # TODO (aliddell): revert to pull_request_target
     branches:
       - main
 
@@ -41,6 +41,9 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
@@ -97,6 +100,9 @@ jobs:
         with:
           cmakeVersion: 3.24.3
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
@@ -111,57 +117,59 @@ jobs:
         run: |
           python -m pytest -k test_dcam
 
-  # TODO (aliddell): uncomment when we get an eGrabber runner up again
-  # egrabber:
-  #   name: Python ${{ matrix.python }} (eGrabber)
-  #   runs-on:
-  #     - self-hosted
-  #     - egrabber
-  #     - VC-151MX-M6H00
-  #   timeout-minutes: 20
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #        python:
-  #          - "3.8"
-  #          - "3.9"
-  #          - "3.10"
-  #          - "3.11"
-  #          - "3.12"
+  egrabber:
+    name: Python ${{ matrix.python }} (eGrabber)
+    runs-on:
+      - self-hosted
+      - egrabber
+      - VC-151MX-M6H00
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
-  #   permissions:
-  #     actions: write
-  #   env:
-  #     GH_TOKEN: ${{ github.token }}
-  #   steps:
-  #     - name: Cancel Previous Runs
-  #       uses: styfle/cancel-workflow-action@0.11.0
-  #       with:
-  #         access_token: ${{ github.token }}
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
 
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #         ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
 
-  #     - name: Get CMake 3.24
-  #       uses: lukka/get-cmake@latest
-  #       with:
-  #         cmakeVersion: 3.24.3
+      - name: Get CMake 3.24
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.24.3
 
-  #     - name: Set up Python ${{ matrix.python }}
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: ${{ matrix.python }}
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
-  #     - name: Install
-  #       run: |
-  #         pip install --upgrade pip
-  #         pip install -e .[testing]
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
 
-  #     - name: Test
-  #       run: |
-  #         python -m pytest -k test_egrabber
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e .[testing]
+
+      - name: Test
+        run: |
+          python -m pytest -k test_egrabber
 
   spinnaker:
     name: Python ${{ matrix.python }} (Spinnaker)
@@ -200,6 +208,9 @@ jobs:
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: 3.24.3
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
@@ -252,6 +263,9 @@ jobs:
         with:
           cmakeVersion: 3.24.3
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
@@ -276,6 +290,9 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
