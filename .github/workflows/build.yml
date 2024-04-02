@@ -17,9 +17,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Build
         uses: messense/maturin-action@v1
         with:
