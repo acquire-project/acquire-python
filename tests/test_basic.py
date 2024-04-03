@@ -32,6 +32,11 @@ def test_set():
     assert t.enable
 
 
+def test_storage_properties_pixel_scale_defaults_to_1():
+    storage = acquire.StorageProperties()
+    assert storage.pixel_scale_um == (1.0, 1.0)
+
+
 def test_list_devices(runtime: Runtime):
     dm = runtime.device_manager()
     for d in dm.devices():
