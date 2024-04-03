@@ -135,11 +135,8 @@ class DeviceKind:
 @final
 class DeviceManager:
     def devices(self) -> List[DeviceIdentifier]: ...
-    @overload
-    def select(self, kind: DeviceKind) -> Optional[DeviceIdentifier]: ...
-    @overload
     def select(
-        self, kind: DeviceKind, name: Optional[str]
+        self, kind: DeviceKind, name: Optional[str] = None
     ) -> Optional[DeviceIdentifier]: ...
     def select_one_of(
         self, kind: DeviceKind, names: List[str]
