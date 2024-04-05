@@ -129,7 +129,7 @@ impl Default for StorageProperties {
             filename: Default::default(),
             external_metadata_json: Default::default(),
             first_frame_id: Default::default(),
-            pixel_scale_um: Default::default(),
+            pixel_scale_um: (1., 1.), // Default to 1.0 um/pixel (square pixels)
             acquisition_dimensions: Default::default(),
             enable_multiscale: Default::default(),
         }
