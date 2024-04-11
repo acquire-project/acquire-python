@@ -228,16 +228,6 @@ struct RawAvailableData {
 unsafe impl Send for RawAvailableData {}
 unsafe impl Sync for RawAvailableData {}
 
-// Can replace this if `pointer_byte_offsets` gets stabilized.
-unsafe fn byte_offset<T>(origin: *mut T, count: isize) -> *mut T {
-    (origin as *const u8).offset(count) as *mut T
-}
-
-// Can replace this if `pointer_byte_offsets` gets stabilized.
-unsafe fn byte_offset_from<T>(beg: *mut T, end: *mut T) -> isize {
-    (end as *const u8).offset_from(beg as *const u8)
-}
-
 impl RawAvailableData {
     fn get_frame_count(&self) -> usize {
         let mut count = 0;
@@ -253,7 +243,7 @@ impl RawAvailableData {
                     frame.bytes_of_frame
                 );
                 assert!(frame.bytes_of_frame > 0);
-                cur = byte_offset(cur, frame.bytes_of_frame as _);
+                cur = cur.byte_offset(frame.bytes_of_frame as _);
                 count += 1;
             }
         }
@@ -265,7 +255,7 @@ impl Drop for RawAvailableData {
     fn drop(&mut self) {
         let consumed_bytes = self
             .consumed_bytes
-            .unwrap_or(unsafe { byte_offset_from(self.beg.as_ptr(), self.end.as_ptr()) } as usize);
+            .unwrap_or(unsafe { self.end.as_ptr().byte_offset_from(self.beg.as_ptr()) } as usize);
         log::debug!(
             "[stream {}] DROP read region: {:p}-{:p}:{}",
             self.stream_id,
@@ -341,7 +331,7 @@ impl AvailableDataContext {
         let nbytes = if beg.is_null() || end.is_null() {
             0
         } else {
-            unsafe { byte_offset_from(beg, end) }
+            unsafe { end.byte_offset_from(beg) }
         };
 
         log::trace!(

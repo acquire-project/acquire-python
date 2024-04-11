@@ -9,7 +9,10 @@
 python -m pip install acquire-imaging
 ```
 
-Acquire ([`acquire-imaging` on PyPI](https://pypi.org/project/acquire-imaging/)) provides high-speed, multi-camera, video streaming for up to **2** cameras and image acquisition with a programming interface for streaming video data directly to Python, cloud-friendly file formats, and visualization platforms, such as [napari](https://napari.org/stable/).
+Acquire ([`acquire-imaging` on PyPI](https://pypi.org/project/acquire-imaging/)) provides high-speed, multi-camera,
+video streaming for up to **2** cameras and image acquisition with a programming interface for streaming video data
+directly to Python, cloud-friendly file formats, and visualization platforms, such
+as [napari](https://napari.org/stable/).
 
 > **Note** This is an early stage project. If you find it interesting, please
 > reach out!
@@ -33,9 +36,11 @@ For testing and demonstration purposes, Acquire provides a few simulated video s
 
 ## Usage
 
-Check out our documentation [here](https://acquire-project.github.io/acquire-docs/). 
+Check out our documentation [here](https://acquire-project.github.io/acquire-docs/).
 
-The provided [napari](https://napari.org/stable/) plugin ([code here](https://github.com/acquire-project/acquire-python/blob/main/python/acquire/__init__.py#L131)) is a good example of how to stream for visualization.
+The provided [napari](https://napari.org/stable/)
+plugin ([code here](https://github.com/acquire-project/acquire-python/blob/main/python/acquire/__init__.py#L131)) is a
+good example of how to stream for visualization.
 
 ## Development
 
@@ -50,7 +55,7 @@ Requires
   [chocolatey](https://community.chocolatey.org/packages/cmake))
 - A C++20 compiler (Microsoft Visual Studio Community [download
   page](https://visualstudio.microsoft.com/downloads/), or clang)
-- Rust (via rustup, see [install
+- Rust >= 1.75 (via rustup, see [install
   page](https://www.rust-lang.org/tools/install))
 - conda (optional; via
   [miniconda](https://docs.conda.io/en/latest/miniconda.html))
@@ -84,6 +89,7 @@ python -m build
 
 This package depends on a submodule ([acquire-common](https://github.com/acquire-project/acquire-common))
 and binaries from the following Acquire drivers:
+
 - [acquire-driver-hdcam](https://github.com/acquire-project/acquire-driver-hdcam)
 - [acquire-driver-egrabber](https://github.com/acquire-project/acquire-driver-egrabber)
 - [acquire-driver-zarr](https://github.com/acquire-project/acquire-driver-zarr)

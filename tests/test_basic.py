@@ -18,11 +18,23 @@ def runtime():
     yield acquire.Runtime()
 
 
+def test_version():
+    assert isinstance(acquire.__version__, str)
+    # this will fail if pip install -e . has not been run
+    # so feel free to remove this line if it's not what you want to test
+    assert acquire.__version__ != "uninstalled"
+
+
 def test_set():
     t = Trigger()
     assert not t.enable
     t.enable = True
     assert t.enable
+
+
+def test_storage_properties_pixel_scale_defaults_to_1():
+    storage = acquire.StorageProperties()
+    assert storage.pixel_scale_um == (1.0, 1.0)
 
 
 def test_list_devices(runtime: Runtime):
@@ -505,31 +517,21 @@ def test_simulated_camera_capabilities(
 
 
 @pytest.mark.parametrize(
-    ("descriptor", "extension", "chunking", "sharding", "multiscale"),
+    ("descriptor", "chunking", "sharding", "multiscale"),
     [
-        ("raw", "bin", None, None, False),
-        ("trash", "", None, None, False),
-        ("tiff", "tif", None, None, False),
-        ("tiff-json", "tif", None, None, False),
-        (
-            "zarr",
-            "zarr",
-            {
-                "width": {"low": 32, "high": 65535},
-                "height": {"low": 32, "high": 65535},
-                "planes": {"low": 32, "high": 65535},
-            },
-            None,
-            True,
-        ),
+        ("raw", False, False, False),
+        ("trash", False, False, False),
+        ("tiff", False, False, False),
+        ("tiff-json", False, False, False),
+        ("zarr", True, False, True),
+        ("zarrv3", True, True, False),
     ],
 )
 def test_storage_capabilities(
     runtime: Runtime,
     descriptor: str,
-    extension: str,
-    chunking: Optional[Dict[str, Any]],
-    sharding: Optional[Dict[str, Any]],
+    chunking: bool,
+    sharding: bool,
     multiscale: bool,
 ):
     dm = runtime.device_manager()
@@ -540,58 +542,15 @@ def test_storage_capabilities(
     p.video[0].storage.settings.external_metadata_json = json.dumps(
         {"hello": "world"}
     )  # for tiff-json
-    p.video[0].max_frame_count = 1000
+    p.video[0].max_frame_count = 1
     runtime.set_configuration(p)
 
     c = runtime.get_capabilities()
     storage = c.video[0].storage
 
-    chunk_dims_px = storage.chunk_dims_px
-
-    assert chunk_dims_px.width.kind == PropertyType.FixedPrecision
-    assert chunk_dims_px.height.kind == PropertyType.FixedPrecision
-    assert chunk_dims_px.planes.kind == PropertyType.FixedPrecision
-
-    if chunking is None:
-        assert chunk_dims_px.is_supported is False
-        assert chunk_dims_px.width.low == chunk_dims_px.width.high == 0.0
-        assert chunk_dims_px.height.low == chunk_dims_px.height.high == 0.0
-        assert chunk_dims_px.planes.low == chunk_dims_px.planes.high == 0.0
-    else:
-        assert chunk_dims_px.is_supported is True
-        assert chunk_dims_px.width.low == chunking["width"]["low"]
-        assert chunk_dims_px.width.high == chunking["width"]["high"]
-        assert chunk_dims_px.height.low == chunking["height"]["low"]
-        assert chunk_dims_px.height.high == chunking["height"]["high"]
-        assert chunk_dims_px.planes.low == chunking["planes"]["low"]
-        assert chunk_dims_px.planes.high == chunking["planes"]["high"]
-
-    shard_dims_chunks = storage.shard_dims_chunks
-
-    assert shard_dims_chunks.width.kind == PropertyType.FixedPrecision
-    assert shard_dims_chunks.height.kind == PropertyType.FixedPrecision
-    assert shard_dims_chunks.planes.kind == PropertyType.FixedPrecision
-
-    if sharding is None:
-        assert shard_dims_chunks.is_supported is False
-        assert shard_dims_chunks.width.low == 0.0
-        assert shard_dims_chunks.width.high == 0.0
-
-        assert shard_dims_chunks.height.low == 0.0
-        assert shard_dims_chunks.height.high == 0.0
-
-        assert shard_dims_chunks.planes.low == 0.0
-        assert shard_dims_chunks.planes.high == 0.0
-    else:
-        assert shard_dims_chunks.is_supported is True
-        assert shard_dims_chunks.width.low == chunking["width"]["low"]
-        assert shard_dims_chunks.width.high == chunking["width"]["high"]
-        assert shard_dims_chunks.height.low == chunking["height"]["low"]
-        assert shard_dims_chunks.height.high == chunking["height"]["high"]
-        assert shard_dims_chunks.planes.low == chunking["planes"]["low"]
-        assert shard_dims_chunks.planes.high == chunking["planes"]["high"]
-
-    assert storage.multiscale.is_supported == multiscale
+    assert storage.chunking_is_supported == chunking
+    assert storage.sharding_is_supported == sharding
+    assert storage.multiscale_is_supported == multiscale
 
 
 def test_invalidated_frame(runtime: Runtime):
