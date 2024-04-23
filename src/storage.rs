@@ -140,11 +140,11 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::StorageProperties) -> Result<Self, Self::Error> {
-        let filename = if value.filename.nbytes == 0 {
+        let filename = if value.uri.nbytes == 0 {
             None
         } else {
             Some(
-                unsafe { CStr::from_ptr(value.filename.str_) }
+                unsafe { CStr::from_ptr(value.uri.str_) }
                     .to_str()?
                     .to_owned(),
             )
@@ -284,7 +284,9 @@ impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
 impl Default for capi::StorageProperties {
     fn default() -> Self {
         Self {
-            filename: Default::default(),
+            uri: Default::default(),
+            access_key_id: Default::default(),
+            secret_access_key: Default::default(),
             first_frame_id: Default::default(),
             external_metadata_json: Default::default(),
             pixel_scale_um: Default::default(),
@@ -416,6 +418,7 @@ impl Default for capi::StoragePropertyMetadata {
             chunking_is_supported: Default::default(),
             sharding_is_supported: Default::default(),
             multiscale_is_supported: Default::default(),
+            s3_is_supported: 0,
         }
     }
 }
@@ -428,6 +431,7 @@ impl TryFrom<&StorageCapabilities> for capi::StoragePropertyMetadata {
             chunking_is_supported: value.chunking_is_supported as u8,
             sharding_is_supported: value.sharding_is_supported as u8,
             multiscale_is_supported: value.multiscale_is_supported as u8,
+            s3_is_supported: 0,
         })
     }
 }
