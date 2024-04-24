@@ -13,7 +13,7 @@ import tifffile
 
 
 # FIXME (aliddell): this should be module scoped, but the runtime is leaky
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def runtime():
     yield acquire.Runtime()
 
