@@ -1,0 +1,50 @@
+name: Test Leaky Runtime
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  platforms:
+    name: (Leaky) Python ${{ matrix.python }} on ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+        python:
+          - "3.10"
+
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -e '.[testing]'
+
+      - name: Test
+        run: |
+          python -m pytest -k test_leaky_runtime
