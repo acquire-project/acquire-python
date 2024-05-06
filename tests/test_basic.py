@@ -600,6 +600,33 @@ def test_switch_device_identifier(
     os.remove(p.video[0].storage.settings.filename)
 
 
+def test_acquire_unaligned(runtime: Runtime):
+    dm = runtime.device_manager()
+    props = runtime.get_configuration()
+    props.video[0].camera.identifier = dm.select(
+        acquire.DeviceKind.Camera, ".*empty.*"
+    )
+
+    # sizeof(VideoFrame) + 33 * 47 is not divisible by 8
+    props.video[0].camera.settings.shape = (33, 47)
+    props.video[0].storage.identifier = dm.select(
+        acquire.DeviceKind.Storage, "trash"
+    )
+
+    props.video[0].max_frame_count = 3
+    runtime.set_configuration(props)
+
+    nframes = 0
+    runtime.start()
+    while nframes < props.video[0].max_frame_count:
+        with runtime.get_available_data(0) as packet:
+            for i in range(packet.get_frame_count()):
+                _ = next(packet.frames())
+                nframes += 1
+    runtime.stop()
+    assert nframes == props.video[0].max_frame_count
+
+
 # NOTES:
 #
 # With pytest, use `--log-cli-level=0` to see the lowest level logs.
