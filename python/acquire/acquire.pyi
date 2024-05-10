@@ -186,7 +186,7 @@ class InputTriggers:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
-class OffsetShapeCapabilities:
+class OffsetCapabilities:
     x: Property
     y: Property
 
@@ -281,6 +281,13 @@ class SampleType:
     def __le__(self, other: object) -> bool: ...
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
+
+@final
+class ShapeCapabilities:
+    x: Property
+    y: Property
+
+    def dict(self) -> Dict[str, Any]: ...
 
 @final
 class SignalIOKind:
