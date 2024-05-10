@@ -13,17 +13,17 @@ from typing import (
 from numpy.typing import NDArray
 
 @final
+class AvailableData:
+    def frames(self) -> Iterator[VideoFrame]: ...
+    def get_frame_count(self) -> int: ...
+    def __iter__(self) -> Iterator[VideoFrame]: ...
+
+@final
 class AvailableDataContext:
     def __enter__(self) -> AvailableData: ...
     def __exit__(
         self, exc_type: Any, exc_value: Any, traceback: Any
     ) -> None: ...
-
-@final
-class AvailableData:
-    def frames(self) -> Iterator[VideoFrame]: ...
-    def get_frame_count(self) -> int: ...
-    def __iter__(self) -> Iterator[VideoFrame]: ...
 
 @final
 class Camera:
@@ -68,35 +68,6 @@ class Capabilities:
 
     def __init__(self, *args: None, **kwargs: Any) -> None: ...
     def dict(self) -> Dict[str, Any]: ...
-
-@final
-class DimensionType:
-    """The storage dimension type.
-
-    Space: spatial dimension.
-    Channel: color channel dimension.
-    Time: time dimension.
-    Other: other dimension.
-
-    When downsampling, Space and Time dimensions are downsampled by the same factor.
-    Channel and Other dimensions are not downsampled.
-
-    This value is also reflected in the dimension metadata of an OME-Zarr dataset.
-    """
-
-    Space: ClassVar[DimensionType]
-    Channel: ClassVar[DimensionType]
-    Time: ClassVar[DimensionType]
-    Other: ClassVar[DimensionType]
-
-    def __init__(self, *args: None, **kwargs: Any) -> None: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __ge__(self, other: object) -> bool: ...
-    def __gt__(self, other: object) -> bool: ...
-    def __int__(self) -> int: ...
-    def __le__(self, other: object) -> bool: ...
-    def __lt__(self, other: object) -> bool: ...
-    def __ne__(self, other: object) -> bool: ...
 
 @final
 class DeviceIdentifier:
@@ -165,6 +136,35 @@ class DigitalLineCapabilities:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class DimensionType:
+    """The storage dimension type.
+
+    Space: spatial dimension.
+    Channel: color channel dimension.
+    Time: time dimension.
+    Other: other dimension.
+
+    When downsampling, Space and Time dimensions are downsampled by the same factor.
+    Channel and Other dimensions are not downsampled.
+
+    This value is also reflected in the dimension metadata of an OME-Zarr dataset.
+    """
+
+    Space: ClassVar[DimensionType]
+    Channel: ClassVar[DimensionType]
+    Time: ClassVar[DimensionType]
+    Other: ClassVar[DimensionType]
+
+    def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ge__(self, other: object) -> bool: ...
+    def __gt__(self, other: object) -> bool: ...
+    def __int__(self) -> int: ...
+    def __le__(self, other: object) -> bool: ...
+    def __lt__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+
+@final
 class Direction:
     Backward: ClassVar[Direction]
     Forward: ClassVar[Direction]
@@ -210,6 +210,13 @@ class PID:
     def dict(self) -> Dict[str, Any]: ...
 
 @final
+class Properties:
+    video: Tuple[VideoStream, VideoStream]
+
+    def __init__(self, *args: None, **kwargs: Any) -> None: ...
+    def dict(self) -> Dict[str, Any]: ...
+
+@final
 class Property:
     writable: bool
     low: float
@@ -233,13 +240,6 @@ class PropertyType:
     def __le__(self, other: object) -> bool: ...
     def __lt__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
-
-@final
-class Properties:
-    video: Tuple[VideoStream, VideoStream]
-
-    def __init__(self, *args: None, **kwargs: Any) -> None: ...
-    def dict(self) -> Dict[str, Any]: ...
 
 @final
 class Runtime:
