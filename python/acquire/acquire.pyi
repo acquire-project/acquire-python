@@ -39,8 +39,8 @@ class CameraCapabilities:
     line_interval_us: Property
     readout_direction: Property
     binning: Property
-    offset: OffsetShapeCapabilities
-    shape: OffsetShapeCapabilities
+    offset: OffsetCapabilities
+    shape: ShapeCapabilities
     supported_pixel_types: List[SampleType]
     digital_lines: DigitalLineCapabilities
     triggers: TriggerCapabilities

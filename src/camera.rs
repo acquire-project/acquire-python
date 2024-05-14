@@ -267,10 +267,10 @@ impl Default for capi::CameraProperties_camera_properties_shape_s {
     }
 }
 
-/// CameraCapabilities::OffsetShapeCapabilities
+/// CameraCapabilities::OffsetCapabilities
 #[pyclass]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OffsetShapeCapabilities {
+pub struct OffsetCapabilities {
     #[pyo3(get)]
     x: Property,
 
@@ -278,9 +278,9 @@ pub struct OffsetShapeCapabilities {
     y: Property,
 }
 
-impl_plain_old_dict!(OffsetShapeCapabilities);
+impl_plain_old_dict!(OffsetCapabilities);
 
-impl Default for OffsetShapeCapabilities {
+impl Default for OffsetCapabilities {
     fn default() -> Self {
         Self {
             x: Property::default(),
@@ -290,7 +290,7 @@ impl Default for OffsetShapeCapabilities {
 }
 
 impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s>
-    for OffsetShapeCapabilities
+    for OffsetCapabilities
 {
     type Error = anyhow::Error;
 
@@ -306,8 +306,30 @@ impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_offset_s>
     }
 }
 
+/// CameraCapabilities::ShapeCapabilities
+#[pyclass]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShapeCapabilities {
+    #[pyo3(get)]
+    x: Property,
+
+    #[pyo3(get)]
+    y: Property,
+}
+
+impl_plain_old_dict!(ShapeCapabilities);
+
+impl Default for ShapeCapabilities {
+    fn default() -> Self {
+        Self {
+            x: Property::default(),
+            y: Property::default(),
+        }
+    }
+}
+
 impl TryFrom<capi::CameraPropertyMetadata_camera_properties_metadata_shape_s>
-    for OffsetShapeCapabilities
+    for ShapeCapabilities
 {
     type Error = anyhow::Error;
 
@@ -483,10 +505,10 @@ pub struct CameraCapabilities {
     binning: Property,
 
     #[pyo3(get)]
-    offset: Py<OffsetShapeCapabilities>,
+    offset: Py<OffsetCapabilities>,
 
     #[pyo3(get)]
-    shape: Py<OffsetShapeCapabilities>,
+    shape: Py<ShapeCapabilities>,
 
     #[pyo3(get)]
     supported_pixel_types: Vec<SampleType>,
@@ -504,8 +526,8 @@ impl Default for CameraCapabilities {
     fn default() -> Self {
         let (offset, shape, digital_lines, triggers) = Python::with_gil(|py| {
             (
-                Py::new(py, OffsetShapeCapabilities::default()).unwrap(),
-                Py::new(py, OffsetShapeCapabilities::default()).unwrap(),
+                Py::new(py, OffsetCapabilities::default()).unwrap(),
+                Py::new(py, ShapeCapabilities::default()).unwrap(),
                 Py::new(py, DigitalLineCapabilities::default()).unwrap(),
                 Py::new(py, TriggerCapabilities::default()).unwrap(),
             )
@@ -529,8 +551,8 @@ impl TryFrom<capi::CameraPropertyMetadata> for CameraCapabilities {
 
     fn try_from(value: capi::CameraPropertyMetadata) -> Result<Self, Self::Error> {
         let (offset, shape, digital_lines, triggers) = Python::with_gil(|py| -> PyResult<_> {
-            let offset: OffsetShapeCapabilities = value.offset.try_into()?;
-            let shape: OffsetShapeCapabilities = value.shape.try_into()?;
+            let offset: OffsetCapabilities = value.offset.try_into()?;
+            let shape: ShapeCapabilities = value.shape.try_into()?;
             let digital_lines: DigitalLineCapabilities = value.digital_lines.try_into()?;
             let triggers: TriggerCapabilities = value.triggers.try_into()?;
             Ok((
@@ -573,12 +595,12 @@ impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_offset_
     }
 }
 
-impl TryFrom<&OffsetShapeCapabilities>
+impl TryFrom<&OffsetCapabilities>
     for capi::CameraPropertyMetadata_camera_properties_metadata_offset_s
 {
     type Error = anyhow::Error;
 
-    fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
+    fn try_from(value: &OffsetCapabilities) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|_| -> PyResult<_> {
             Ok(Self {
                 x: (&value.x).try_into()?,
@@ -597,12 +619,12 @@ impl Default for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s
     }
 }
 
-impl TryFrom<&OffsetShapeCapabilities>
+impl TryFrom<&ShapeCapabilities>
     for capi::CameraPropertyMetadata_camera_properties_metadata_shape_s
 {
     type Error = anyhow::Error;
 
-    fn try_from(value: &OffsetShapeCapabilities) -> Result<Self, Self::Error> {
+    fn try_from(value: &ShapeCapabilities) -> Result<Self, Self::Error> {
         Ok(Python::with_gil(|_| -> PyResult<_> {
             Ok(Self {
                 x: (&value.x).try_into()?,
@@ -736,12 +758,12 @@ impl TryFrom<&CameraCapabilities> for capi::CameraPropertyMetadata {
 
     fn try_from(src: &CameraCapabilities) -> Result<Self, Self::Error> {
         let offset = Python::with_gil(|py| -> PyResult<_> {
-            let offset: OffsetShapeCapabilities = src.offset.extract(py)?;
+            let offset: OffsetCapabilities = src.offset.extract(py)?;
             Ok(offset)
         })?;
 
         let shape = Python::with_gil(|py| -> PyResult<_> {
-            let shape: OffsetShapeCapabilities = src.shape.extract(py)?;
+            let shape: ShapeCapabilities = src.shape.extract(py)?;
             Ok(shape)
         })?;
 
