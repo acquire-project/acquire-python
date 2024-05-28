@@ -49,6 +49,34 @@ def test_vieworks_stream(
     p.video[0].storage.settings.pixel_scale_um = (0.2, 0.2)
     p.video[0].max_frame_count = 10
 
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x",
+        kind="Space",
+        array_size_px=p.video[0].camera.settings.shape[0],
+        chunk_size_px=p.video[0].camera.settings.shape[0] // 2,
+    )
+
+    dimension_y = acquire.StorageDimension(
+        name="y",
+        kind="Space",
+        array_size_px=p.video[0].camera.settings.shape[1],
+        chunk_size_px=p.video[0].camera.settings.shape[1] // 2,
+    )
+
+    dimension_t = acquire.StorageDimension(
+        name="t",
+        kind="Time",
+        array_size_px=0,
+        chunk_size_px=p.video[0].max_frame_count,
+    )
+
+    p.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
+
     p = runtime.set_configuration(p)
 
     logging.info(pprint.pformat(p.dict()))
