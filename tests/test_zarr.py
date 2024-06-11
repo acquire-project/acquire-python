@@ -142,7 +142,10 @@ def test_write_external_metadata_to_zarr(
 
     nframes = 0
     runtime.start()
-    while nframes < p.video[0].max_frame_count:
+    while (
+        runtime.get_state() == acquire.DeviceState.Running
+        and nframes < p.video[0].max_frame_count
+    ):
         with runtime.get_available_data(0) as packet:
             nframes += packet.get_frame_count()
     runtime.stop()
