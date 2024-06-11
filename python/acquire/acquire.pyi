@@ -327,6 +327,7 @@ class StorageCapabilities:
     chunking_is_supported: bool
     sharding_is_supported: bool
     multiscale_is_supported: bool
+    s3_is_supported: bool
 
     def dict(self) -> Dict[str, Any]: ...
 
@@ -342,8 +343,10 @@ class StorageDimension:
 
 @final
 class StorageProperties:
+    uri: Optional[str]
     external_metadata_json: Optional[str]
-    filename: Optional[str]
+    access_key_id: Optional[str]
+    secret_access_key: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     acquisition_dimensions: List[StorageDimension]

@@ -102,7 +102,7 @@ def test_repeat_acq(runtime: Runtime):
     assert (
         p.video[0].storage.identifier is not None
     ), "Expected a storage identifier"
-    assert p.video[0].storage.settings.filename == "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
     p.video[0].camera.settings.shape = (192, 108)
     p.video[0].max_frame_count = 10
     p = runtime.set_configuration(p)
@@ -165,15 +165,15 @@ def test_set_storage(runtime: Runtime):
     )
     assert p.video[0].storage.identifier is not None
 
-    p.video[0].storage.settings.filename = "out.tif"
-    assert p.video[0].storage.settings.filename == "out.tif"
+    p.video[0].storage.settings.uri = "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
 
 
 def test_setup(runtime: Runtime):
     p = acquire.setup(runtime, "simulated.*empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
-    assert p.video[0].storage.settings.filename == "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
     assert p.video[0].max_frame_count == 100
     p.video[0].camera.settings.shape = (192, 108)
     p = runtime.set_configuration(p)
@@ -219,7 +219,7 @@ def test_selection_is_consistent(runtime: Runtime):
     assert hcam1 == hcam2
 
 
-def test_change_filename(runtime: Runtime):
+def test_change_uri(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*")
@@ -233,9 +233,9 @@ def test_change_filename(runtime: Runtime):
         "another long one ok it is really long this time.tif",
     ]
     for name in names:
-        p.video[0].storage.settings.filename = name
+        p.video[0].storage.settings.uri = name
         p = runtime.set_configuration(p)
-        assert p.video[0].storage.settings.filename == name
+        assert p.video[0].storage.settings.uri == name
 
         nframes = 0
         runtime.start()
@@ -257,7 +257,7 @@ def test_write_external_metadata_to_tiff(
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
     p.video[0].max_frame_count = 3
-    p.video[0].storage.settings.filename = f"{request.node.name}.tif"
+    p.video[0].storage.settings.uri = f"{request.node.name}.tif"
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     runtime.set_configuration(p)
@@ -270,7 +270,7 @@ def test_write_external_metadata_to_tiff(
     runtime.stop()
 
     # Check that the written tif has the expected structure
-    with tifffile.TiffFile(p.video[0].storage.settings.filename) as f:
+    with tifffile.TiffFile(p.video[0].storage.settings.uri) as f:
 
         def meta(iframe: int) -> Dict[Any, Any]:
             return json.loads(f.pages[iframe].tags["ImageDescription"].value)
@@ -585,7 +585,7 @@ def test_switch_device_identifier(
 
     dm = runtime.device_manager()
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "tiff")
-    p.video[0].storage.settings.filename = f"{request.node.name}.tif"
+    p.video[0].storage.settings.uri = f"{request.node.name}.tif"
     p = runtime.set_configuration(p)
     assert p.video[0].storage.identifier.name == "tiff"
 
@@ -593,11 +593,11 @@ def test_switch_device_identifier(
     runtime.stop()
 
     # will raise an exception if the file doesn't exist or is invalid
-    with tifffile.TiffFile(p.video[0].storage.settings.filename):
+    with tifffile.TiffFile(p.video[0].storage.settings.uri):
         pass
 
     # cleanup
-    os.remove(p.video[0].storage.settings.filename)
+    os.remove(p.video[0].storage.settings.uri)
 
 
 # NOTES:
