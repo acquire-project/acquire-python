@@ -61,7 +61,9 @@ impl RawRuntime {
     }
 
     fn start(&self) -> Result<()> {
+        debug!("START Runtime");
         unsafe { capi::acquire_start(self.inner.as_ptr()) }.ok()?;
+        debug!("START Runtime OK");
         Ok(())
     }
 

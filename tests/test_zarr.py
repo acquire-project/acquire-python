@@ -19,7 +19,7 @@ from acquire import Runtime, DeviceKind
 # FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
 def runtime():
-    yield acquire.Runtime()
+    yield Runtime()
 
 
 def test_set_acquisition_dimensions(
@@ -104,19 +104,21 @@ def test_write_external_metadata_to_zarr(
     runtime: Runtime, request: pytest.FixtureRequest
 ):
     dm = runtime.device_manager()
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
+    props = runtime.get_configuration()
+    props.video[0].camera.identifier = dm.select(
         DeviceKind.Camera, "simulated.*empty.*"
     )
-    p.video[0].camera.settings.shape = (33, 47)
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
-    p.video[0].max_frame_count = 4
-    p.video[0].storage.settings.uri = str(
+    props.video[0].camera.settings.shape = (33, 47)
+    props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
+    props.video[0].max_frame_count = 4
+    props.video[0].storage.settings.uri = str(
         Path(mkdtemp()) / f"{request.node.name}.zarr"
     )
     metadata = {"hello": "world"}
-    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
+    props.video[0].storage.settings.external_metadata_json = json.dumps(
+        metadata
+    )
+    props.video[0].storage.settings.pixel_scale_um = (0.5, 4)
 
     # configure storage dimensions
     dimension_x = acquire.StorageDimension(
@@ -134,23 +136,23 @@ def test_write_external_metadata_to_zarr(
     )
     assert dimension_z.shard_size_chunks == 0
 
-    p.video[0].storage.settings.acquisition_dimensions = [
+    props.video[0].storage.settings.acquisition_dimensions = [
         dimension_x,
         dimension_y,
         dimension_z,
     ]
 
-    p = runtime.set_configuration(p)
+    props = runtime.set_configuration(props)
 
     nframes = 0
     runtime.start()
-    while nframes < p.video[0].max_frame_count:
+    while nframes < props.video[0].max_frame_count:
         with runtime.get_available_data(0) as packet:
             nframes += packet.get_frame_count()
     runtime.stop()
 
-    assert p.video[0].storage.settings.uri
-    store = parse_url(p.video[0].storage.settings.uri)
+    assert props.video[0].storage.settings.uri
+    store = parse_url(props.video[0].storage.settings.uri)
     assert store
     reader = Reader(store)
     nodes = list(reader())
@@ -163,9 +165,9 @@ def test_write_external_metadata_to_zarr(
     # scale/level.
     image_data = multi_scale_image_node.data[0]
     assert image_data.shape == (
-        p.video[0].max_frame_count,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
+        props.video[0].max_frame_count,
+        props.video[0].camera.settings.shape[1],
+        props.video[0].camera.settings.shape[0],
     )
 
     multi_scale_image_metadata = multi_scale_image_node.metadata
@@ -185,11 +187,11 @@ def test_write_external_metadata_to_zarr(
     pixel_scale_um = tuple(
         transform["scale"][axis_names.index(axis)] for axis in ("x", "y")
     )
-    assert pixel_scale_um == p.video[0].storage.settings.pixel_scale_um
+    assert pixel_scale_um == props.video[0].storage.settings.pixel_scale_um
 
     # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
     # to read external metadata instead.
-    group = zarr.open(p.video[0].storage.settings.uri)
+    group = zarr.open(props.video[0].storage.settings.uri)
     assert group["0"].attrs.asdict() == metadata
 
 
