@@ -46,10 +46,19 @@ class AvailableData:
 
 @final
 class AvailableDataContext:
-    def __enter__(self) -> AvailableData: ...
-    def __exit__(
-        self, exc_type: Any, exc_value: Any, traceback: Any
-    ) -> None: ...
+    """The `AvailableDataContext` class is the context manager for available
+    data for the given VideoStream ID.
+
+    """
+
+    def __enter__(self) -> AvailableData:
+        """Get the available data from the runtime and return it."""
+        ...
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        """Clean up any references to the available data returned when entering
+        this context.
+        """
+        ...
 
 @final
 class Camera:
@@ -79,6 +88,50 @@ class Camera:
 
 @final
 class CameraCapabilities:
+    """The `CameraCapabilities` class is used to describe the camera's
+    supported properties.
+
+    Attributes:
+        exposure_time_us:
+            An instance of the `Property` class that captures the range and
+            type of supported values in microseconds for the camera's exposure
+            time, which is how long in microseconds the camera collects light
+            from the sample for a single frame.
+        line_interval_us:
+            An instance of the `Property` class that captures the range and
+            type of supported values in microseconds for a rolling shutter
+            camera to scan one line.
+        readout_direction:
+            An instance of the `Property` class that specifies whether the data
+            is read out of the camera forwards or backwards and if that
+            direction can be chosen by the user.
+        binning:
+            An instance of the `Property` class that captures the range and
+            type of support values for binning, which is combining adjacent
+            pixels by averaging in each direction, and whether the binning
+            factor can be chosen by the user.
+        offset:
+            An instance of the `OffsetShapeCapabilities` class that represents
+            the horizontal and vertical offset for the region of interest on
+            the camera chip.
+        shape:
+            An instance of the `OffsetShapeCapabilities` class that represents
+            the width and height of the region of interest on the camera chip.
+        supported_pixel_types:
+            A list containing instances of the `SampleType` class representing
+            each of the supported pixel types, such as 8-bit unsigned integer
+            (uint8).
+        digital_lines:
+            An instance of the `DigitalLineCapabilities` class which indicates
+            the number and names of the available lines. Up to 8 lines are
+            supported with the last line typically being the camera software trigger.
+        triggers:
+            An instance of the `TriggerCapabilities` class which indicate what
+            kinds of triggers (start acquisition, start exposure, or start a
+            frame) are supported.
+
+    """
+
     exposure_time_us: Property
     line_interval_us: Property
     readout_direction: Property
@@ -89,7 +142,9 @@ class CameraCapabilities:
     digital_lines: DigitalLineCapabilities
     triggers: TriggerCapabilities
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Creates a dictionary of a `CameraCapabilities` object's attributes."""
+        ...
 
 @final
 class CameraProperties:
@@ -151,10 +206,23 @@ class CameraProperties:
 
 @final
 class Capabilities:
+    """The `Capabilities` class contains representations of each of the 2
+    supported VideoStream objects.
+
+    Attributes:
+        video:
+            A tuple containing two `VideoStreamCapabilities` instances since
+            `acquire` supports simultaneous streaming from 2 video sources.
+    """
+
     video: Tuple[VideoStreamCapabilities, VideoStreamCapabilities]
 
-    def __init__(self, *args: None, **kwargs: Any) -> None: ...
-    def dict(self) -> Dict[str, Any]: ...
+    def __init__(self, *args: None, **kwargs: Any) -> None:
+        """Initializes a Capabilities object with optional arguments."""
+        ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of the `Capabilities` object's attributes."""
+        ...
 
 @final
 class DeviceIdentifier:
@@ -285,18 +353,28 @@ class DeviceManager:
             kind:
                 The type of device to select.
             name:
-                A list of device names to choose from. Regular expressions
-                supported.
+                The name of the device to select. Regular expressions supported.
 
         Returns:
-            The selected device identifier, or None if none of the specified \
-            devices are available.
+            The selected device identifier, or None if the specified device is
+            not available.
         """
     def select_one_of(
         self, kind: DeviceKind, names: List[str]
     ) -> Optional[DeviceIdentifier]:
-        """Choose one device from a list of acceptable devices of a given kind."""
-        ...
+        """Selects the first device in the list of devices that is of one of
+        the specified kinds.
+
+        Parameters:
+            kind:
+                The type of device to select.
+            names:
+                A list of device names to choose from. Regular expressions
+                supported.
+
+        Returns:
+            Optional[DeviceIdentifier]: The selected device identifier, or None if none of the specified devices are available.
+        """
 
 @final
 class DeviceState:
@@ -346,14 +424,27 @@ class DeviceState:
 
 @final
 class DigitalLineCapabilities:
-    line_count: int
-    names: Tuple[str, str, str, str, str, str, str, str]
+    """The `DigitalLineCapabilities` class represents the digital lines
+    supported by the device.
 
-    def dict(self) -> Dict[str, Any]: ...
+    Attributes:
+        line_count:
+            Integer number representing the number of digital lines supported.
+        names:
+            Tuple of strings to name each of the digital lines, typically the
+            last one is the camera software trigger.
+    """
+
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of the `DigitalLineCapabilities` object's
+        attributes.
+        """
+        ...
 
 @final
 class DimensionType:
-    """The storage dimension type.
+    """Used to specify the physical meaning of a dimension, such as space or
+    time dimension.
 
     When downsampling, Space and Time dimensions are downsampled by the same
     factor. Channel and Other dimensions are not downsampled.
@@ -363,13 +454,17 @@ class DimensionType:
 
     Attributes:
         Space:
-            Spatial dimension.
+            Enum-type class variable of `DimensionType` that indicates a spatial
+            dimension.
         Channel:
-            Color channel dimension.
+            Enum-type class variable of `DimensionType` that indicates a color
+            channel dimension.
         Time:
-            Time dimension.
+            Enum-type class variable of `DimensionType` that indicates a time
+            dimension.
         Other:
-            Other dimension.
+            Enum-type class variable of `DimensionType` that indicates the
+            dimension is not a space, channel, or time.
     """
 
     Space: ClassVar[DimensionType]
@@ -542,16 +637,56 @@ class Properties:
 
 @final
 class Property:
+    """Indicates the type of and whether the property can be overwritten.
+
+    For numerical values, it also captures the accepted range of values.
+
+    Attributes:
+        writable:
+            A boolean indicating whether the property can be written.
+        low:
+            Floating point number for the lower bound of the property, if
+            applicable.
+        high:
+            Floating point number for the upper bound of the property, if
+            applicable.
+        kind:
+            An instance of the `PropertyType` class which indicates the type of
+            the property (fixed precision, floating-point, enum, or string).
+    """
+
     writable: bool
     low: float
     high: float
     kind: PropertyType
 
-    def __init__(self, *args: None, **kwargs: Any) -> None: ...
-    def dict(self) -> Dict[str, Any]: ...
+    def __init__(self, *args: None, **kwargs: Any) -> None:
+        """Initializes a Property object with optional arguments."""
+        ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of the `Property` object's attributes."""
+        ...
 
 @final
 class PropertyType:
+    """The `PropertyType` class indicates the type of the property (fixed
+    precision, floating-point, enum, or string).
+
+    Attributes:
+        FixedPrecision:
+            Enum-type class variable of `PropertyType` that indicates fixed
+            precision or integer values.
+        FloatingPrecision:
+            Enum-type class variable of `PropertyType` that indicates floating
+            point precision values.
+        Enum:
+            Enum-type class variable of `PropertyType` that indicates enum-type
+            values.
+        String:
+            Enum-type class variable of `PropertyType` that indicates string
+            values.
+    """
+
     FixedPrecision: ClassVar[PropertyType]
     FloatingPrecision: ClassVar[PropertyType]
     Enum: ClassVar[PropertyType]
@@ -586,19 +721,19 @@ class Runtime:
         """
         ...
     def get_available_data(self, stream_id: int) -> AvailableDataContext:
-        """Returns the AvailableData instance for the given stream ID.
+        """Returns the AvailableDataContext instance for the given stream ID.
 
         Call `get_available_data` with a specific `stream_id`, 0 or 1, to
-        return the `AvailableData` associated with the 1st or 2nd video source,
-        respectively.
+        return the context manager, `AvailableDataContext`, associated with the
+        1st or 2nd video source, respectively.
 
         Parameters:
             stream_id:
                 The ID of the stream for which available data is requested.
 
         Returns:
-            AvailableData:
-                The AvailableData instance for the given VideoStream ID.
+            AvailableDataContext:
+                Context manager for available data for the given VideoStream ID.
         """
         ...
     def get_configuration(self) -> Properties:
@@ -608,7 +743,14 @@ class Runtime:
         with this `Runtime` instance.
         """
         ...
-    def get_capabilities(self) -> Capabilities: ...
+    def get_capabilities(self) -> Capabilities:
+        """Returns the current capabilites of the runtime as an instance of
+        Capabilities.
+
+        Call `get_capabilities()` to return the `Capabilities` object associated
+        with this `Runtime` instance.
+        """
+        ...
     def get_state(self) -> DeviceState:
         """Returns the current state of the device.
 
@@ -636,7 +778,13 @@ class Runtime:
         Call `start()` to begin data acquisition.
         """
         ...
-    def execute_trigger(self, stream_id: int) -> None: ...
+    def execute_trigger(self, stream_id: int) -> None:
+        """Executes a trigger for the given stream ID.
+
+        Call `execute_trigger` with a specific `stream_id`, 0 or 1, to execute
+        a trigger for that video source.
+        """
+        ...
     def stop(self) -> None:
         """Stops the runtime, ending data collection after the max number of
         frames is collected.
@@ -740,10 +888,30 @@ class SampleType:
 
 @final
 class ShapeCapabilities:
+    """Represents the size of the offset or the shape of the region of interest
+    on the camera.
+
+    The sum of the offset and shape is the size of the full camera chip.
+
+    Attributes:
+        x:
+            An instance of the `Property` class which represents the width of
+            the region of interest on the camera or the horizontal offset of
+            the region of interest on the camera chip.
+        y:
+            An instance of the `Property` class which represents the height of
+            the region of interest on the camera or the vertical offset of the
+            region of interest on the camera chip.
+    """
+
     x: Property
     y: Property
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of a `ShapeCapabilities` object's
+        attributes.
+        """
+        ...
 
 @final
 class SignalIOKind:
@@ -845,21 +1013,60 @@ class Storage:
 
 @final
 class StorageCapabilities:
+    """The `StorageCapabilities` class represents what types of data handling
+    is supported by the storage device.
+
+    Attributes:
+        chunking_is_supported:
+            A boolean indicating whether chunking is supported for this storage
+            device.
+        shard_is_supported:
+            A boolean indicating whether sharding is supported for this storage
+            device.
+        multiscale_is_supported:
+            A boolean indicating whether multiscale storage is supported.
+
+    """
+
     chunking_is_supported: bool
     sharding_is_supported: bool
     multiscale_is_supported: bool
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of a `StorageCapabilities` object's attributes."""
+        ...
 
 @final
 class StorageDimension:
+    """Represents the type and size of the dimension for storage.
+
+    Attributes:
+        name:
+            A string representing the name or label of the storage dimension.
+        kind:
+            An instance of the `DimensionType` specifying if the storage
+            dimension is space, channel, time, or a different physical
+            dimension
+        array_size_px:
+            The size of the output array along this dimension, in pixels. The
+            final (i.e., append) dimension must have size 0.
+        chunk_size_px:
+            The size of a chunk along this dimension, in pixels.
+        shard_size_chunks:
+            Integer number of chunks per shard. Shards enable aggregating
+            multiple chunks into a single file. This value is ignored if
+            sharding is not supported by the storage device.
+    """
+
     name: str
     kind: DimensionType
     array_size_px: int
     chunk_size_px: int
     shard_size_chunks: int
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of the `StorageDimensions` object's attributes."""
+        ...
 
 @final
 class StorageProperties:
@@ -878,8 +1085,10 @@ class StorageProperties:
             A tuple of two floats representing the pixel size of the camera in
             micrometers.
         acquisition_dimensions:
-            A list of `StorageDimension` objects representing the dimensions
-            of the acquisition.
+            A list of instances of the `StorageDimension` class, one for each
+            acquisition dimension. The fastest changing dimension should be
+            first in the list and the append dimension should be last. This
+            value is only applicable for Zarr storage devices.
         enable_multiscale:
             A boolean indicating whether multiscale storage is enabled.
     """
@@ -893,6 +1102,7 @@ class StorageProperties:
 
     def dict(self) -> Dict[str, Any]:
         """Returns a dictionary of the `StorageProperties` object's attributes."""
+        ...
 
 @final
 class Trigger:
@@ -925,11 +1135,30 @@ class Trigger:
 
 @final
 class TriggerCapabilities:
+    """Specifies what types of events the trigger can initiate.
+
+    Attributes:
+        acquisition_start:
+            An instance of the `TriggerInputOutputCapabilities` class indicating
+            which lines, either input or output, are supported for starting
+            acquisition.
+        exposure:
+            An instance of the `TriggerInputOutputCapabilities` class indicating
+            which lines, either input or output, are supported for starting
+            exposure.
+        frame_start:
+            An instance of the `TriggerInputOutputCapabilities` class indicating
+            which lines, either input or output, are supported for starting a
+            frame.
+    """
+
     acquisition_start: TriggerInputOutputCapabilities
     exposure: TriggerInputOutputCapabilities
     frame_start: TriggerInputOutputCapabilities
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of a `TriggerCapabilities` object's attributes."""
+        ...
 
 @final
 class TriggerEdge:
@@ -947,11 +1176,14 @@ class TriggerEdge:
             Enum-type class variable of `TriggerEdge` that defines the rising
             edge of the trigger.
         AnyEdge:
-            Enum-type class variable
+            Enum-type class variable of `TriggerEdge` that defines any edge of
+            the trigger.
         LevelLow:
-            Enum-type class variable
+            Enum-type class variable of `TriggerEdge` that defines the low
+            level of the trigger.
         LevelHigh:
-            Enum-type class variable
+            Enum-type class variable of `TriggerEdge` that defines the high
+            level of the trigger.
     """
 
     Falling: ClassVar[TriggerEdge]
@@ -985,10 +1217,40 @@ class TriggerEdge:
 
 @final
 class TriggerInputOutputCapabilities:
+    """Specifies which of the up to 8 supported digital lines can be used for
+    either input or output triggering.
+
+    The 2 attributes, input and output, each are read-only values and 8-bit
+    integers from the conversion of the 8 binary digit representation of the
+    digital lines to a decimal integer.
+
+    Attributes:
+        input:
+            8-bit integer representing which digital lines can be used for
+            input triggering. For example, if lines 0 and 2 were available for
+            input triggers, the 8 binary digit representation of the lines is
+            00000101, which is 5 in the decimal system.
+        output:
+            8-bit integer representing which digital lines can be used for
+            output triggering. For example, if lines 3 and 5 were available for
+            output triggers, the 8 binary digit representation of the lines is
+            00101000, which is 40 in the decimal system.
+
+    Examples:
+        If lines 0 and 2 were available for input triggers, the 8 binary
+        digit representation would be 0b00000101, since the 8 available
+        lines are zero indexed. 00000101 binary is 5 in the decimal system,
+        so the input attribute would have a value of 5.
+    """
+
     input: int
     output: int
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of a `TriggerInputOutputCapabilities` object's
+        attributes.
+        """
+        ...
 
 @final
 class VideoFrame:
@@ -1044,7 +1306,10 @@ class VideoFrameTimestamps:
     acq_thread: int
 
     def dict(self) -> Dict[str, Any]:
-        """Returns a dictionary of a `VideoFrameTimestamps` object's attributes."""
+        """Returns a dictionary of a `VideoFrameTimestamps` object's
+        attributes.
+        """
+        ...
 
 @final
 class VideoStream:
@@ -1075,12 +1340,32 @@ class VideoStream:
 
 @final
 class VideoStreamCapabilities:
+    """The `VideoStreamCapabilities` class captures the capabilities for a
+    video stream.
+
+    Attributes:
+        camera:
+            An instance of the CameraCapabilities class which represents the
+            capabilities for the camera in this video stream.
+        storage:
+            An instance of the StorageCapabilities class which represents the
+            capabilities for the storage device in this video stream.
+        max_frame_count:
+            An instance of the Property class.
+        frame_average_count:
+            An instance of the Property class.
+    """
+
     camera: CameraCapabilities
     storage: StorageCapabilities
     max_frame_count: Property
     frame_average_count: Property
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]:
+        """Returns a dictionary of a `VideoStreamCapabilities` object's
+        attributes.
+        """
+        ...
 
 @final
 class VoltageRange:
