@@ -24,6 +24,7 @@ testing = [
     "dask",
     "ome-zarr",
     "ruff",
+    "dotenv",
 ]
 
 [project.entry-points."napari.manifest"]
