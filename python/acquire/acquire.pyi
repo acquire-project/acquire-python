@@ -345,8 +345,8 @@ class StorageDimension:
 class StorageProperties:
     uri: Optional[str]
     external_metadata_json: Optional[str]
-    access_key_id: Optional[str]
-    secret_access_key: Optional[str]
+    s3_access_key_id: Optional[str]
+    s3_secret_access_key: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     acquisition_dimensions: List[StorageDimension]

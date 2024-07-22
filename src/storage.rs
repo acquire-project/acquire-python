@@ -108,11 +108,11 @@ pub struct StorageProperties {
 
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) access_key_id: Option<String>,
+    pub(crate) s3_access_key_id: Option<String>,
 
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) secret_access_key: Option<String>,
+    pub(crate) s3_secret_access_key: Option<String>,
 
     /// Doesn't do anything right now. One day could be used for file-rollover.
     #[pyo3(get, set)]
@@ -136,8 +136,8 @@ impl Default for StorageProperties {
         Self {
             uri: Default::default(),
             external_metadata_json: Default::default(),
-            access_key_id: Default::default(),
-            secret_access_key: Default::default(),
+            s3_access_key_id: Default::default(),
+            s3_secret_access_key: Default::default(),
             first_frame_id: Default::default(),
             pixel_scale_um: (1., 1.), // Default to 1.0 um/pixel (square pixels)
             acquisition_dimensions: Default::default(),
@@ -168,7 +168,7 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
                     .to_owned(),
             )
         };
-        let access_key_id = if value.access_key_id.nbytes == 0 {
+        let s3_access_key_id = if value.access_key_id.nbytes == 0 {
             None
         } else {
             Some(
@@ -177,7 +177,7 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
                     .to_owned(),
             )
         };
-        let secret_access_key = if value.secret_access_key.nbytes == 0 {
+        let s3_secret_access_key = if value.secret_access_key.nbytes == 0 {
             None
         } else {
             Some(
@@ -204,8 +204,8 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
         Ok(Self {
             uri,
             external_metadata_json,
-            access_key_id,
-            secret_access_key,
+            s3_access_key_id,
+            s3_secret_access_key,
             first_frame_id: value.first_frame_id,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
             acquisition_dimensions,
@@ -361,7 +361,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // Careful: z needs to live long enough
-        let z = if let Some(metadata) = &value.access_key_id {
+        let z = if let Some(metadata) = &value.s3_access_key_id {
             Some(CString::new(metadata.as_str())?)
         } else {
             None
@@ -373,7 +373,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // Careful: w needs to live long enough
-        let w = if let Some(metadata) = &value.secret_access_key {
+        let w = if let Some(metadata) = &value.s3_secret_access_key {
             Some(CString::new(metadata.as_str())?)
         } else {
             None
