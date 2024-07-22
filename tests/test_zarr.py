@@ -1,10 +1,13 @@
 import json
+import os
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Optional
 
+import dotenv
 import numpy as np
 import pytest
+import s3fs
 import zarr
 from dask import array as da
 from numcodecs import blosc as blosc
@@ -14,6 +17,8 @@ from skimage.transform import downscale_local_mean
 
 import acquire
 from acquire import Runtime, DeviceKind
+
+dotenv.load_dotenv()
 
 
 # FIXME (aliddell): this should be module scoped, but the runtime is leaky
@@ -560,3 +565,96 @@ def test_metadata_with_trailing_whitespace(
     data = group["0"]
 
     assert data.attrs.asdict() == metadata
+
+
+def test_write_zarr_to_s3(runtime: Runtime, request: pytest.FixtureRequest):
+    if "ZARR_S3_ENDPOINT" not in os.environ:
+        pytest.skip("ZARR_S3_ENDPOINT not set")
+    if "ZARR_S3_BUCKET_NAME" not in os.environ:
+        pytest.skip("ZARR_S3_BUCKET_NAME not set")
+    if "ZARR_S3_ACCESS_KEY_ID" not in os.environ:
+        pytest.skip("ZARR_S3_ACCESS_KEY_ID not set")
+    if "ZARR_S3_SECRET_ACCESS_KEY" not in os.environ:
+        pytest.skip("ZARR_S3_SECRET_ACCESS_KEY not set")
+
+    zarr_s3_endpoint = os.environ["ZARR_S3_ENDPOINT"]
+    zarr_s3_bucket_name = os.environ["ZARR_S3_BUCKET_NAME"]
+    zarr_s3_access_key_id = os.environ["ZARR_S3_ACCESS_KEY_ID"]
+    zarr_s3_secret_access_key = os.environ["ZARR_S3_SECRET_ACCESS_KEY"]
+
+    dm = runtime.device_manager()
+    props = runtime.get_configuration()
+
+    props.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    props.video[0].camera.settings.shape = (1920, 1080)
+    props.video[0].camera.settings.exposure_time_us = 1e4
+    props.video[0].camera.settings.pixel_type = acquire.SampleType.U8
+
+    props.video[0].storage.identifier = dm.select(
+        DeviceKind.Storage,
+        "Zarr",
+    )
+    props.video[
+        0
+    ].storage.settings.uri = (
+        f"{zarr_s3_endpoint}/{zarr_s3_bucket_name}/{request.node.name}.zarr"
+    )
+    props.video[0].storage.settings.s3_access_key_id = zarr_s3_access_key_id
+    props.video[
+        0
+    ].storage.settings.s3_secret_access_key = zarr_s3_secret_access_key
+
+    props.video[0].max_frame_count = 64
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=960
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=540
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    props.video[0].storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
+
+    runtime.set_configuration(props)
+
+    runtime.start()
+    runtime.stop()
+
+    s3 = s3fs.S3FileSystem(
+        key=zarr_s3_access_key_id,
+        secret=zarr_s3_secret_access_key,
+        client_kwargs={"endpoint_url": zarr_s3_endpoint},
+    )
+    store = s3fs.S3Map(
+        root=f"{zarr_s3_bucket_name}/{request.node.name}.zarr", s3=s3
+    )
+    cache = zarr.LRUStoreCache(store, max_size=2**28)
+    group = zarr.group(store=cache)
+
+    data = group["0"]
+
+    assert data.chunks == (64, 540, 960)
+    assert data.shape == (
+        64,
+        props.video[0].camera.settings.shape[1],
+        props.video[0].camera.settings.shape[0],
+    )
+    assert data.nchunks == 4
+
+    # cleanup
+    s3.rm(f"{zarr_s3_bucket_name}/{request.node.name}.zarr", recursive=True)
