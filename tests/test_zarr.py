@@ -33,7 +33,9 @@ def test_set_acquisition_dimensions(
     props.video[0].camera.settings.shape = (64, 48)
 
     props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
-    props.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    props.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     props.video[0].max_frame_count = 32
 
     # configure storage dimensions
@@ -58,8 +60,6 @@ def test_set_acquisition_dimensions(
         dimension_t,
     ]
     assert len(props.video[0].storage.settings.acquisition_dimensions) == 3
-
-    # sleep(10)
 
     # set and test
     props = runtime.set_configuration(props)
@@ -106,12 +106,14 @@ def test_write_external_metadata_to_zarr(
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+        DeviceKind.Camera, "simulated.*empty.*"
     )
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
     p.video[0].max_frame_count = 4
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
@@ -150,8 +152,8 @@ def test_write_external_metadata_to_zarr(
             nframes += packet.get_frame_count()
     runtime.stop()
 
-    assert p.video[0].storage.settings.filename
-    store = parse_url(p.video[0].storage.settings.filename)
+    assert p.video[0].storage.settings.uri
+    store = parse_url(p.video[0].storage.settings.uri)
     assert store
     reader = Reader(store)
     nodes = list(reader())
@@ -190,7 +192,7 @@ def test_write_external_metadata_to_zarr(
 
     # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
     # to read external metadata instead.
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     assert group["0"].attrs.asdict() == metadata
 
 
@@ -204,8 +206,8 @@ def test_write_external_metadata_to_zarr(
 def test_write_compressed_zarr(
     runtime: Runtime, request: pytest.FixtureRequest, compressor_name
 ):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
+    uri = str(Path(mkdtemp()) / f"{request.node.name}.zarr")
+    uri = uri.replace("[", "_").replace("]", "_")
 
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -219,7 +221,7 @@ def test_write_compressed_zarr(
         f"ZarrBlosc1{compressor_name.capitalize()}ByteShuffle",
     )
     p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = filename
+    p.video[0].storage.settings.uri = uri
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
 
@@ -257,7 +259,7 @@ def test_write_compressed_zarr(
     runtime.stop()
 
     # load from Zarr
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.compressor.cname == compressor_name
@@ -273,7 +275,7 @@ def test_write_compressed_zarr(
     assert data.attrs.asdict() == metadata
 
     # load from Dask
-    data = da.from_zarr(p.video[0].storage.settings.filename, component="0")
+    data = da.from_zarr(p.video[0].storage.settings.uri, component="0")
     assert data.shape == (
         p.video[0].max_frame_count,
         1,
@@ -311,7 +313,9 @@ def test_write_zarr_with_chunking(
         DeviceKind.Storage,
         "Zarr",
     )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
@@ -341,7 +345,7 @@ def test_write_zarr_with_chunking(
     runtime.start()
     runtime.stop()
 
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.chunks == (64, 540, 960)
@@ -358,8 +362,8 @@ def test_write_zarr_multiscale(
     runtime: acquire.Runtime,
     request: pytest.FixtureRequest,
 ):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
+    uri = str(Path(mkdtemp()) / f"{request.node.name}.zarr")
+    uri = uri.replace("[", "_").replace("]", "_")
 
     dm = runtime.device_manager()
 
@@ -374,7 +378,7 @@ def test_write_zarr_multiscale(
         DeviceKind.Storage,
         "Zarr",
     )
-    p.video[0].storage.settings.filename = filename
+    p.video[0].storage.settings.uri = uri
     p.video[0].storage.settings.pixel_scale_um = (1, 1)
     p.video[0].max_frame_count = 100
 
@@ -406,12 +410,11 @@ def test_write_zarr_multiscale(
     runtime.start()
     runtime.stop()
 
-    reader = Reader(parse_url(filename))
+    reader = Reader(parse_url(uri))
     zgroup = list(reader())[0]
     # loads each layer as a dask array from the Zarr dataset
     data = [
-        da.from_zarr(filename, component=str(i))
-        for i in range(len(zgroup.data))
+        da.from_zarr(uri, component=str(i)) for i in range(len(zgroup.data))
     ]
     assert len(data) == 3
 
@@ -454,7 +457,9 @@ def test_write_zarr_v3(
         DeviceKind.Storage,
         f"ZarrV3Blosc1{codec.capitalize()}ByteShuffle" if codec else "ZarrV3",
     )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
@@ -493,7 +498,7 @@ def test_write_zarr_v3(
     runtime.start()
     runtime.stop()
 
-    store = zarr.DirectoryStoreV3(p.video[0].storage.settings.filename)
+    store = zarr.DirectoryStoreV3(p.video[0].storage.settings.uri)
     group = zarr.open(store=store, mode="r")
     data = group["0"]
 
@@ -519,7 +524,7 @@ def test_metadata_with_trailing_whitespace(
     p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
     p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = str(
+    p.video[0].storage.settings.uri = str(
         Path(mkdtemp()) / f"{request.node.name}.zarr"
     )
     metadata = {"foo": "bar"}
@@ -552,7 +557,7 @@ def test_metadata_with_trailing_whitespace(
     runtime.stop()
 
     # load from Zarr
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.attrs.asdict() == metadata
