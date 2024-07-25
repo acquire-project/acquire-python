@@ -435,6 +435,9 @@ class DigitalLineCapabilities:
             last one is the camera software trigger.
     """
 
+    line_count: int
+    names: Tuple[str, ...]
+
     def dict(self) -> Dict[str, Any]:
         """Returns a dictionary of the `DigitalLineCapabilities` object's
         attributes.
