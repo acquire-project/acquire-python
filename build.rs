@@ -58,11 +58,11 @@ fn main() {
     // download and copy driver artifacts
     let drivers_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("drivers");
 
-    // fetch_acquire_driver(
-    //     &drivers_dir,
-    //     "acquire-driver-zarr",
-    //     tags.acquire_driver_zarr.as_str(),
-    // );
+    fetch_acquire_driver(
+        &drivers_dir,
+        "acquire-driver-zarr",
+        tags.acquire_driver_zarr.as_str(),
+    );
     fetch_acquire_driver(
         &drivers_dir,
         "acquire-driver-egrabber",
