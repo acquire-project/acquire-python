@@ -20,11 +20,9 @@ fn main() {
 
     let dst = cmake::Config::new("acquire-common")
         .profile("RelWithDebInfo")
-        .static_crt(false)
         .define("NOTEST", "TRUE")
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")
-        .define("ACQUIRE_MSVC_USE_MD", "FALSE")
         .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15")
         .define("CMAKE_OSX_ARCHITECTURES", "x86_64;arm64")
         .build();
