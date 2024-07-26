@@ -1024,7 +1024,7 @@ class StorageCapabilities:
         chunking_is_supported:
             A boolean indicating whether chunking is supported for this storage
             device.
-        shard_is_supported:
+        sharding_is_supported:
             A boolean indicating whether sharding is supported for this storage
             device.
         multiscale_is_supported:
@@ -1075,18 +1075,21 @@ class StorageDimension:
 
 @final
 class StorageProperties:
-    uri: Optional[str]
     """The `StorageProperties` class represents properties for data storage.
 
     Attributes:
-        external_metadata_json:
-            An optional attribute of the metadata JSON filename as a string.
         uri:
-            An optional attribute representing the URI for storing the
-            image data.
+            The URI where the image data will be stored.
+        external_metadata_json:
+            Optional JSON-formatted metadata for the acquisition.
+        s3_access_key_id:
+            The access key ID for the S3 bucket. This value is only applicable
+            for Zarr storage devices and S3 URIs.
+        s3_secret_access_key:
+            The secret access key for the S3 bucket. This value is only applicable
+            for Zarr storage devices and S3 URIs.
         first_frame_id:
-            An integer representing the ID of the first frame for a given
-            acquisition.
+            The ID of the first frame.
         pixel_scale_um:
             A tuple of two floats representing the pixel size of the camera in
             micrometers.
@@ -1099,9 +1102,10 @@ class StorageProperties:
             A boolean indicating whether multiscale storage is enabled.
     """
 
+    uri: Optional[str]
     external_metadata_json: Optional[str]
-    access_key_id: Optional[str]
-    secret_access_key: Optional[str]
+    s3_access_key_id: Optional[str]
+    s3_secret_access_key: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     acquisition_dimensions: List[StorageDimension]
