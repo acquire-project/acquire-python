@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from time import sleep
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import acquire
 from acquire import DeviceKind, DeviceState, Runtime, Trigger, PropertyType
@@ -380,7 +380,7 @@ def test_abort(runtime: Runtime):
 
 def wait_for_data(
     runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None
-) -> acquire.AvailableData:
+) -> Tuple[int, int]:
     # None is used as a missing sentinel value, not to indicate no timeout.
     if timeout is None:
         timeout = timedelta(seconds=5)
@@ -517,14 +517,14 @@ def test_simulated_camera_capabilities(
 
 
 @pytest.mark.parametrize(
-    ("descriptor", "chunking", "sharding", "multiscale"),
+    ("descriptor", "chunking", "sharding", "multiscale", "s3"),
     [
-        ("raw", False, False, False),
-        ("trash", False, False, False),
-        ("tiff", False, False, False),
-        ("tiff-json", False, False, False),
-        ("zarr", True, False, True),
-        ("zarrv3", True, True, False),
+        ("raw", False, False, False, False),
+        ("trash", False, False, False, False),
+        ("tiff", False, False, False, False),
+        ("tiff-json", False, False, False, False),
+        ("zarr", True, False, True, True),
+        ("zarrv3", True, True, True, True),
     ],
 )
 def test_storage_capabilities(
@@ -533,6 +533,7 @@ def test_storage_capabilities(
     chunking: bool,
     sharding: bool,
     multiscale: bool,
+    s3: bool,
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -551,6 +552,7 @@ def test_storage_capabilities(
     assert storage.chunking_is_supported == chunking
     assert storage.sharding_is_supported == sharding
     assert storage.multiscale_is_supported == multiscale
+    assert storage.s3_is_supported == s3
 
 
 def test_invalidated_frame(runtime: Runtime):
