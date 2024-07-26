@@ -48,6 +48,8 @@ def setup(
     storage: Union[str, List[str]] = "Tiff",
     output_filename: Optional[str] = "out.tif",
 ) -> Properties:
+    """Set up the runtime with a camera and storage device."""
+
     def normalize_fallback_arg(arg: Union[str, List[str]]) -> List[str]:
         if isinstance(arg, str):
             return [arg]
