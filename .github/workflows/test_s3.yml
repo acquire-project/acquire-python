@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  s3:
+    name: Test S3 functionality
+    runs-on: ubuntu-latest
+    env:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+      MINIO_URL: http://localhost:9000
+      MINIO_ALIAS: myminio
+      MINIO_ACCESS_KEY: acquire
+      MINIO_SECRET_KEY: 12345678
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install minio and mcli
+        run: |
+          apt update && apt install -y tmux wget
+          wget https://dl.min.io/server/minio/release/linux-amd64/minio_20240726204821.0.0_amd64.deb
+          dpkg -i minio_20240726204821.0.0_amd64.deb
+          
+          wget https://dl.min.io/client/mc/release/linux-amd64/mcli_20240726130844.0.0_amd64.deb
+          dpkg -i mcli_20240726130844.0.0_amd64.deb
+
+      - name: Start minio in tmux
+        run: |
+          tmux new -d -s minio
+          tmux send-keys -t minio "MINIO_ROOT_USER=$MINIO_ROOT_USER MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD minio server /tmp/minio --console-address :9001" Enter
+          sleep 5
+          mcli alias set $MINIO_ALIAS $MINIO_URL $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+          mcli admin user svcacct add --access-key $MINIO_ACCESS_KEY --secret-key $MINIO_SECRET_KEY $MINIO_ALIAS $MINIO_ROOT_USER
