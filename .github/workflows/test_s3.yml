@@ -30,11 +30,10 @@ jobs:
       - name: Install minio and mcli
         run: |
           apt update && apt install -y tmux wget
-          wget https://dl.min.io/server/minio/release/linux-amd64/minio_20240726204821.0.0_amd64.deb
-          dpkg -i minio_20240726204821.0.0_amd64.deb
-          
-          wget https://dl.min.io/client/mc/release/linux-amd64/mcli_20240726130844.0.0_amd64.deb
-          dpkg -i mcli_20240726130844.0.0_amd64.deb
+          wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio
+          wget https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mcli
+          chmod +x /usr/local/bin/minio
+          chmod +x /usr/local/bin/mcli
 
       - name: Start minio in tmux
         run: |
