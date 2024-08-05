@@ -20,7 +20,6 @@ fn main() {
 
     let dst = cmake::Config::new("acquire-common")
         .profile("RelWithDebInfo")
-        .static_crt(true)
         .define("NOTEST", "TRUE")
         .define("NO_UNIT_TESTS", "TRUE")
         .define("NO_EXAMPLES", "TRUE")

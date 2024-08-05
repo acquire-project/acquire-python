@@ -17,11 +17,16 @@ jobs:
       MINIO_ROOT_PASSWORD: password
       MINIO_URL: http://localhost:9000
       MINIO_ALIAS: myminio
+      MINIO_BUCKET: acquire-test
       MINIO_ACCESS_KEY: acquire
       MINIO_SECRET_KEY: 12345678
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -42,3 +47,20 @@ jobs:
           sleep 5
           mcli alias set $MINIO_ALIAS $MINIO_URL $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
           mcli admin user svcacct add --access-key $MINIO_ACCESS_KEY --secret-key $MINIO_SECRET_KEY $MINIO_ALIAS $MINIO_ROOT_USER
+
+      - name: Create a bucket
+        run: |
+          mcli mb $MINIO_ALIAS/$MINIO_BUCKET
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install '.[testing]'
+
+      - name: Test
+        run: |
+          echo "ZARR_S3_ENDPOINT=$MINIO_URL" > .env
+          echo "ZARR_S3_BUCKET_NAME=$MINIO_BUCKET" >> .env
+          echo "ZARR_S3_ACCESS_KEY_ID=$MINIO_ACCESS_KEY" >> .env
+          echo "ZARR_S3_SECRET_ACCESS_KEY=$MINIO_SECRET_KEY" >> .env
+          python -m pytest -k test_write_zarr_to_s3

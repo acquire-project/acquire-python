@@ -1,10 +1,13 @@
 import json
+import os
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Optional
 
+import dotenv
 import numpy as np
 import pytest
+import s3fs
 import zarr
 from dask import array as da
 from numcodecs import blosc as blosc
@@ -15,11 +18,13 @@ from skimage.transform import downscale_local_mean
 import acquire
 from acquire import Runtime, DeviceKind
 
+dotenv.load_dotenv()
+
 
 # FIXME (aliddell): this should be module scoped, but the runtime is leaky
 @pytest.fixture(scope="function")
 def runtime():
-    yield acquire.Runtime()
+    yield Runtime()
 
 
 def test_set_acquisition_dimensions(
@@ -33,7 +38,9 @@ def test_set_acquisition_dimensions(
     props.video[0].camera.settings.shape = (64, 48)
 
     props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
-    props.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    props.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     props.video[0].max_frame_count = 32
 
     # configure storage dimensions
@@ -58,8 +65,6 @@ def test_set_acquisition_dimensions(
         dimension_t,
     ]
     assert len(props.video[0].storage.settings.acquisition_dimensions) == 3
-
-    # sleep(10)
 
     # set and test
     props = runtime.set_configuration(props)
@@ -104,17 +109,21 @@ def test_write_external_metadata_to_zarr(
     runtime: Runtime, request: pytest.FixtureRequest
 ):
     dm = runtime.device_manager()
-    p = runtime.get_configuration()
-    p.video[0].camera.identifier = dm.select(
-        DeviceKind.Camera, "simulated.*sin.*"
+    props = runtime.get_configuration()
+    props.video[0].camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
     )
-    p.video[0].camera.settings.shape = (33, 47)
-    p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
-    p.video[0].max_frame_count = 4
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    props.video[0].camera.settings.shape = (33, 47)
+    props.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
+    props.video[0].max_frame_count = 4
+    props.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     metadata = {"hello": "world"}
-    p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
-    p.video[0].storage.settings.pixel_scale_um = (0.5, 4)
+    props.video[0].storage.settings.external_metadata_json = json.dumps(
+        metadata
+    )
+    props.video[0].storage.settings.pixel_scale_um = (0.5, 4)
 
     # configure storage dimensions
     dimension_x = acquire.StorageDimension(
@@ -132,23 +141,23 @@ def test_write_external_metadata_to_zarr(
     )
     assert dimension_z.shard_size_chunks == 0
 
-    p.video[0].storage.settings.acquisition_dimensions = [
+    props.video[0].storage.settings.acquisition_dimensions = [
         dimension_x,
         dimension_y,
         dimension_z,
     ]
 
-    p = runtime.set_configuration(p)
+    props = runtime.set_configuration(props)
 
     nframes = 0
     runtime.start()
-    while nframes < p.video[0].max_frame_count:
+    while nframes < props.video[0].max_frame_count:
         with runtime.get_available_data(0) as packet:
             nframes += packet.get_frame_count()
     runtime.stop()
 
-    assert p.video[0].storage.settings.filename
-    store = parse_url(p.video[0].storage.settings.filename)
+    assert props.video[0].storage.settings.uri
+    store = parse_url(props.video[0].storage.settings.uri)
     assert store
     reader = Reader(store)
     nodes = list(reader())
@@ -161,9 +170,9 @@ def test_write_external_metadata_to_zarr(
     # scale/level.
     image_data = multi_scale_image_node.data[0]
     assert image_data.shape == (
-        p.video[0].max_frame_count,
-        p.video[0].camera.settings.shape[1],
-        p.video[0].camera.settings.shape[0],
+        props.video[0].max_frame_count,
+        props.video[0].camera.settings.shape[1],
+        props.video[0].camera.settings.shape[0],
     )
 
     multi_scale_image_metadata = multi_scale_image_node.metadata
@@ -183,11 +192,11 @@ def test_write_external_metadata_to_zarr(
     pixel_scale_um = tuple(
         transform["scale"][axis_names.index(axis)] for axis in ("x", "y")
     )
-    assert pixel_scale_um == p.video[0].storage.settings.pixel_scale_um
+    assert pixel_scale_um == props.video[0].storage.settings.pixel_scale_um
 
     # ome-zarr only reads attributes it recognizes, so use a plain zarr reader
     # to read external metadata instead.
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(props.video[0].storage.settings.uri)
     assert group["0"].attrs.asdict() == metadata
 
 
@@ -201,8 +210,8 @@ def test_write_external_metadata_to_zarr(
 def test_write_compressed_zarr(
     runtime: Runtime, request: pytest.FixtureRequest, compressor_name
 ):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
+    uri = str(Path(mkdtemp()) / f"{request.node.name}.zarr")
+    uri = uri.replace("[", "_").replace("]", "_")
 
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -216,7 +225,7 @@ def test_write_compressed_zarr(
         f"ZarrBlosc1{compressor_name.capitalize()}ByteShuffle",
     )
     p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = filename
+    p.video[0].storage.settings.uri = uri
     metadata = {"foo": "bar"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
 
@@ -254,7 +263,7 @@ def test_write_compressed_zarr(
     runtime.stop()
 
     # load from Zarr
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.compressor.cname == compressor_name
@@ -270,7 +279,7 @@ def test_write_compressed_zarr(
     assert data.attrs.asdict() == metadata
 
     # load from Dask
-    data = da.from_zarr(p.video[0].storage.settings.filename, component="0")
+    data = da.from_zarr(p.video[0].storage.settings.uri, component="0")
     assert data.shape == (
         p.video[0].max_frame_count,
         1,
@@ -308,7 +317,9 @@ def test_write_zarr_with_chunking(
         DeviceKind.Storage,
         "Zarr",
     )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
@@ -338,7 +349,7 @@ def test_write_zarr_with_chunking(
     runtime.start()
     runtime.stop()
 
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.chunks == (64, 540, 960)
@@ -355,8 +366,8 @@ def test_write_zarr_multiscale(
     runtime: acquire.Runtime,
     request: pytest.FixtureRequest,
 ):
-    filename = f"{request.node.name}.zarr"
-    filename = filename.replace("[", "_").replace("]", "_")
+    uri = str(Path(mkdtemp()) / f"{request.node.name}.zarr")
+    uri = uri.replace("[", "_").replace("]", "_")
 
     dm = runtime.device_manager()
 
@@ -371,7 +382,7 @@ def test_write_zarr_multiscale(
         DeviceKind.Storage,
         "Zarr",
     )
-    p.video[0].storage.settings.filename = filename
+    p.video[0].storage.settings.uri = uri
     p.video[0].storage.settings.pixel_scale_um = (1, 1)
     p.video[0].max_frame_count = 100
 
@@ -403,12 +414,11 @@ def test_write_zarr_multiscale(
     runtime.start()
     runtime.stop()
 
-    reader = Reader(parse_url(filename))
+    reader = Reader(parse_url(uri))
     zgroup = list(reader())[0]
     # loads each layer as a dask array from the Zarr dataset
     data = [
-        da.from_zarr(filename, component=str(i))
-        for i in range(len(zgroup.data))
+        da.from_zarr(uri, component=str(i)) for i in range(len(zgroup.data))
     ]
     assert len(data) == 3
 
@@ -451,7 +461,9 @@ def test_write_zarr_v3(
         DeviceKind.Storage,
         f"ZarrV3Blosc1{codec.capitalize()}ByteShuffle" if codec else "ZarrV3",
     )
-    p.video[0].storage.settings.filename = f"{request.node.name}.zarr"
+    p.video[0].storage.settings.uri = str(
+        Path(mkdtemp()) / f"{request.node.name}.zarr"
+    )
     p.video[0].max_frame_count = number_of_frames
 
     # configure storage dimensions
@@ -490,7 +502,7 @@ def test_write_zarr_v3(
     runtime.start()
     runtime.stop()
 
-    store = zarr.DirectoryStoreV3(p.video[0].storage.settings.filename)
+    store = zarr.DirectoryStoreV3(p.video[0].storage.settings.uri)
     group = zarr.open(store=store, mode="r")
     data = group["0"]
 
@@ -516,7 +528,7 @@ def test_metadata_with_trailing_whitespace(
     p.video[0].camera.settings.exposure_time_us = 1e4
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Zarr")
     p.video[0].max_frame_count = 70
-    p.video[0].storage.settings.filename = str(
+    p.video[0].storage.settings.uri = str(
         Path(mkdtemp()) / f"{request.node.name}.zarr"
     )
     metadata = {"foo": "bar"}
@@ -549,7 +561,99 @@ def test_metadata_with_trailing_whitespace(
     runtime.stop()
 
     # load from Zarr
-    group = zarr.open(p.video[0].storage.settings.filename)
+    group = zarr.open(p.video[0].storage.settings.uri)
     data = group["0"]
 
     assert data.attrs.asdict() == metadata
+
+
+def test_write_zarr_to_s3(runtime: Runtime, request: pytest.FixtureRequest):
+    required_env_vars = [
+        "ZARR_S3_ENDPOINT",
+        "ZARR_S3_BUCKET_NAME",
+        "ZARR_S3_ACCESS_KEY_ID",
+        "ZARR_S3_SECRET_ACCESS_KEY",
+    ]
+
+    for var in required_env_vars:
+        if var not in os.environ:
+            pytest.skip(f"{var} not set")
+
+    zarr_s3_endpoint = os.environ["ZARR_S3_ENDPOINT"]
+    zarr_s3_bucket_name = os.environ["ZARR_S3_BUCKET_NAME"]
+    zarr_s3_access_key_id = os.environ["ZARR_S3_ACCESS_KEY_ID"]
+    zarr_s3_secret_access_key = os.environ["ZARR_S3_SECRET_ACCESS_KEY"]
+
+    dm = runtime.device_manager()
+    props = runtime.get_configuration()
+    video = props.video[0]
+
+    video.camera.identifier = dm.select(
+        DeviceKind.Camera, "simulated.*empty.*"
+    )
+    video.camera.settings.shape = (1920, 1080)
+    video.camera.settings.exposure_time_us = 1e4
+    video.camera.settings.pixel_type = acquire.SampleType.U8
+
+    video.storage.identifier = dm.select(
+        DeviceKind.Storage,
+        "Zarr",
+    )
+    video.storage.settings.uri = (
+        f"{zarr_s3_endpoint}/{zarr_s3_bucket_name}/{request.node.name}.zarr"
+    )
+    video.storage.settings.s3_access_key_id = zarr_s3_access_key_id
+    video.storage.settings.s3_secret_access_key = zarr_s3_secret_access_key
+
+    video.max_frame_count = 64
+
+    # configure storage dimensions
+    dimension_x = acquire.StorageDimension(
+        name="x", kind="Space", array_size_px=1920, chunk_size_px=960
+    )
+    assert dimension_x.shard_size_chunks == 0
+
+    dimension_y = acquire.StorageDimension(
+        name="y", kind="Space", array_size_px=1080, chunk_size_px=540
+    )
+    assert dimension_y.shard_size_chunks == 0
+
+    dimension_t = acquire.StorageDimension(
+        name="t", kind="Time", array_size_px=0, chunk_size_px=64
+    )
+    assert dimension_t.shard_size_chunks == 0
+
+    video.storage.settings.acquisition_dimensions = [
+        dimension_x,
+        dimension_y,
+        dimension_t,
+    ]
+
+    runtime.set_configuration(props)
+
+    runtime.start()
+    runtime.stop()
+
+    s3 = s3fs.S3FileSystem(
+        key=zarr_s3_access_key_id,
+        secret=zarr_s3_secret_access_key,
+        client_kwargs={"endpoint_url": zarr_s3_endpoint},
+    )
+    store = s3fs.S3Map(
+        root=f"{zarr_s3_bucket_name}/{request.node.name}.zarr", s3=s3
+    )
+    cache = zarr.LRUStoreCache(store, max_size=2**28)
+    group = zarr.group(store=cache)
+
+    data = group["0"]
+
+    assert data.chunks == (64, 540, 960)
+    assert data.shape == (
+        64,
+        video.camera.settings.shape[1],
+        video.camera.settings.shape[0],
+    )
+    assert data.nchunks == 4
+
+    # cleanup
+    s3.rm(f"{zarr_s3_bucket_name}/{request.node.name}.zarr", recursive=True)

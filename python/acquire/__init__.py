@@ -27,7 +27,6 @@ import logging
 if TYPE_CHECKING:
     import napari  # type: ignore
 
-
 g_runtime: Optional[Runtime] = None
 """The global acquire runtime."""
 
@@ -68,7 +67,7 @@ def setup(
     p.video[0].storage.identifier = dm.select_one_of(
         DeviceKind.Storage, storage
     )
-    p.video[0].storage.settings.filename = output_filename
+    p.video[0].storage.settings.uri = output_filename
     p.video[0].max_frame_count = 100
     p.video[0].frame_average_count = 0  # disables
 
@@ -91,7 +90,6 @@ def setup_one_streams(runtime: Runtime, frame_count: int) -> Properties:
 
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, cameras[0])
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    # p.video[0].storage.settings.filename = output_filename
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (64, 64)
     p.video[0].camera.settings.pixel_type = SampleType.U16
@@ -116,7 +114,6 @@ def setup_two_streams(runtime: Runtime, frame_count: int) -> Properties:
 
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, cameras[0])
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    # p.video[0].storage.settings.filename = output_filename
     p.video[0].camera.settings.binning = 1
     p.video[0].camera.settings.shape = (2304, 2304)
     p.video[0].camera.settings.pixel_type = SampleType.U16
@@ -125,7 +122,6 @@ def setup_two_streams(runtime: Runtime, frame_count: int) -> Properties:
 
     p.video[1].camera.identifier = dm.select(DeviceKind.Camera, cameras[1])
     p.video[1].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
-    # p.video[1].storage.settings.filename = output_filename
     p.video[1].camera.settings.binning = 1
     p.video[1].camera.settings.shape = (64, 64)
     p.video[1].camera.settings.pixel_type = SampleType.U16
@@ -221,7 +217,9 @@ def gui(
         counts, bins = histogram(update_times)
         p50 = bins[where(cumsum(counts) >= 0.5 * len(update_times))[0][0]]
         p90 = bins[where(cumsum(counts) >= 0.9 * len(update_times))[0][0]]
-        logging.info(f"Update times - median: {p50*1e3} ms  90%<{p90*1e3} ms")
+        logging.info(
+            f"Update times - median: {p50 * 1e3} ms  90%<{p90 * 1e3} ms"
+        )
 
         runtime.stop()
         logging.info("STOPPED")

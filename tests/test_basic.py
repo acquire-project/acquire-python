@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from time import sleep
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import acquire
 from acquire import DeviceKind, DeviceState, Runtime, Trigger, PropertyType
@@ -102,7 +102,7 @@ def test_repeat_acq(runtime: Runtime):
     assert (
         p.video[0].storage.identifier is not None
     ), "Expected a storage identifier"
-    assert p.video[0].storage.settings.filename == "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
     p.video[0].camera.settings.shape = (192, 108)
     p.video[0].max_frame_count = 10
     p = runtime.set_configuration(p)
@@ -165,15 +165,15 @@ def test_set_storage(runtime: Runtime):
     )
     assert p.video[0].storage.identifier is not None
 
-    p.video[0].storage.settings.filename = "out.tif"
-    assert p.video[0].storage.settings.filename == "out.tif"
+    p.video[0].storage.settings.uri = "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
 
 
 def test_setup(runtime: Runtime):
     p = acquire.setup(runtime, "simulated.*empty", "Trash")
     assert p.video[0].camera.identifier is not None
     assert p.video[0].storage.identifier is not None
-    assert p.video[0].storage.settings.filename == "out.tif"
+    assert p.video[0].storage.settings.uri == "out.tif"
     assert p.video[0].max_frame_count == 100
     p.video[0].camera.settings.shape = (192, 108)
     p = runtime.set_configuration(p)
@@ -196,7 +196,7 @@ def test_setup(runtime: Runtime):
             for f in a.frames():
                 logging.info(
                     f"{f.data().shape} {f.data()[0][0][0][0]} "
-                    + f"{f.metadata()}"
+                    f"{f.metadata()}"
                 )
             nframes += packet
             logging.info(
@@ -219,7 +219,7 @@ def test_selection_is_consistent(runtime: Runtime):
     assert hcam1 == hcam2
 
 
-def test_change_filename(runtime: Runtime):
+def test_change_uri(runtime: Runtime):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
     p.video[0].camera.identifier = dm.select(DeviceKind.Camera, "simulated.*")
@@ -233,9 +233,9 @@ def test_change_filename(runtime: Runtime):
         "another long one ok it is really long this time.tif",
     ]
     for name in names:
-        p.video[0].storage.settings.filename = name
+        p.video[0].storage.settings.uri = name
         p = runtime.set_configuration(p)
-        assert p.video[0].storage.settings.filename == name
+        assert p.video[0].storage.settings.uri == name
 
         nframes = 0
         runtime.start()
@@ -257,7 +257,7 @@ def test_write_external_metadata_to_tiff(
     p.video[0].camera.settings.shape = (33, 47)
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Tiff")
     p.video[0].max_frame_count = 3
-    p.video[0].storage.settings.filename = f"{request.node.name}.tif"
+    p.video[0].storage.settings.uri = f"{request.node.name}.tif"
     metadata = {"hello": "world"}
     p.video[0].storage.settings.external_metadata_json = json.dumps(metadata)
     runtime.set_configuration(p)
@@ -270,7 +270,7 @@ def test_write_external_metadata_to_tiff(
     runtime.stop()
 
     # Check that the written tif has the expected structure
-    with tifffile.TiffFile(p.video[0].storage.settings.filename) as f:
+    with tifffile.TiffFile(p.video[0].storage.settings.uri) as f:
 
         def meta(iframe: int) -> Dict[Any, Any]:
             return json.loads(f.pages[iframe].tags["ImageDescription"].value)
@@ -287,7 +287,7 @@ def test_write_external_metadata_to_tiff(
 
 @pytest.mark.skip(
     reason="Runs into memory limitations on github ci."
-    + " See https://github.com/acquire-project/cpx/issues/147"
+    " See https://github.com/acquire-project/cpx/issues/147"
 )
 def test_two_video_streams(runtime: Runtime):
     dm = runtime.device_manager()
@@ -334,9 +334,9 @@ def test_two_video_streams(runtime: Runtime):
                     expected_frame_id = nframes[stream_id] + i
                     assert frame.metadata().frame_id == expected_frame_id, (
                         "frame id's didn't match "
-                        + f"({frame.metadata().frame_id}"
-                        + f"!={expected_frame_id})"
-                        + f" [stream {stream_id} nframes {nframes}]"
+                        f"({frame.metadata().frame_id}"
+                        f"!={expected_frame_id})"
+                        f" [stream {stream_id} nframes {nframes}]"
                     )
                 nframes[stream_id] += n
                 logging.debug(f"NFRAMES {nframes}")
@@ -380,7 +380,7 @@ def test_abort(runtime: Runtime):
 
 def wait_for_data(
     runtime: Runtime, stream_id: int = 0, timeout: Optional[timedelta] = None
-) -> acquire.AvailableData:
+) -> Tuple[int, int]:
     # None is used as a missing sentinel value, not to indicate no timeout.
     if timeout is None:
         timeout = timedelta(seconds=5)
@@ -517,14 +517,14 @@ def test_simulated_camera_capabilities(
 
 
 @pytest.mark.parametrize(
-    ("descriptor", "chunking", "sharding", "multiscale"),
+    ("descriptor", "chunking", "sharding", "multiscale", "s3"),
     [
-        ("raw", False, False, False),
-        ("trash", False, False, False),
-        ("tiff", False, False, False),
-        ("tiff-json", False, False, False),
-        ("zarr", True, False, True),
-        ("zarrv3", True, True, False),
+        ("raw", False, False, False, False),
+        ("trash", False, False, False, False),
+        ("tiff", False, False, False, False),
+        ("tiff-json", False, False, False, False),
+        ("zarr", True, False, True, True),
+        ("zarrv3", True, True, True, True),
     ],
 )
 def test_storage_capabilities(
@@ -533,6 +533,7 @@ def test_storage_capabilities(
     chunking: bool,
     sharding: bool,
     multiscale: bool,
+    s3: bool,
 ):
     dm = runtime.device_manager()
     p = runtime.get_configuration()
@@ -551,6 +552,7 @@ def test_storage_capabilities(
     assert storage.chunking_is_supported == chunking
     assert storage.sharding_is_supported == sharding
     assert storage.multiscale_is_supported == multiscale
+    assert storage.s3_is_supported == s3
 
 
 def test_invalidated_frame(runtime: Runtime):
@@ -585,7 +587,7 @@ def test_switch_device_identifier(
 
     dm = runtime.device_manager()
     p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "tiff")
-    p.video[0].storage.settings.filename = f"{request.node.name}.tif"
+    p.video[0].storage.settings.uri = f"{request.node.name}.tif"
     p = runtime.set_configuration(p)
     assert p.video[0].storage.identifier.name == "tiff"
 
@@ -593,11 +595,41 @@ def test_switch_device_identifier(
     runtime.stop()
 
     # will raise an exception if the file doesn't exist or is invalid
-    with tifffile.TiffFile(p.video[0].storage.settings.filename):
+    with tifffile.TiffFile(p.video[0].storage.settings.uri):
         pass
 
     # cleanup
-    os.remove(p.video[0].storage.settings.filename)
+    os.remove(p.video[0].storage.settings.uri)
+
+
+def test_acquire_unaligned(runtime: Runtime):
+    """Due to the way the queue is constructed, if a VideoFrame with data has
+    a size that is not divisible by 8 bytes, the next VideoFrame will be
+    unaligned. Rust will panic when this happens, so we pad VideoFrames to 8
+    bytes. This test checks that the runtime handles this correctly to satisfy
+    Rust.
+    """
+    dm = runtime.device_manager()
+    props = runtime.get_configuration()
+    video = props.video[0]
+    video.camera.identifier = dm.select(acquire.DeviceKind.Camera, ".*empty.*")
+
+    # sizeof(VideoFrame) + 33 * 47 is not divisible by 8
+    video.camera.settings.shape = (33, 47)
+    video.storage.identifier = dm.select(acquire.DeviceKind.Storage, "trash")
+
+    video.max_frame_count = 3
+    runtime.set_configuration(props)
+
+    nframes = 0
+    runtime.start()
+    while nframes < video.max_frame_count:
+        with runtime.get_available_data(0) as packet:
+            for i in range(packet.get_frame_count()):
+                _ = next(packet.frames())
+                nframes += 1
+    runtime.stop()
+    assert nframes == video.max_frame_count
 
 
 # NOTES:

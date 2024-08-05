@@ -100,11 +100,19 @@ impl TryFrom<capi::StorageDimension> for StorageDimension {
 pub struct StorageProperties {
     #[pyo3(get, set)]
     #[serde(default)]
-    pub(crate) filename: Option<String>,
+    pub(crate) uri: Option<String>,
 
     #[pyo3(get, set)]
     #[serde(default)]
     pub(crate) external_metadata_json: Option<String>,
+
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) s3_access_key_id: Option<String>,
+
+    #[pyo3(get, set)]
+    #[serde(default)]
+    pub(crate) s3_secret_access_key: Option<String>,
 
     /// Doesn't do anything right now. One day could be used for file-rollover.
     #[pyo3(get, set)]
@@ -126,8 +134,10 @@ impl_plain_old_dict!(StorageProperties);
 impl Default for StorageProperties {
     fn default() -> Self {
         Self {
-            filename: Default::default(),
+            uri: Default::default(),
             external_metadata_json: Default::default(),
+            s3_access_key_id: Default::default(),
+            s3_secret_access_key: Default::default(),
             first_frame_id: Default::default(),
             pixel_scale_um: (1., 1.), // Default to 1.0 um/pixel (square pixels)
             acquisition_dimensions: Default::default(),
@@ -140,11 +150,11 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: capi::StorageProperties) -> Result<Self, Self::Error> {
-        let filename = if value.filename.nbytes == 0 {
+        let uri = if value.uri.nbytes == 0 {
             None
         } else {
             Some(
-                unsafe { CStr::from_ptr(value.filename.str_) }
+                unsafe { CStr::from_ptr(value.uri.str_) }
                     .to_str()?
                     .to_owned(),
             )
@@ -154,6 +164,24 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
         } else {
             Some(
                 unsafe { CStr::from_ptr(value.external_metadata_json.str_) }
+                    .to_str()?
+                    .to_owned(),
+            )
+        };
+        let s3_access_key_id = if value.access_key_id.nbytes == 0 {
+            None
+        } else {
+            Some(
+                unsafe { CStr::from_ptr(value.access_key_id.str_) }
+                    .to_str()?
+                    .to_owned(),
+            )
+        };
+        let s3_secret_access_key = if value.secret_access_key.nbytes == 0 {
+            None
+        } else {
+            Some(
+                unsafe { CStr::from_ptr(value.secret_access_key.str_) }
                     .to_str()?
                     .to_owned(),
             )
@@ -174,9 +202,11 @@ impl TryFrom<capi::StorageProperties> for StorageProperties {
         }
 
         Ok(Self {
-            filename,
-            first_frame_id: value.first_frame_id,
+            uri,
             external_metadata_json,
+            s3_access_key_id,
+            s3_secret_access_key,
+            first_frame_id: value.first_frame_id,
             pixel_scale_um: (value.pixel_scale_um.x, value.pixel_scale_um.y),
             acquisition_dimensions,
             enable_multiscale: (value.enable_multiscale == 1),
@@ -254,6 +284,9 @@ pub struct StorageCapabilities {
 
     #[pyo3(get)]
     multiscale_is_supported: bool,
+
+    #[pyo3(get)]
+    s3_is_supported: bool,
 }
 
 impl_plain_old_dict!(StorageCapabilities);
@@ -264,6 +297,7 @@ impl Default for StorageCapabilities {
             chunking_is_supported: Default::default(),
             sharding_is_supported: Default::default(),
             multiscale_is_supported: Default::default(),
+            s3_is_supported: Default::default(),
         }
     }
 }
@@ -276,6 +310,7 @@ impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
             chunking_is_supported: value.chunking_is_supported == 1,
             sharding_is_supported: value.sharding_is_supported == 1,
             multiscale_is_supported: value.multiscale_is_supported == 1,
+            s3_is_supported: value.s3_is_supported == 1,
         })
     }
 }
@@ -284,13 +319,23 @@ impl TryFrom<capi::StoragePropertyMetadata> for StorageCapabilities {
 impl Default for capi::StorageProperties {
     fn default() -> Self {
         Self {
-            filename: Default::default(),
-            first_frame_id: Default::default(),
+            uri: Default::default(),
             external_metadata_json: Default::default(),
+            access_key_id: Default::default(),
+            secret_access_key: Default::default(),
+            first_frame_id: Default::default(),
             pixel_scale_um: Default::default(),
             acquisition_dimensions: Default::default(),
             enable_multiscale: Default::default(),
         }
+    }
+}
+
+fn str_to_cstring(str: &Option<String>) -> Result<Option<CString>> {
+    if let Some(uri) = str {
+        Ok(Some(CString::new(uri.as_str())?))
+    } else {
+        Ok(None)
     }
 }
 
@@ -299,26 +344,35 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
 
     fn try_from(value: &StorageProperties) -> Result<Self, Self::Error> {
         let mut out: capi::StorageProperties = unsafe { std::mem::zeroed() };
+
         // Careful: x needs to live long enough
-        let x = if let Some(filename) = &value.filename {
-            Some(CString::new(filename.as_str())?)
-        } else {
-            None
-        };
-        let (filename, bytes_of_filename) = if let Some(ref x) = x {
+        let x = str_to_cstring(&value.uri)?;
+        let (uri, bytes_of_uri) = if let Some(ref x) = x {
             (x.as_ptr(), x.to_bytes_with_nul().len())
         } else {
             (null(), 0)
         };
 
         // Careful: y needs to live long enough
-        let y = if let Some(metadata) = &value.external_metadata_json {
-            Some(CString::new(metadata.as_str())?)
-        } else {
-            None
-        };
+        let y = str_to_cstring(&value.external_metadata_json)?;
         let (metadata, bytes_of_metadata) = if let Some(ref y) = y {
             (y.as_ptr(), y.to_bytes_with_nul().len())
+        } else {
+            (null(), 0)
+        };
+
+        // Careful: z needs to live long enough
+        let z = str_to_cstring(&value.s3_access_key_id)?;
+        let (access_key_id, bytes_of_access_key_id) = if let Some(ref z) = z {
+            (z.as_ptr(), z.to_bytes_with_nul().len())
+        } else {
+            (null(), 0)
+        };
+
+        // Careful: w needs to live long enough
+        let w = str_to_cstring(&value.s3_secret_access_key)?;
+        let (secret_access_key, bytes_of_secret_access_key) = if let Some(ref w) = w {
+            (w.as_ptr(), w.to_bytes_with_nul().len())
         } else {
             (null(), 0)
         };
@@ -328,8 +382,8 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
             capi::storage_properties_init(
                 &mut out,
                 value.first_frame_id,
-                filename,
-                bytes_of_filename as _,
+                uri,
+                bytes_of_uri as _,
                 metadata,
                 bytes_of_metadata as _,
                 capi::PixelScale {
@@ -341,10 +395,22 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         } {
             Err(anyhow::anyhow!("Failed to initialize storage properties."))
         } else if !unsafe {
+            capi::storage_properties_set_access_key_and_secret(
+                &mut out,
+                access_key_id,
+                bytes_of_access_key_id as _,
+                secret_access_key,
+                bytes_of_secret_access_key as _,
+            ) == 1
+        } {
+            Err(anyhow::anyhow!(
+                "Failed to set access key id and secret access key."
+            ))
+        } else if !unsafe {
             capi::storage_properties_set_enable_multiscale(&mut out, value.enable_multiscale as u8)
                 == 1
         } {
-            Err(anyhow::anyhow!("Failed acquire api status check"))
+            Err(anyhow::anyhow!("Failed to set multiscale settings."))
         } else {
             // initialize each dimension separately
             for (i, pydim) in value.acquisition_dimensions.iter().enumerate() {
@@ -416,6 +482,7 @@ impl Default for capi::StoragePropertyMetadata {
             chunking_is_supported: Default::default(),
             sharding_is_supported: Default::default(),
             multiscale_is_supported: Default::default(),
+            s3_is_supported: Default::default(),
         }
     }
 }
@@ -428,6 +495,7 @@ impl TryFrom<&StorageCapabilities> for capi::StoragePropertyMetadata {
             chunking_is_supported: value.chunking_is_supported as u8,
             sharding_is_supported: value.sharding_is_supported as u8,
             multiscale_is_supported: value.multiscale_is_supported as u8,
+            s3_is_supported: value.s3_is_supported as u8,
         })
     }
 }

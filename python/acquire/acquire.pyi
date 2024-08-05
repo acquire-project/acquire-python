@@ -373,7 +373,8 @@ class DeviceManager:
                 supported.
 
         Returns:
-            Optional[DeviceIdentifier]: The selected device identifier, or None if none of the specified devices are available.
+            Optional[DeviceIdentifier]: The selected device identifier, or None
+            if none of the specified devices are available.
         """
 
 @final
@@ -1023,7 +1024,7 @@ class StorageCapabilities:
         chunking_is_supported:
             A boolean indicating whether chunking is supported for this storage
             device.
-        shard_is_supported:
+        sharding_is_supported:
             A boolean indicating whether sharding is supported for this storage
             device.
         multiscale_is_supported:
@@ -1034,6 +1035,7 @@ class StorageCapabilities:
     chunking_is_supported: bool
     sharding_is_supported: bool
     multiscale_is_supported: bool
+    s3_is_supported: bool
 
     def dict(self) -> Dict[str, Any]:
         """Returns a dictionary of a `StorageCapabilities` object's attributes."""
@@ -1076,14 +1078,18 @@ class StorageProperties:
     """The `StorageProperties` class represents properties for data storage.
 
     Attributes:
+        uri:
+            The URI where the image data will be stored.
         external_metadata_json:
-            An optional attribute of the metadata JSON filename as a string.
-        filename:
-            An optional attribute representing the filename for storing the
-            image data.
+            Optional JSON-formatted metadata for the acquisition.
+        s3_access_key_id:
+            The access key ID for the S3 bucket. This value is only applicable
+            for Zarr storage devices and S3 URIs.
+        s3_secret_access_key:
+            The secret access key for the S3 bucket. This value is only applicable
+            for Zarr storage devices and S3 URIs.
         first_frame_id:
-            An integer representing the ID of the first frame for a given
-            acquisition.
+            The ID of the first frame.
         pixel_scale_um:
             A tuple of two floats representing the pixel size of the camera in
             micrometers.
@@ -1096,8 +1102,10 @@ class StorageProperties:
             A boolean indicating whether multiscale storage is enabled.
     """
 
+    uri: Optional[str]
     external_metadata_json: Optional[str]
-    filename: Optional[str]
+    s3_access_key_id: Optional[str]
+    s3_secret_access_key: Optional[str]
     first_frame_id: int
     pixel_scale_um: Tuple[float, float]
     acquisition_dimensions: List[StorageDimension]
