@@ -331,17 +331,22 @@ impl Default for capi::StorageProperties {
     }
 }
 
+fn str_to_cstring(str: &Option<String>) -> Result<Option<CString>> {
+    if let Some(uri) = str {
+        Ok(Some(CString::new(uri.as_str())?))
+    } else {
+        Ok(None)
+    }
+}
+
 impl TryFrom<&StorageProperties> for capi::StorageProperties {
     type Error = anyhow::Error;
 
     fn try_from(value: &StorageProperties) -> Result<Self, Self::Error> {
         let mut out: capi::StorageProperties = unsafe { std::mem::zeroed() };
+
         // Careful: x needs to live long enough
-        let x = if let Some(uri) = &value.uri {
-            Some(CString::new(uri.as_str())?)
-        } else {
-            None
-        };
+        let x = str_to_cstring(&value.uri)?;
         let (uri, bytes_of_uri) = if let Some(ref x) = x {
             (x.as_ptr(), x.to_bytes_with_nul().len())
         } else {
@@ -349,11 +354,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // Careful: y needs to live long enough
-        let y = if let Some(metadata) = &value.external_metadata_json {
-            Some(CString::new(metadata.as_str())?)
-        } else {
-            None
-        };
+        let y = str_to_cstring(&value.external_metadata_json)?;
         let (metadata, bytes_of_metadata) = if let Some(ref y) = y {
             (y.as_ptr(), y.to_bytes_with_nul().len())
         } else {
@@ -361,11 +362,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // Careful: z needs to live long enough
-        let z = if let Some(metadata) = &value.s3_access_key_id {
-            Some(CString::new(metadata.as_str())?)
-        } else {
-            None
-        };
+        let z = str_to_cstring(&value.s3_access_key_id)?;
         let (access_key_id, bytes_of_access_key_id) = if let Some(ref z) = z {
             (z.as_ptr(), z.to_bytes_with_nul().len())
         } else {
@@ -373,11 +370,7 @@ impl TryFrom<&StorageProperties> for capi::StorageProperties {
         };
 
         // Careful: w needs to live long enough
-        let w = if let Some(metadata) = &value.s3_secret_access_key {
-            Some(CString::new(metadata.as_str())?)
-        } else {
-            None
-        };
+        let w = str_to_cstring(&value.s3_secret_access_key)?;
         let (secret_access_key, bytes_of_secret_access_key) = if let Some(ref w) = w {
             (w.as_ptr(), w.to_bytes_with_nul().len())
         } else {

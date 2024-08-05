@@ -603,30 +603,33 @@ def test_switch_device_identifier(
 
 
 def test_acquire_unaligned(runtime: Runtime):
+    """Due to the way the queue is constructed, if a VideoFrame with data has
+    a size that is not divisible by 8 bytes, the next VideoFrame will be
+    unaligned. Rust will panic when this happens, so we pad VideoFrames to 8
+    bytes. This test checks that the runtime handles this correctly to satisfy
+    Rust.
+    """
     dm = runtime.device_manager()
     props = runtime.get_configuration()
-    props.video[0].camera.identifier = dm.select(
-        acquire.DeviceKind.Camera, ".*empty.*"
-    )
+    video = props.video[0]
+    video.camera.identifier = dm.select(acquire.DeviceKind.Camera, ".*empty.*")
 
     # sizeof(VideoFrame) + 33 * 47 is not divisible by 8
-    props.video[0].camera.settings.shape = (33, 47)
-    props.video[0].storage.identifier = dm.select(
-        acquire.DeviceKind.Storage, "trash"
-    )
+    video.camera.settings.shape = (33, 47)
+    video.storage.identifier = dm.select(acquire.DeviceKind.Storage, "trash")
 
-    props.video[0].max_frame_count = 3
+    video.max_frame_count = 3
     runtime.set_configuration(props)
 
     nframes = 0
     runtime.start()
-    while nframes < props.video[0].max_frame_count:
+    while nframes < video.max_frame_count:
         with runtime.get_available_data(0) as packet:
             for i in range(packet.get_frame_count()):
                 _ = next(packet.frames())
                 nframes += 1
     runtime.stop()
-    assert nframes == props.video[0].max_frame_count
+    assert nframes == video.max_frame_count
 
 
 # NOTES:
