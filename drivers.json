@@ -1,5 +1,5 @@
 {
-  "acquire-driver-zarr": "0.1.12",
+  "acquire-driver-zarr": "0.1.13",
   "acquire-driver-egrabber": "0.1.5",
   "acquire-driver-hdcam": "0.1.9",
   "acquire-driver-spinnaker": "0.1.1",
