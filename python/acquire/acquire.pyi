@@ -563,10 +563,26 @@ class InputTriggers:
 
 @final
 class OffsetCapabilities:
+    """Represents the size of the offset of the region of interest
+    on the camera.
+
+    The sum of the offset and shape is the size of the full camera chip.
+
+    Attributes:
+        x:
+            An instance of the `Property` class which represents the horizontal offset of
+            the region of interest on the camera chip.
+        y:
+            An instance of the `Property` class which represents the vertical offset of the
+            region of interest on the camera chip.
+    """
+    
     x: Property
     y: Property
 
-    def dict(self) -> Dict[str, Any]: ...
+    def dict(self) -> Dict[str, Any]: 
+        """Returns a dictionary of a `OffsetCapabilities` object's attributes."""
+        ...
 
 @final
 class OutputTriggers:
@@ -892,7 +908,7 @@ class SampleType:
 
 @final
 class ShapeCapabilities:
-    """Represents the size of the offset or the shape of the region of interest
+    """Represents the shape of the region of interest
     on the camera.
 
     The sum of the offset and shape is the size of the full camera chip.
@@ -900,12 +916,10 @@ class ShapeCapabilities:
     Attributes:
         x:
             An instance of the `Property` class which represents the width of
-            the region of interest on the camera or the horizontal offset of
-            the region of interest on the camera chip.
+            the region of interest on the camera.
         y:
             An instance of the `Property` class which represents the height of
-            the region of interest on the camera or the vertical offset of the
-            region of interest on the camera chip.
+            the region of interest on the camera.
     """
 
     x: Property
