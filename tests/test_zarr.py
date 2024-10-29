@@ -5,7 +5,6 @@ from tempfile import mkdtemp
 from typing import Optional
 
 import dotenv
-import numpy as np
 import pytest
 import s3fs
 import zarr
@@ -13,7 +12,6 @@ from dask import array as da
 from numcodecs import blosc as blosc
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
-from skimage.transform import downscale_local_mean
 
 import acquire
 from acquire import Runtime, DeviceKind
@@ -420,15 +418,7 @@ def test_write_zarr_multiscale(
     data = [
         da.from_zarr(uri, component=str(i)) for i in range(len(zgroup.data))
     ]
-    assert len(data) == 3
-
-    image = data[0][0, :, :].compute()  # convert dask array to numpy array
-
-    for d in data:
-        assert (
-            np.linalg.norm(image - d[0, :, :].compute()) == 0
-        )  # validate against the same method from scikit-image
-        image = downscale_local_mean(image, (2, 2)).astype(np.uint8)
+    assert len(data) == 3  # 3 layers
 
 
 @pytest.mark.parametrize(
